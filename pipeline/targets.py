@@ -29,6 +29,7 @@ TEFF_RANGE = (2300, 5300)
 MAX_RADIUS = 0.9
 MAX_TMAG = 13.5  # QLP and TESS-SPOC FFI light curves reach about this depth
 MAX_CONTRATIO = 0.2
+SURVEY_FETCH = 6000
 MIN_SECTORS = 1  # one-sector stars stay in the pool; the expected-SNR ranking pushes them down
 
 # Latest sectors with released light curves on MAST, checked 2026-10-26:
@@ -238,6 +239,12 @@ def build(trace: list[int]) -> pd.DataFrame:
     ffi_only = int((df["two_min_sectors"] == 0).sum())
     print(f"{ffi_only:>8,}  of these were never 2-minute targets", flush=True)
     funnel.append({"step": "never 2-minute targets", "stars": ffi_only})
+
+    # Survey order: stars never given 2-minute cadence (the least-searched), best expected SNR first.
+    # The fetch step downloads the top SURVEY_FETCH; the searched set and the held-back set are
+    # drawn from it later.
+    survey = df[df["two_min_sectors"] == 0].head(SURVEY_FETCH)
+    (DATA / "survey_order.txt").write_text("\n".join(map(str, survey["tic"])) + "\n", encoding="utf-8")
 
     df.to_parquet(DATA / "targets.parquet")
     (DATA / "targets_funnel.json").write_text(json.dumps(funnel, indent=2), encoding="utf-8")
