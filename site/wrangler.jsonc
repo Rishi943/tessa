@@ -17,7 +17,7 @@
     { "name": "ASK_GLOBAL", "namespace_id": "4302", "simple": { "limit": 120, "period": 60 } },
     { "name": "SEARCH_LIMIT", "namespace_id": "4303", "simple": { "limit": 40, "period": 60 } }
   ],
-  // visitors' searches
-  "kv_namespaces": [{ "binding": "SEARCHES", "id": "1bf64ad8451948ce89df4b349cf86a04" }],
+  // visitors' searches (migrations/): wrangler d1 migrations apply tessa-searches --remote
+  "d1_databases": [{ "binding": "DB", "database_name": "tessa-searches", "database_id": "715a4b71-0753-47a0-9cf8-e749297ea3cb" }],
   "observability": { "enabled": true }
 }
