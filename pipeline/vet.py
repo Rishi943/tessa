@@ -291,7 +291,7 @@ def known(tic: int, star: dict, sig: dict) -> list[dict]:
                          "separation_arcsec": round(float(sep[i]), 1), "harmonic": harmonic(r["period"], sig["period"])})
     for name, df, key in [("confirmed", catalogs.confirmed(), "planet"), ("TESS EB", catalogs.tess_ebs(), "tic")]:
         for _, r in df[df["tic"] == tic].iterrows():
-            hits.append({"list": name, "id": str(r[key]), "tic": tic, "period": float(r["period"]),
+            hits.append({"list": name, "id": str(int(r[key])) if key == "tic" else str(r[key]), "tic": tic, "period": float(r["period"]),
                          "separation_arcsec": 0.0, "harmonic": harmonic(r["period"], sig["period"])})
     return hits
 
