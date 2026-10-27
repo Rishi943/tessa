@@ -11,8 +11,9 @@ export function systemPrompt(version) {
   return readFileSync(new URL(`./prompts/vetting.${version}.md`, import.meta.url), "utf8");
 }
 
+// Four significant figures for measurements; integers (TIC and Gaia IDs, sectors, counts) stay exact.
 function round(v) {
-  return typeof v === "number" ? Number(v.toPrecision(4)) : v;
+  return typeof v === "number" && !Number.isInteger(v) ? Number(v.toPrecision(4)) : v;
 }
 
 export function userMessage(checks) {
