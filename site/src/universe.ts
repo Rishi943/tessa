@@ -1,7 +1,7 @@
 // The window everything happens in: every planet found around another star and every TESS candidate still
 // waiting, at its true place around the Sun (NASA Exoplanet Archive), inside a sketch of the Milky Way drawn to the
 // same scale. On the first visit the planets arrive in the order they were found. Drag to turn, scroll or pinch to
-// zoom, click a point to fly there.
+// zoom, click a point to fly into its system, drawn to scale.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { getPlanets, getStar, getSummary } from "./data";
@@ -10,6 +10,8 @@ import { STOPS } from "./tour";
 import type { Group } from "./tour";
 import { tourCard } from "./tourcards";
 import { searchCard } from "./search/card";
+import { AU_PER_PC, jdNow, systemView } from "./system";
+import type { SystemView } from "./system";
 import { css, el, fix, int } from "./util";
 
 const D2R = Math.PI / 180;
@@ -210,56 +212,6 @@ function lightYear(pc: number): string {
 const orbitText = (d: number) => (d < 2 ? `${int(d * 24)} hours` : d < 730 ? `${fix(d, d < 10 ? 1 : 0)} days` : `${fix(d / 365.25, 1)} years`);
 const tempText = (k: number) => `${int(Math.round((k - 273.15) / 10) * 10)} °C`;
 
-// A system's planets going round, orbits to scale with each other (Kepler's third law: same star, so the
-// orbit's size goes as the period to the 2/3), time sped up so the innermost goes round every 3 seconds.
-function orrery(p: Planets, rows: number[], short: (name: string) => string): HTMLElement | null {
-  const known = rows.filter((i) => p.period[i] != null).sort((a, b) => p.period[a]! - p.period[b]!);
-  if (!known.length) return null;
-  const canvas = el("canvas", { class: "orrery", role: "img",
-    "aria-label": `${known.length === 1 ? "The planet's orbit" : `${known.length} orbits`}, drawn to scale with each other, sped up` });
-  const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const pMin = p.period[known[0]]!, pMax = p.period[known[known.length - 1]]!;
-  // planets start a golden angle apart, so neighbours named b, c, d don't line up
-  const phase = known.map((_, k) => k * 2.39996);
-  const colors = known.map((i) => planetHex(p, i));
-  const t0 = performance.now();
-  const H = 120;
-  function draw(now: number) {
-    if (!canvas.isConnected && now - t0 > 500) return;
-    const W = canvas.clientWidth || 320, dpr = Math.min(devicePixelRatio || 1, 2);
-    if (canvas.width !== W * dpr) { canvas.width = W * dpr; canvas.height = H * dpr; }
-    const g = canvas.getContext("2d")!;
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-    g.clearRect(0, 0, W, H);
-    const cx = W / 2, cy = H / 2, outer = Math.min(W / 2 - 18, (H / 2 - 10) * 2.6);
-    const teff = p.teff[known[0]] ?? 5000;
-    g.fillStyle = teff < 3900 ? "#ffbf80" : teff < 5300 ? "#ffd9a8" : teff < 6300 ? "#fff1dc" : "#dfe8ff";
-    g.beginPath(); g.arc(cx, cy, 4, 0, Math.PI * 2); g.fill();
-    g.font = "11px 'Courier Prime', monospace";
-    g.textBaseline = "middle";
-    known.forEach((i, k) => {
-      const a = Math.max(outer * (p.period[i]! / pMax) ** (2 / 3), 12 + k * 4);
-      g.strokeStyle = "rgba(236, 235, 230, 0.14)";
-      g.lineWidth = 1;
-      g.beginPath(); g.ellipse(cx, cy, a, a * 0.36, 0, 0, Math.PI * 2); g.stroke();
-      const ang = phase[k] + (still ? 0 : ((now - t0) / 3000) * Math.PI * 2 * (pMin / p.period[i]!));
-      const r = Math.min(Math.max(1.4 + Math.sqrt(p.radius[i] ?? 2) * 1.1, 2), 6.5);
-      const x = cx + a * Math.cos(ang), y = cy + a * 0.36 * Math.sin(ang);
-      g.fillStyle = colors[k];
-      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
-      const name = short(p.name[i]);
-      if (name.length <= 3) {
-        g.fillStyle = "rgba(236, 235, 230, 0.6)";
-        g.fillText(name, x + r + 3, y);
-      }
-    });
-    if (!still) requestAnimationFrame(draw);
-  }
-  requestAnimationFrame(draw);
-  return el("figure", { class: "orrery-box" }, canvas,
-    el("figcaption", {}, known.length > 1 ? "Orbits to scale, time sped up" : "Time sped up"));
-}
-
 interface World { showHost(host: string): boolean; dispose(): void }
 
 let introDone = false;
@@ -299,6 +251,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     return null;
   }
   renderer.setClearColor(css("--page"));
+  renderer.autoClear = false;  // the system view draws over the universe in the same frame
   const tip = el("div", { class: "u-tip", hidden: true });
   const labelLayer = el("div", { class: "u-labels", "aria-hidden": "true" });
   const card = el("section", { class: "u-card", "aria-live": "polite" });
@@ -400,6 +353,10 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     labels.sort((a, b) => a.rank - b.rank);
     return l;
   };
+  const unlabel = (l: Label) => {
+    l.node.remove();
+    labels.splice(labels.indexOf(l), 1);
+  };
   label(el("span", { class: "u-label sun" }, "Sun"), new THREE.Vector3(0, 0, 0), 0, (d) => (d < 15000 ? 1 : 0));
   label(el("span", { class: "u-label sun" }, "You are here", el("small", {}, "Nearly every planet we know is in this corner")),
     new THREE.Vector3(0, 0, 0), 0, (d) => (d >= 15000 ? 1 : 0));
@@ -415,7 +372,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     const b = el("button", { type: "button", class: "u-label tessa", tabindex: -1 }, s.host, el("small", {}, "found by Tessa"),
       rp && per ? el("small", {}, `${rp.toFixed(1)} times Earth's width, ${Math.round(per * 24)}-hour year`) : null);
     b.addEventListener("click", () => select(s));
-    label(b, s.at, 1, (d) => (uniforms.uYear.value > 2028 && d < 8000 ? 1 : 0));
+    label(b, s.at, 1, (d) => (uniforms.uYear.value > 2028 && d < 8000 && !(svSys === s && svFade > 0) ? 1 : 0));
   });
   // the star a visitor is searching
   const searchTag = label(el("span", { class: "u-label tessa" }), new THREE.Vector3(), 1, () => (searching ? 1 : 0));
@@ -432,6 +389,44 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     return (2 * d * Math.tan((camera.fov * D2R) / 2)) / (canvas.clientHeight || 800);
   }
 
+  // ---- the system view: the selected system to scale in its own scene, measured in AU (system.ts)
+  let sv: SystemView | null = null, svSys: System | null = null, svFade = 0, hostHidden = false;
+  let svLabels: [Label, { at: THREE.Vector3 }][] = [];
+  const svCam = new THREE.PerspectiveCamera();
+  // the planets' clock: today, then a day every second unless the visitor picks real time
+  let simJd = jdNow(), simAt = 0, simSpeed = 86400;
+  const simNow = (now: number) => simJd + ((now - simAt) / 86400000) * simSpeed;
+  const simDate = el("span", { class: "u-time-date" });
+  let lastDate = "";
+  function openSystem(s: System) {
+    closeSystem();
+    const rows = [...s.rows].sort((a, b) => (p.period[a] ?? 1e9) - (p.period[b] ?? 1e9));
+    sv = systemView(p, rows, s.at, (i) => planetHex(p, i));
+    svSys = s;
+    simJd = jdNow();
+    simAt = performance.now();
+    controls.minDistance = sv.minDist / AU_PER_PC;
+    const short = (name: string) => (name === s.host ? "candidate" : name.startsWith(`${s.host} `) ? name.slice(s.host.length + 1) : name);
+    svLabels = sv.marks.map((m) => {
+      const node = m.kind === "planet" ? el("span", { class: "u-label sys" }, short(p.name[m.row!]))
+        : m.kind === "earth" ? el("span", { class: "u-label ring" }, "Earth's orbit", el("small", {}, "for scale"))
+        : m.kind === "hz" ? el("span", { class: "u-label ring" }, "Water could be liquid here")
+        : el("span", { class: "u-label ring" }, "To Earth");
+      return [label(node, new THREE.Vector3(), m.kind === "planet" ? 1 : 2, () => (svFade > 0.6 ? 1 : 0)), m];
+    });
+  }
+  function closeSystem() {
+    if (!sv) return;
+    sv.dispose();
+    sv = null;
+    svSys = null;
+    svFade = 0;
+    for (const [l] of svLabels) unlabel(l);
+    svLabels = [];
+    controls.minDistance = 0.3;
+    if (hostHidden) { hostHidden = false; paint(); }
+  }
+
   // ---- colour and focus
   let focus: Group | null = null;
   const hottest = (q: System) => {
@@ -444,7 +439,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       const c = q.kind === 2 ? new THREE.Color(TESSA) : q.kind === 1 ? new THREE.Color(WAITING) : heat(hottest(q));
       col.set([c.r, c.g, c.b], i * 3);
       const base = q.kind === 1 ? 0.5 : 1;
-      alpha[i] = focus && q.group !== focus ? base * 0.06 : base;
+      // inside a system its own point would sit over the drawing of it
+      alpha[i] = q === svSys && hostHidden ? 0 : focus && q.group !== focus ? base * 0.06 : base;
     });
     geom.attributes.color.needsUpdate = true;
     geom.attributes.alpha.needsUpdate = true;
@@ -492,6 +488,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   }
 
   function overview() {
+    closeSystem();
     setAt(null);
     selPoint.visible = false;
     selected = null;
@@ -559,11 +556,32 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       el("div", { class: "u-body" },
         el("h2", {}, s.host),
         el("div", { class: "u-pair" }, stat(lyNum(s.dist), "light-years away"), stat(lightYear(s.dist), "when its light left")),
-        orrery(p, rows, short),
+        sv ? timeControl() : null,
         table,
         el("p", { class: "u-legendnote" }, "Size is width, Earth = 1. Year is one orbit. Temp is an estimate."),
+        sv ? el("p", { class: "u-legendnote" }, [
+          "The star and the orbits are to scale; the planets are drawn larger, or you couldn't see them.",
+          sv.transits ? "Orbits that transit line up with the dashed line to Earth: that's why their planet dims its star." : "",
+          sv.guessed ? "A dashed orbit is partly a guess: its tilt, size or place hasn't been measured." : "",
+          sv.hz ? "The green band is where a planet could keep liquid water." : "",
+        ].filter(Boolean).join(" ")) : null,
         s.kind === 2 && tic ? el("a", { href: `/star/${tic}`, "data-link": true, class: "u-btn" }, "Open the case file") : null,
         share()));
+  }
+  function timeControl() {
+    const speeds: [string, number][] = [["A day a second", 86400], ["Real time", 1]];
+    const buttons = speeds.map(([name, v]) => {
+      const b = el("button", { type: "button", "aria-pressed": String(simSpeed === v) }, name);
+      b.addEventListener("click", () => {
+        simJd = simNow(performance.now());
+        simAt = performance.now();
+        simSpeed = v;
+        if (v === 1) simJd = jdNow();  // real time starts from now
+        buttons.forEach((x, k) => x.setAttribute("aria-pressed", String(speeds[k][1] === v)));
+      });
+      return b;
+    });
+    return el("div", { class: "u-time" }, el("span", { class: "u-k" }, "Planets on"), simDate, el("div", { class: "u-chips" }, ...buttons));
   }
   function share() {
     const b = el("button", { type: "button", class: "u-bar-btn u-share" }, "Copy link");
@@ -593,25 +611,29 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     hint.hidden = true;
     setAt(s.host);
     centred.textContent = `Centred on ${s.host}`;
+    openSystem(s);
     systemCard(s);
-    flyTo(s.at, Math.min(Math.max(s.dist * 0.14, 1.5), 700));
+    // into the system, framing its widest orbit, from a little above the orbits
+    flyTo(s.at, (sv!.outer * 3) / AU_PER_PC, sv!.fitDir, 3200);
   }
 
   // ---- camera moves
   type Tween = { from: THREE.Vector3; to: THREE.Vector3; fromD: number; toD: number; fromDir: THREE.Vector3; toDir: THREE.Vector3;
-    t0: number; ms: number };
+    t0: number; ms: number; deep: boolean };
   let tween: Tween | null = null;
   // fly the view's centre to a point and end up dist away from it, looking along dir if given
   function flyTo(to: THREE.Vector3, dist: number, dir?: THREE.Vector3, ms = 1800) {
     const from = camera.position.clone().sub(controls.target).normalize();
     tween = { from: controls.target.clone(), to: to.clone(), fromD: camera.position.distanceTo(controls.target), toD: dist,
-      fromDir: from, toDir: (dir ?? from).clone().normalize(), t0: performance.now(), ms: still ? 1 : ms };
+      fromDir: from, toDir: (dir ?? from).clone().normalize(), t0: performance.now(), ms: still ? 1 : ms,
+      deep: dist < camera.position.distanceTo(controls.target) * 1e-3 };
   }
   const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
   let intro: { t0: number } | null = null;
   function startIntro() {
     if (still) { endIntro(); return; }
+    closeSystem();
     focus = null;
     paint();
     selected = null;
@@ -676,6 +698,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   }
   function tourStop(k: number) {
     endIntro(false);
+    closeSystem();
     const s = tour[k];
     stopAt = k;
     selected = null;
@@ -723,6 +746,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   // start: begin searching at once (/search?go=1 and "Search another star")
   function searchMode(start = false) {
     endIntro(false);
+    closeSystem();
     leaveTour(false);
     tourEl?.dispose();
     searching = true;
@@ -908,7 +932,9 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       if (sec > 12.5) endIntro();
     } else if (tween) {
       const t = Math.min((now - tween.t0) / tween.ms, 1), e = ease(t);
-      controls.target.lerpVectors(tween.from, tween.to, e);
+      // diving into a system, the view's centre reaches the star in the first half and the rest is zoom, or the
+      // camera would plunge into the empty space on the way and find the star only at the end
+      controls.target.lerpVectors(tween.from, tween.to, tween.deep ? ease(Math.min(t / 0.5, 1)) : e);
       const d = Math.exp(Math.log(tween.fromD) + (Math.log(tween.toD) - Math.log(tween.fromD)) * e);
       v.lerpVectors(tween.fromDir, tween.toDir, e);
       if (v.lengthSq() < 1e-6) v.copy(tween.toDir);
@@ -923,13 +949,48 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     if (!still && !controls.autoRotate && now - idleSince > 15000) controls.autoRotate = true;
     controls.update();
     const dist = camera.position.distanceTo(controls.target);
+    // the near plane follows the view in, or a system a millionth of a parsec across would be clipped away
+    const near = Math.min(Math.max(dist * 0.002, 1e-12), 0.05);
+    if (Math.abs(camera.near / near - 1) > 0.25) {
+      camera.near = near;
+      camera.updateProjectionMatrix();
+    }
+    controls.zoomSpeed = dist < 0.5 ? 2.4 : 1.1;  // many powers of ten between a system and the galaxy
+    if (sv && svSys) {
+      const dAu = camera.position.distanceTo(svSys.at) * AU_PER_PC;
+      svFade = Math.min(Math.max((sv.outer * 400 - dAu) / (sv.outer * 300), 0), 1);
+      if (svFade > 0.3 !== hostHidden) {
+        hostHidden = svFade > 0.3;
+        paint();
+        selPoint.visible = !hostHidden && selected === svSys;
+      }
+      if (svFade > 0) {
+        const jd = simNow(now);
+        sv.update(jd, dAu, svFade);
+        svCam.copy(camera);
+        svCam.position.copy(camera.position).sub(svSys.at).multiplyScalar(AU_PER_PC);
+        svCam.near = Math.max(dAu * 0.001, 1e-7);
+        svCam.far = dAu * 10 + sv.outer * 100;
+        svCam.updateProjectionMatrix();
+        const d = new Date((jd - 2440587.5) * 86400000);
+        const text = d.toLocaleString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+          ...(simSpeed === 1 ? { hour: "2-digit", minute: "2-digit" } : {}) }) + (simSpeed === 1 ? " UTC" : "");
+        if (text !== lastDate) { lastDate = text; simDate.textContent = text; }
+      }
+      for (const [l, m] of svLabels) l.at.copy(svSys.at).addScaledVector(m.at, 1 / AU_PER_PC);
+    }
     const fromSun = camera.position.length();
     dustMat.uniforms.uFade.value = 0.35 + 0.65 * Math.min(Math.max((fromSun - 300) / 5000, 0), 1);
     sun.scale.setScalar(Math.max(fromSun * 0.004, 0.02));
-    for (const r of rings) (r.line.material as THREE.LineBasicMaterial).opacity = 0.5 * ringAlpha(r.r, fromSun);
+    for (const r of rings) (r.line.material as THREE.LineBasicMaterial).opacity = 0.5 * ringAlpha(r.r, fromSun) * (1 - svFade);
     const pm = patch.material as THREE.LineBasicMaterial;
     pm.opacity += ((tour[stopAt]?.patch ? 0.6 : 0) - pm.opacity) * (still ? 1 : 0.06);
+    renderer.clear();
     renderer.render(scene, camera);
+    if (sv && svFade > 0) {
+      renderer.clearDepth();
+      renderer.render(sv.scene, svCam);
+    }
 
     const w = canvas.clientWidth, h = canvas.clientHeight;
     const taken = [...keepOut];
@@ -954,10 +1015,13 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       l.node.classList.toggle("flip", flip);
     }
     // a scale bar of round light-years about 110 px long, at the distance the view is centred on
-    const per = pcPerPx(dist) * LY;
+    // light-years, or inside a system AU (the Sun to the Earth)
+    const au = pcPerPx(dist) * LY * 110 < 0.005;
+    const per = pcPerPx(dist) * (au ? AU_PER_PC : LY);
     const raw = per * 110, mag = 10 ** Math.floor(Math.log10(raw));
     const nice = [1, 2, 5, 10].map((m) => m * mag).reduce((a, b) => (Math.abs(b - raw) < Math.abs(a - raw) ? b : a));
-    const text = `${nice < 1 ? fix(nice, 1) : int(nice)} light-year${nice === 1 ? "" : "s"}`;
+    const text = au ? `${nice < 1 ? String(Number(nice.toPrecision(1))) : int(nice)} AU` + (nice === 1 ? ", the Sun to the Earth" : "")
+      : `${nice < 1 ? fix(nice, 1) : int(nice)} light-year${nice === 1 ? "" : "s"}`;
     if (text !== lastScale) {
       lastScale = text;
       scaleText.textContent = text;
@@ -989,6 +1053,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       return true;
     },
     dispose() {
+      closeSystem();
       tourEl?.dispose();
       cancelAnimationFrame(raf);
       ro.disconnect();

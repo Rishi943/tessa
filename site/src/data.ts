@@ -70,6 +70,10 @@ export interface Planets {
   kind: number[]; name: string[]; host: string[]; ra: number[]; dec: number[]; dist: number[]; method: number[];
   year: number[]; facility: number[]; period: (number | null)[]; radius: (number | null)[]; mass: (number | null)[];
   teq: (number | null)[]; teff: (number | null)[];
+  // orbits, for the system view: a (AU), eccentricity, inclination and periastron angle (degrees), mid-transit and
+  // periastron times (BJD), the star's radius and mass (solar)
+  a: (number | null)[]; ecc: (number | null)[]; incl: (number | null)[]; omega: (number | null)[];
+  tc: (number | null)[]; tp: (number | null)[]; srad: (number | null)[]; smass: (number | null)[];
 }
 
 const cache = new Map<string, Promise<unknown>>();

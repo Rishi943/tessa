@@ -93,20 +93,29 @@ def universe(out: Path, ours: list[dict]) -> dict:
     column. kind is 0 confirmed, 1 TESS candidate, 2 Tessa's. Rows without a distance can't be placed and are only
     counted."""
     p, t = catalogs.planets(), catalogs.open_tois()
+    # orbits for the system view: a (AU), eccentricity, inclination and periastron angle (degrees), and a mid-transit
+    # (tc) or periastron (tp) time in BJD to place each planet where it is today. TESS candidates transit, so they are
+    # edge-on; their star's mass comes from its gravity and radius (M = g R^2, in solar units).
     rows = pd.concat([
         pd.DataFrame({"kind": 0, "name": p["pl_name"], "host": p["hostname"], "ra": p["ra"], "dec": p["dec"],
                       "dist": p["sy_dist"], "method": p["discoverymethod"], "year": p["disc_year"],
                       "facility": p["disc_facility"], "period": p["pl_orbper"], "radius": p["pl_rade"],
-                      "mass": p["pl_bmasse"], "teq": p["pl_eqt"], "teff": p["st_teff"]}),
+                      "mass": p["pl_bmasse"], "teq": p["pl_eqt"], "teff": p["st_teff"], "a": p["pl_orbsmax"],
+                      "ecc": p["pl_orbeccen"], "incl": p["pl_orbincl"], "omega": p["pl_orblper"], "tc": p["pl_tranmid"],
+                      "tp": p["pl_orbtper"], "srad": p["st_rad"], "smass": p["st_mass"]}),
         pd.DataFrame({"kind": 1, "name": "TOI-" + t["toi"].map("{:.2f}".format), "host": "TIC " + t["tid"].astype(str),
                       "ra": t["ra"], "dec": t["dec"], "dist": t["st_dist"], "method": "Transit",
                       "year": t["toi_created"].str[:4].astype(int), "facility": TESS, "period": t["pl_orbper"],
-                      "radius": t["pl_rade"], "mass": np.nan, "teq": t["pl_eqt"], "teff": t["st_teff"]}),
+                      "radius": t["pl_rade"], "mass": np.nan, "teq": t["pl_eqt"], "teff": t["st_teff"], "a": np.nan,
+                      "ecc": np.nan, "incl": 90.0, "omega": np.nan, "tc": t["pl_tranmid"], "tp": np.nan,
+                      "srad": t["st_rad"], "smass": 10 ** (t["st_logg"] - 4.438) * t["st_rad"] ** 2}),
         pd.DataFrame([{"kind": 2, "name": f"TIC {o['tic']}", "host": f"TIC {o['tic']}", "ra": o["checks"]["star"]["ra"],
                        "dec": o["checks"]["star"]["dec"], "dist": o["checks"]["star"]["distance"], "method": "Transit",
                        "year": 2026, "facility": TESS, "period": o["ephem"]["period"],
                        "radius": o["checks"]["size"]["rp_rearth"], "mass": np.nan, "teq": np.nan,
-                       "teff": o["checks"]["star"]["teff"]} for o in ours]),
+                       "teff": o["checks"]["star"]["teff"], "a": np.nan, "ecc": np.nan, "incl": 90.0, "omega": np.nan,
+                       "tc": o["ephem"]["t0"] + 2457000, "tp": np.nan,  # BTJD to BJD
+                       "srad": o["checks"]["star"]["rad"], "smass": o["checks"]["star"]["mass"]} for o in ours]),
     ], ignore_index=True)
     placed = rows.dropna(subset=["ra", "dec", "dist"])
     methods = rows.loc[rows["kind"] == 0, "method"].value_counts().index.tolist()
@@ -123,7 +132,9 @@ def universe(out: Path, ours: list[dict]) -> dict:
             "ra": col("ra", 4), "dec": col("dec", 4), "dist": col("dist", 2),
             "method": placed["method"].map(methods.index).tolist(), "year": placed["year"].astype(int).tolist(),
             "facility": placed["facility"].map(facilities.index).tolist(), "period": col("period", 5),
-            "radius": col("radius", 2), "mass": col("mass", 2), "teq": col("teq", 0), "teff": col("teff", 0)}
+            "radius": col("radius", 2), "mass": col("mass", 2), "teq": col("teq", 0), "teff": col("teff", 0),
+            "a": col("a", 5), "ecc": col("ecc", 3), "incl": col("incl", 2), "omega": col("omega", 1), "tc": col("tc", 5),
+            "tp": col("tp", 5), "srad": col("srad", 3), "smass": col("smass", 3)}
     (out / "planets.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
     return data["counts"]
 
