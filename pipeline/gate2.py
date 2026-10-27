@@ -17,34 +17,47 @@ from pathlib import Path
 
 from .novelty import novelty
 from .paths import CACHE, DATA
+from .vet import CENTROID_REJECT_SIGMA
 from .when import when
 
 
-def outside_planet_range(c: dict) -> list[str]:
-    """The checks whose numbers fall outside the planet-like column of the agent's table."""
+def evidence(tic: int) -> dict:
+    path = DATA / "evidence" / f"{tic}.json"
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
+    """The checks whose numbers fall outside the planet-like column of the agent's table, unless
+    evidence from the agent's tools (pipeline/tools.py, measured by code) settles them."""
+    ev = ev or {}
+    by_source = ev.get("sector_depths_by_source", {}).get("verdict")
+    gaia_duration = [o["duration_ratio"] for o in ev.get("stellar_radius", {}).get("options", [])
+                     if o["radius_from"].startswith("Gaia")]
+    all_sectors = ev.get("centroid_all", {}).get("verdict")
     out = []
     if c["odd_even"]["diff_sigma"] >= 3:
         out.append(f"odd_even: odd and even transits differ by {c['odd_even']['diff_sigma']:.1f} sigma")
     s = c["secondary"]
     if s["snr"] >= 5 and s["snr"] >= 1.5 * s["best_brightening_snr"]:
         out.append(f"secondary: a dip at phase {s['phase']:.2f} with SNR {s['snr']:.1f}")
-    if c["sectors"].get("p_constant") is not None and c["sectors"]["p_constant"] < 0.01:
+    if c["sectors"].get("p_constant") is not None and c["sectors"]["p_constant"] < 0.01             and by_source not in ("steady", "differs_by_source"):
         out.append(f"sectors: depth changes between sectors (p = {c['sectors']['p_constant']:.1g})")
     if c["size"]["rp_rearth"] >= 10:
         out.append(f"size: {c['size']['rp_rearth']:.1f} Earth radii")
-    if c["duration"]["ratio"] > 1.5:
+    if c["duration"]["ratio"] > 1.5 and not any(r <= 1.5 for r in gaia_duration):
         out.append(f"duration: {c['duration']['ratio']:.1f}x the central transit")
     if any(k["harmonic"] is not None for k in c["known"]):
         out.append("known: a catalogued object at this period")
     if c["shape"]["v_sigma"] >= 3:
         out.append(f"shape: V-shaped at {c['shape']['v_sigma']:.1f} sigma")
     cen = c.get("centroid") or {}
+    on_target = cen.get("verdict") == "on_target" or all_sectors == "on_target"
     if not c["neighbours"].get("target_found", True):
         out.append("neighbours: the target is not in Gaia, so blends were not checked")
-    elif c["neighbours"].get("plausible_within_1px", 0) and cen.get("verdict") != "on_target":
+    elif c["neighbours"].get("plausible_within_1px", 0) and not on_target:
         out.append(f"neighbours: {c['neighbours']['plausible_within_1px']} star(s) within a pixel could fake it, "
                    f"and difference imaging is {cen.get('verdict', 'not run')}")
-    if cen.get("verdict") == "off_target":
+    if cen.get("verdict") == "off_target" and not on_target:
         out.append(f"centroid: the dip sits {cen['offset_arcsec']:.1f}\" off the target ({cen['offset_sigma']:.1f} sigma)")
     pc = c["phase_curve"]
     if pc["ratio_to_depth"] >= 0.3 and pc["chi2"] >= 50:
@@ -54,17 +67,35 @@ def outside_planet_range(c: dict) -> list[str]:
     return out
 
 
+def evidence_rejects(c: dict, ev: dict) -> list[str]:
+    """Rejections from the tools' evidence: the same kind of rule as the code vetting's."""
+    why = []
+    cen = ev.get("centroid_all", {})
+    if cen.get("on_star") and cen["offset_sigma"] >= CENTROID_REJECT_SIGMA:
+        why.append(f"centroid_all: difference imaging on every sector puts the dip on Gaia {cen['on_star']['source_id']}, "
+                   f"{cen['on_star']['sep_arcsec']}\" away ({cen['offset_sigma']:.1f} sigma off this star)")
+    rot = ev.get("rotation", {})
+    pc = c["phase_curve"]
+    if rot.get("signal_at_rotation_multiple") and pc["ratio_to_depth"] >= 0.3 and pc["chi2"] >= 50:
+        why.append(f"rotation: the star's spots turn every {rot['rotation_d']:.3f} d, the dip repeats at "
+                   f"{rot['signal_at_rotation_multiple']:g}x that, and the star swings {pc['ratio_to_depth']:.2f}x the dip")
+    return why
+
+
 def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple[str, list[str], dict]:
     """(status, reasons, extra): rejected, awaiting agent, flagged, known or candidate."""
     if checks["code_verdict"] == "reject":
         return "rejected", checks["reasons"], {}
+    ev = evidence(checks["tic"])
+    if evidence_rejects(checks, ev):
+        return "rejected", evidence_rejects(checks, ev), {}
     if dossier is None:
         return "awaiting agent", [], {}
     d = dossier["dossier"]
     agent = [f"{r['check']}: {r['why']}" for r in d["reasons"]]
     if d["verdict"] == "reject":
         return "rejected", ["agent: " + a for a in agent], {}
-    rules = outside_planet_range(checks)
+    rules = outside_planet_range(checks, ev)
     if rules or d["verdict"] == "flag":
         return "flagged", rules or ["agent: " + a for a in agent], {}
     nov = novelty(checks["tic"], sig)
@@ -86,6 +117,7 @@ def main() -> None:
     ap.add_argument("--lc", default=str(CACHE / "lc"), help="folder with the lc_NNN.npz shards")
     ap.add_argument("--model", default="muse-spark-1.3-contributor")
     ap.add_argument("--prompt", default="v5")
+    ap.add_argument("--investigation", default="inv1", help="investigation dossiers win over --prompt ones")
     args = ap.parse_args()
     from .vet import signal_from_results
 
@@ -94,8 +126,9 @@ def main() -> None:
     for path in sorted(vet_dir.glob("[0-9]*.json")):
         checks = json.loads(path.read_text(encoding="utf-8"))
         tic = checks["tic"]
-        dpath = DATA / "dossiers" / f"{tic}.{args.model}.{args.prompt}.json"
-        dossier = json.loads(dpath.read_text(encoding="utf-8")) if dpath.exists() else None
+        found = [DATA / "dossiers" / f"{tic}.{args.model}.{v}.json" for v in (args.investigation, args.prompt)]
+        dpath = next((f for f in found if f.exists()), None)
+        dossier = json.loads(dpath.read_text(encoding="utf-8")) if dpath else None
         sig = signal_from_results(tic, Path(args.results))
         status, reasons, extra = decide(checks, dossier, sig, Path(args.lc))
         rows.append({"tic": tic, "status": status, "reasons": "; ".join(reasons)})
