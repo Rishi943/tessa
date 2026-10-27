@@ -250,6 +250,9 @@ footer.foot p { margin: 0; max-width: var(--read); }
   padding: 0.4rem 0.6rem; font-size: 0.82rem; line-height: 1.35; box-shadow: 0 4px 16px var(--shade); white-space: nowrap;
 }
 .tip[hidden] { display: none; }
+.transit canvas { cursor: ew-resize; touch-action: pan-y; }
+.transit-bar { display: flex; gap: 0.9rem; align-items: center; margin-top: 0.4rem; }
+.transit-bar .cap { margin: 0; }
 .data-toggle { margin-top: 0.5rem; font-size: 0.85rem; }
 .data-toggle summary { cursor: pointer; color: var(--ink-2); }
 .data-toggle table { border-collapse: collapse; margin-top: 0.5rem; font-variant-numeric: tabular-nums; }

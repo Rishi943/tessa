@@ -3,6 +3,7 @@
 import { openAsk } from "./ask";
 import { foldChart, lightCurve, sectorDepths, snrBars } from "./charts";
 import { plainChecks, stateIcon } from "./checks";
+import { transitView } from "./transit";
 import { getStar } from "./data";
 import type { Checks, Dossier, StarPage } from "./data";
 import { date, footer } from "./home";
@@ -36,6 +37,7 @@ export async function starPage(main: HTMLElement, tic: number) {
           + `Right ascension ${fix(s.ra, 4)}°, declination ${fix(s.dec, 4)}°.`)),
       el("div", {}, badge(p.status))),
     ...verdict(p),
+    p.status === "candidate" ? orbitPanel(p) : el("span"),
     el("div", { class: "panel" }, el("h2", {}, "The light curve"),
       el("p", { class: "sub" }, `${int(c.refit?.transits ?? p.gate1.transits)} dips of ${int(c.signal.depth_ppm)} ppm every ${fix(c.signal.period, 5)} days, `
         + `found at signal-to-noise ${fix(p.gate1.dip_snr, 1)}. The same search on the flipped light curve found ${fix(p.gate1.flipped_snr, 1)}.`),
@@ -48,6 +50,13 @@ export async function starPage(main: HTMLElement, tic: number) {
   inner.append(el("p", {}, el("button", { class: "ask-open", type: "button", onclick: () => openAsk(`Tell me about TIC ${tic}.`) },
     "Ask Tessa about this star")));
   main.append(el("article", { class: "star" }, inner), footer());
+}
+
+function orbitPanel(p: StarPage): HTMLElement {
+  const view = transitView(p);
+  return view ? el("section", { class: "panel" }, el("h2", {}, "If it is a planet, this is the dip"),
+    el("p", { class: "sub" }, "The star as TESS sees it, with the planet crossing on the path its dip implies. Drag across the chart to move through the transit."),
+    view) : el("span");
 }
 
 function verdict(p: StarPage): HTMLElement[] {
