@@ -178,13 +178,14 @@ def detrend(t: np.ndarray, flux: np.ndarray, sector: np.ndarray) -> dict[str, np
     w = 1 / noise**2
     # Bin within each sector; 30- and 10-minute sectors stay at one point per bin.
     key = sector.astype(np.int64) * 10**8 + np.floor((t - t.min()) / BIN_D).astype(np.int64)
-    _, idx = np.unique(key, return_inverse=True)
+    keys, idx = np.unique(key, return_inverse=True)
     sw = np.bincount(idx, w)
     out = {
         "t": np.bincount(idx, w * t) / sw,
         "y": np.bincount(idx, w * rel) / sw,
         "w": sw,
         "span": np.bincount(idx, cadence),
+        "sector": (keys // 10**8).astype(np.int16),
         "noise_ppm": float(np.median(noise)) * 1e6,
         "n_flare": int(flare.sum()),
     }
@@ -318,8 +319,10 @@ def passes(peak: dict) -> bool:
 
 
 def search_star(t, flux, sector, rad, mass, bls, p_min=P_MIN, p_max=P_MAX) -> tuple[dict, list[dict]]:
-    if not (np.isfinite(rad) and np.isfinite(mass) and rad > 0 and mass > 0):
-        rad, mass = 0.5, 0.5
+    if not (np.isfinite(rad) and rad > 0):
+        rad = mass if np.isfinite(mass) and mass > 0 else 0.5
+    if not (np.isfinite(mass) and mass > 0):
+        mass = rad  # for K and M dwarfs, mass in solar units is close to radius
     lc = detrend(t, flux, sector)
     t_ref = lc["t"].min()
     baseline = lc["t"].max() - t_ref
