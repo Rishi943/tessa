@@ -23,6 +23,9 @@ export function svg(markup: string): SVGElement {
 
 export const int = (n: number) => Math.round(n).toLocaleString("en-US");
 export const fix = (n: number | null | undefined, d: number) => (n == null || !isFinite(n) ? "n/a" : n.toFixed(d));
+// A probability as a percentage that never rounds a tiny chance to "0%"
+export const pct = (p: number | null | undefined) =>
+  p == null || !isFinite(p) ? "n/a" : p < 1e-4 ? "less than 0.01%" : p < 0.01 ? `${+(p * 100).toFixed(2)}%` : `${Math.round(p * 100)}%`;
 export const usd = (n: number) => (n < 0.01 ? `$${n.toFixed(4)}` : `$${n.toFixed(2)}`);
 
 // Every status has a plain label, a colour token and a shape, so colour never carries it alone.

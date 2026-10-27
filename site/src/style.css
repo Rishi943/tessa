@@ -82,6 +82,7 @@ a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 0.18e
 a:hover { text-decoration-thickness: 2px; }
 button { font: inherit; color: inherit; }
 :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 2px; }
+main:focus { outline: none; }  /* focused on route change for screen readers, not a control */
 h1, h2, h3 { font-weight: 400; margin: 0; }
 p { margin: 0 0 1em; }
 .num { font-variant-numeric: tabular-nums; }

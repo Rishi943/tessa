@@ -6,7 +6,7 @@ import { plainChecks, stateIcon } from "./checks";
 import { getStar } from "./data";
 import type { Checks, Dossier, StarPage } from "./data";
 import { date, footer } from "./home";
-import { badge, el, fix, int, spectral } from "./util";
+import { badge, el, fix, int, pct, spectral } from "./util";
 
 const TOOL_NAMES: Record<string, string> = {
   centroid_all: "Centroid in every sector", sector_depths_by_source: "Depth by data source", transit_depths: "Depth of each transit",
@@ -120,9 +120,9 @@ function evidenceLine(tool: string, e: Checks | undefined): string | null {
         : `${e.verdict}: ${e.why}.`;
     case "sector_depths_by_source":
       return `${String(e.verdict).replaceAll("_", " ")}. `
-        + (e.by_source ?? []).map((b: Checks) => `${b.source}: ${int(b.depth_ppm)} ± ${int(b.err_ppm)} ppm over ${b.sectors} sectors`).join("; ") + ".";
+        + (e.by_source ?? []).map((b: Checks) => `${b.source}: ${int(b.depth_ppm)} ± ${int(b.err_ppm)} ppm over ${b.sectors} sector${b.sectors === 1 ? "" : "s"}`).join("; ") + ".";
     case "transit_depths":
-      return `${e.transits} transits averaging ${int(e.mean_depth_ppm)} ppm; the chance they share one depth is ${fix(e.p_consistent * 100, e.p_consistent < 0.01 ? 4 : 0)}%; `
+      return `${e.transits} transits averaging ${int(e.mean_depth_ppm)} ppm; the chance they share one depth is ${pct(e.p_consistent)}; `
         + `the three deepest carry ${fix(e.share_of_top_3 * 100, 0)}% of the signal.`;
     case "stellar_radius":
       return (e.options ?? []).map((o: Checks) => `from ${o.radius_from}: ${fix(o.rad, 2)} solar radii, planet ${fix(o.rp_rearth, 1)} Earths, duration ratio ${fix(o.duration_ratio, 1)}`).join("; ") + ".";

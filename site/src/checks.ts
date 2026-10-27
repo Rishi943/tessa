@@ -1,7 +1,7 @@
 // The code checks from pipeline/vet.py in plain words. Thresholds mirror vet.py so the page says what
 // the pipeline did, not a second opinion.
 import type { Checks, StarPage } from "./data";
-import { fix, int, svg } from "./util";
+import { fix, int, pct, svg } from "./util";
 
 export type State = "pass" | "concern" | "fail" | "none";
 export interface Line { name: string; state: State; says: string }
@@ -33,10 +33,13 @@ export function plainChecks(page: StarPage): Line[] {
   const sec = c.secondary;
   if (sec) {
     const fail = sec.snr >= SECONDARY_SNR && sec.snr >= SECONDARY_OVER_BUMP * sec.best_brightening_snr;
-    out.push({ name: "A second, fainter dip", state: fail ? "fail" : sec.snr >= 5 ? "concern" : "pass",
+    const odd = sec.snr >= 5;
+    out.push({ name: "A second, fainter dip", state: fail ? "fail" : odd ? "concern" : "pass",
       says: fail
         ? `There is a second dip at phase ${fix(sec.phase, 2)} (signal-to-noise ${fix(sec.snr, 1)}): the far side of an eclipsing binary.`
-        : `The strongest dip elsewhere in the orbit has signal-to-noise ${fix(sec.snr, 1)}, no more than noise (bright bumps reach ${fix(sec.best_brightening_snr, 1)}).` });
+        : odd
+          ? `The strongest dip elsewhere in the orbit, at phase ${fix(sec.phase, 2)}, has signal-to-noise ${fix(sec.snr, 1)}. Bright bumps in this light curve reach ${fix(sec.best_brightening_snr, 1)}, so it may be noise, but it is worth a look.`
+          : `The strongest dip elsewhere in the orbit has signal-to-noise ${fix(sec.snr, 1)}, no more than noise (bright bumps reach ${fix(sec.best_brightening_snr, 1)}).` });
   }
   const size = c.size;
   if (size?.rp_rearth != null) {
@@ -54,9 +57,11 @@ export function plainChecks(page: StarPage): Line[] {
   const sh = c.shape;
   if (sh?.best_ingress_fraction != null) {
     const flat = sh.best_ingress_fraction <= FLAT_MAX;
-    out.push({ name: "Shape", state: flat ? "pass" : sh.v_sigma > 3 ? "concern" : "pass",
+    const vee = !flat && sh.v_sigma > 3;
+    out.push({ name: "Shape", state: vee ? "concern" : "pass",
       says: flat ? `Flat-bottomed, as when a small body sits wholly in front of the star.`
-        : `Closer to a V than a flat bottom (V favoured by ${fix(sh.v_sigma, 1)} sigma), as in a grazing eclipse.` });
+        : vee ? `V-shaped (favoured over a flat bottom by ${fix(sh.v_sigma, 1)} sigma), as in a grazing eclipse of two stars.`
+          : `The best fit has sloping sides, but a flat bottom fits nearly as well (a V is favoured by only ${fix(sh.v_sigma, 1)} sigma).` });
   }
   const pc = c.phase_curve;
   if (pc) {
@@ -69,7 +74,7 @@ export function plainChecks(page: StarPage): Line[] {
   if (sd?.per_sector?.length > 1) {
     out.push({ name: "Depth from sector to sector", state: sd.p_constant < 0.01 ? "concern" : "pass",
       says: `Measured separately in ${sd.per_sector.length} sectors, the depth ${sd.p_constant < 0.01 ? "changes more than noise allows" : "holds steady"} `
-        + `(chance of this spread from noise: ${fix(sd.p_constant * 100, sd.p_constant < 0.01 ? 2 : 0)}%). A dip from a neighbour changes as the camera's view of it changes.` });
+        + `(chance of this spread from noise: ${pct(sd.p_constant)}). A dip from a neighbour changes as the camera's view of it changes.` });
   }
   const nb = c.neighbours;
   if (nb) {

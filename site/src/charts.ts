@@ -1,7 +1,7 @@
 // The star page's charts, drawn by hand: one series each, hairline axes, a tooltip on hover and the
 // numbers behind every chart in a table underneath.
 import type { StarPage } from "./data";
-import { css, el, fix, int, svg } from "./util";
+import { css, el, fix, int, pct, svg } from "./util";
 
 const NS = "http://www.w3.org/2000/svg";
 
@@ -196,7 +196,7 @@ export function sectorDepths(page: StarPage): HTMLElement | null {
   </svg>`);
   const sc = page.checks.sectors;
   const box = el("div", { class: "chart" }, s, el("p", { class: "cap" },
-    `Depth in each sector. A chance this spread comes from noise alone: ${fix(sc.p_constant * 100, 0)}%.`));
+    `Depth in each sector. Chance this spread comes from noise alone: ${pct(sc.p_constant)}.`));
   box.append(dataTable(["sector", "depth ppm", "error"], per.map((p) => [p.sector, p.depth_ppm, p.err_ppm]), "Show the numbers"));
   return box;
 }
