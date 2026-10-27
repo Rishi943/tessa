@@ -177,6 +177,9 @@ def detrend(t: np.ndarray, flux: np.ndarray, sector: np.ndarray) -> dict[str, np
         ok &= np.cumsum(edges)[:-1] == 0
 
     t, rel, noise, cadence, sector = t[ok], rel[ok], noise[ok], cadence[ok], sector[ok]
+    if not len(t):  # every point was NaN, flat or a flare
+        return {"t": t, "y": rel, "w": noise, "span": cadence, "sector": sector.astype(np.int16),
+                "noise_ppm": float("nan"), "n_flare": int(flare.sum())}
     w = 1 / noise**2
     # Bin within each sector; 30- and 10-minute sectors stay at one point per bin.
     key = sector.astype(np.int64) * 10**8 + np.floor((t - t.min()) / BIN_D).astype(np.int64)
@@ -326,6 +329,9 @@ def search_star(t, flux, sector, rad, mass, bls, p_min=P_MIN, p_max=P_MAX) -> tu
     if not (np.isfinite(mass) and mass > 0):
         mass = rad  # for K and M dwarfs, mass in solar units is close to radius
     lc = detrend(t, flux, sector)
+    if not len(lc["t"]):
+        return {"n_points": 0, "n_sectors": len(np.unique(sector)), "n_freq": 0, "gate1": "fail",
+                "reason": "no usable points"}, []
     t_ref = lc["t"].min()
     baseline = lc["t"].max() - t_ref
     row = {"n_points": len(lc["t"]), "n_sectors": len(np.unique(sector)), "span_d": round(baseline, 1),
@@ -513,7 +519,7 @@ def run(args, part: int, nparts: int) -> None:
             n_done += 1
             if only or n_done % 25 == 0:
                 log(f"shard {n} TIC {tic}: {row['n_freq']} freqs, {row['seconds']} s, "
-                    f"dip {row['dip_snr'] and round(row['dip_snr'], 1)} @ {row['dip_period'] and round(row['dip_period'], 4)} d, "
+                    f"dip {row.get('dip_snr') and round(row['dip_snr'], 1)} @ {row.get('dip_period') and round(row['dip_period'], 4)} d, "
                     f"gate1 {row['gate1']} ({row['reason']})  [{n_done} stars]")
         log(f"shard {n} done")
 
