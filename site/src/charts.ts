@@ -34,6 +34,9 @@ export function lightCurve(page: StarPage): HTMLElement {
   const { t, y_ppm, sector } = page.series;
   const { period, t0 } = page.ephem;
   const depth = page.checks.signal.depth_ppm as number;
+  // bins inside a predicted transit, drawn in colour on top so the dips show through the noise
+  const halfDur = ((page.when?.ephemeris.t14_h ?? page.checks.signal.dur_h) as number) / 48;
+  const inDip = t.map((x) => Math.abs(((((x - t0) % period) + 1.5 * period) % period) - period / 2) < halfDur);
   const blocks: { s: number; i0: number; i1: number; t0: number; t1: number }[] = [];
   for (let i = 0; i < t.length; i++) {
     const b = blocks[blocks.length - 1];
@@ -47,7 +50,7 @@ export function lightCurve(page: StarPage): HTMLElement {
   const canvas = el("canvas", { role: "img", "aria-label": `Brightness of TIC ${page.tic} over ${blocks.length} TESS sectors, in parts per million` });
   const tip = el("div", { class: "tip", hidden: true });
   box.append(canvas, tip, el("p", { class: "cap" },
-    `Brightness in parts per million, 30-minute bins, ${blocks.length} sectors of about 27 days each. Ticks mark where the dip should fall every ${fix(period, 4)} days.`));
+    `Brightness in parts per million, 30-minute bins, ${blocks.length} sectors of about 27 days each. Ticks mark where the dip should fall every ${fix(period, 4)} days; bins inside a dip are coloured.`));
 
   const H = 260, padL = 44, padR = 8, padT = 10, padB = 34, GAP = 10;
   let xs: Float32Array = new Float32Array(0);
@@ -88,8 +91,11 @@ export function lightCurve(page: StarPage): HTMLElement {
       for (let i = b.i0; i <= b.i1; i++) {
         xs[i] = x0 + ((t[i] - b.t0) / (b.t1 - b.t0 || 1)) * bw;
         ys[i] = yOf(Math.max(lo, Math.min(hi, y_ppm[i])));
-        ctx.fillRect(xs[i] - 1, ys[i] - 1, 2, 2);
+        if (!inDip[i]) ctx.fillRect(xs[i] - 1, ys[i] - 1, 2, 2);
       }
+      ctx.globalAlpha = 1;
+      ctx.fillStyle = css("--candidate");
+      for (let i = b.i0; i <= b.i1; i++) if (inDip[i]) ctx.fillRect(xs[i] - 1.5, ys[i] - 1.5, 3, 3);
       // predicted transits under the block
       ctx.globalAlpha = 1;
       ctx.strokeStyle = css("--candidate");
