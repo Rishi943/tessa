@@ -330,7 +330,7 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
   const pause = el("button", { type: "button", class: "t-pause", "aria-pressed": "false" }, "Pause");
   const text = el("p", { class: "t-text", "aria-live": "polite" });
   const box = el("div", { class: "t-show" });
-  const chips = o.kind === "dip" ? el("div", { class: "u-chips t-chips" }, el("span", { class: "u-k" }, "Other ways planets are found:")) : null;
+  const chips = o.kind === "dip" ? el("div", { class: "u-chips t-chips" }, el("span", { class: "u-k" }, "Other ways planets are found")) : null;
   // reading order: where you are (the header), the sentence (the one thing to read), then the stop's number for
   // context, then the controls
   const node = el("section", { class: "t-card", "aria-label": "Tour" },
@@ -340,8 +340,8 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
           el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`), el("b", {}, NAME[o.kind])), leave),
         el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" })))),
       el("div", { class: "t-say" }, spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null, text),
-      el("div", { class: "t-stat" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null),
-      el("div", { class: "t-ctrl" }, el("div", { class: "t-nav" }, back, pips, fwdBox), pause, chips)),
+      el("div", { class: "t-stat" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null, chips),
+      el("div", { class: "t-ctrl" }, el("div", { class: "t-nav" }, back, pips, fwdBox), pause)),
     el("div", { class: "t-stage" }, box));
 
   // Pacing. Each step stays up long enough to read (about 180 words a minute, plus a beat to look at the picture),
@@ -415,16 +415,10 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
     else if (ev.key === " " && !(ev.target as HTMLElement).closest("button,a")) { ev.preventDefault(); setPaused(!paused); }
   };
   addEventListener("keydown", key);
-  // hovering the words or the controls holds the tour still, so nobody is hurried mid-sentence
-  let hover = false;
-  for (const part of node.querySelectorAll(".t-say,.t-ctrl")) {
-    part.addEventListener("pointerenter", () => { hover = true; });
-    part.addEventListener("pointerleave", () => { hover = false; });
-  }
 
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
-    if (paused || hover) r0 += now - (last || now);  // a held clock: real time passes, the stop's clock does not
+    if (paused) r0 += now - (last || now);  // a held clock: real time passes, the stop's clock does not
     last = now;
     const rt = (now - r0) / 1000;
     const { i: kk, t } = showTime(Math.max(rt, 0));

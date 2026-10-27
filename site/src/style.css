@@ -477,3 +477,7 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .t-stage { display: flex; flex-direction: column; justify-content: center; }
 /* the case file starts on the waiting candidates behind it: no frame until its checks appear */
 .t-stage:has(.t-checks:not(.show)) { background: none; border-color: transparent; }
+/* under the stop's number, right-aligned: the other ways planets are found */
+.t-stat .t-chips { justify-content: flex-end; margin-top: 0.7rem; max-width: 16rem; }
+.t-stat .t-chips .u-k { flex-basis: 100%; text-align: right; margin: 0 0 0.2rem; }
+@media (max-width: 900px) { .t-stat .t-chips { justify-content: flex-start; } .t-stat .t-chips .u-k { text-align: left; } }
