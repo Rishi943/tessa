@@ -356,6 +356,21 @@ button.u-label.tessa { pointer-events: auto; background: none; border: 0; margin
 .u-btn { display: inline-block; margin: 0 0 0.7rem; padding: 0.55rem 1rem; border: 1px solid var(--ink); color: var(--ink); font-weight: 500; text-decoration: none; }
 .u-btn:hover { background: var(--ink); color: var(--page); }
 .u-share { display: block; font: 400 0.8rem var(--mono); }
+button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointer; }
+.u-tour { margin: 0 0 1.1rem; }
+
+/* the tour card: a thin progress line, the stop's figure and a few lines */
+.u-of { color: var(--muted); margin-left: 0.4rem; }
+.u-steps { display: flex; gap: 3px; margin: 0 0 1.1rem; }
+.u-steps span { flex: 1; height: 2px; background: var(--line); }
+.u-steps span.on { background: var(--ink-2); }
+.u-body h2.u-title { font: 400 1.05rem/1.35 var(--sans); font-stretch: 100%; letter-spacing: 0; margin: 0.45rem 0 0.55rem; }
+.u-text { margin: 0 0 1.1rem; color: var(--ink-2); line-height: 1.55; }
+.u-links { display: flex; flex-direction: column; gap: 0.35rem; margin: -0.2rem 0 1.1rem; font: 400 0.85rem var(--mono); }
+.u-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.1rem; }
+.u-actions .u-btn { margin: 0; }
+.u-label.stop { color: var(--ink); }
+.u-label.patch { color: var(--tessa); }
 
 .u-readout { position: absolute; right: var(--gutter); bottom: var(--gutter); font: 400 0.78rem/1.6 var(--mono); color: var(--muted); text-align: right; pointer-events: none; }
 .u-readout div { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end; }

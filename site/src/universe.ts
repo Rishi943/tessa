@@ -4,8 +4,11 @@
 // zoom, click a point to fly there.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { getPlanets } from "./data";
-import type { Planets } from "./data";
+import { openAsk } from "./ask";
+import { getPlanets, getSummary } from "./data";
+import type { Planets, Summary } from "./data";
+import { stops } from "./tour";
+import type { Group } from "./tour";
 import { css, el, fix, int } from "./util";
 
 const D2R = Math.PI / 180;
@@ -18,7 +21,6 @@ const T = [-0.0548755604, -0.8734370902, -0.4838350155, 0.4941094279, -0.4448296
 const HOME = { dist: 3000, dir: new THREE.Vector3(-0.35, 0.62, 1).normalize() };
 const INTRO_FROM = 1200;  // close enough to see 1992's pulsar planets, 600 pc out, flare
 
-type Group = "transit" | "rv" | "lens" | "other" | "waiting" | "tessa";
 // Colour is how hot a world is (its estimated equilibrium temperature): pale near Earth's 255 K, bluer when
 // colder, orange to red when hotter, a diverging scale on log temperature. Planets with no estimate, TESS
 // candidates still waiting and Tessa's own keep one colour each. How a planet was found is a filter, not a colour.
@@ -257,8 +259,9 @@ let introDone = false;
 let current: World | null = null;
 
 export async function universe(main: HTMLElement) {
-  const data = await getPlanets();
-  current = mount(main, data);
+  // the tour reads its counts from the summary; without it the map still works, just without a tour
+  const [data, sum] = await Promise.all([getPlanets(), getSummary().catch(() => null)]);
+  current = mount(main, data, sum);
 }
 
 export function leaveUniverse() {
@@ -271,8 +274,9 @@ export function flyToTic(tic: number): boolean {
   return current?.showHost(`TIC ${tic}`) ?? false;
 }
 
-function mount(host: HTMLElement, p: Planets): World | null {
+function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null {
   const sys = systems(p);
+  const tour = sum ? stops(p, sum) : [];
   const section = el("section", { class: "world-view", "aria-label": "Every planet found around another star" });
   const canvas = el("canvas", { class: "universe", tabindex: 0, role: "img",
     "aria-label": `${int(p.counts.confirmed)} confirmed planets and ${int(p.counts.waiting)} TESS candidates at their true places around the Sun. Arrow keys turn the view, plus and minus zoom.` });
@@ -348,15 +352,16 @@ function mount(host: HTMLElement, p: Planets): World | null {
   scene.add(dustPoints, points, selPoint);
   const sun = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 12), new THREE.MeshBasicMaterial({ color: 0xfff1dc }));
   scene.add(sun);
-  const RINGS = [100, 1000, 10000];
-  const rings = RINGS.map((ly) => {
-    const r = ly / LY;
+  const circle = (r: number, color: string) => {
     const pts = Array.from({ length: 257 }, (_, i) => new THREE.Vector3(r * Math.cos((i / 256) * Math.PI * 2), 0, r * Math.sin((i / 256) * Math.PI * 2)));
-    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-      new THREE.LineBasicMaterial({ color: css("--axis"), transparent: true, opacity: 0 }));
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color, transparent: true, opacity: 0 }));
     scene.add(line);
-    return { r, line };
-  });
+    return line;
+  };
+  const RINGS = [100, 1000, 10000];
+  const rings = RINGS.map((ly) => ({ r: ly / LY, line: circle(ly / LY, css("--axis")) }));
+  // Tessa's patch: every star it searches lies within 100 parsecs; the tour shows the edge
+  const patch = circle(100, TESSA);
 
   const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 400000);
   const controls = new OrbitControls(camera, canvas);
@@ -377,9 +382,11 @@ function mount(host: HTMLElement, p: Planets): World | null {
   type Label = { node: HTMLElement; at: THREE.Vector3; rank: number; show?: (d: number) => number; w?: number; h?: number };
   const labels: Label[] = [];
   const label = (node: HTMLElement, at: THREE.Vector3, rank: number, show?: (d: number) => number) => {
+    const l: Label = { node, at, rank, show };
     labelLayer.append(node);
-    labels.push({ node, at, rank, show });
+    labels.push(l);
     labels.sort((a, b) => a.rank - b.rank);
+    return l;
   };
   label(el("span", { class: "u-label sun" }, "Sun"), new THREE.Vector3(0, 0, 0), 0, (d) => (d < 15000 ? 1 : 0));
   label(el("span", { class: "u-label sun" }, "You are here", el("small", {}, "Nearly every planet we know is in this corner")),
@@ -388,7 +395,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
     new THREE.Vector3(GC, 0, 0), 3, (d) => (d > 4000 ? 1 : 0));
   RINGS.forEach((ly, k) => {
     const r = rings[k].r, a = -0.6;
-    label(el("span", { class: "u-label ring" }, `${int(ly)} light-years`, el("small", {}, `light from here left in ${lightYear(r)}`)),
+    label(el("span", { class: "u-label ring" }, `${int(ly)} light-years`, el("small", {}, `light from here left in ${ly < NOW ? NOW - ly : lightYear(r)}`)),
     new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a)), 2, (d) => ringAlpha(r, d, 160));
   });
   sys.filter((s) => s.kind === 2).forEach((s) => {
@@ -396,6 +403,10 @@ function mount(host: HTMLElement, p: Planets): World | null {
     b.addEventListener("click", () => select(s));
     label(b, s.at, 1, (d) => (uniforms.uYear.value > 2028 && d < 8000 ? 1 : 0));
   });
+  label(el("span", { class: "u-label patch" }, "Tessa's patch", el("small", {}, "within 326 light-years")),
+    new THREE.Vector3(100 * Math.cos(2.3), 0, 100 * Math.sin(2.3)), 1, () => (tour[stopAt]?.patch ? 1 : 0));
+  // the system a tour stop is about (Tessa's have their own label)
+  const stopTag = label(el("span", { class: "u-label stop" }), new THREE.Vector3(), 1, () => (tourSys && tourSys.kind !== 2 ? 1 : 0));
 
   // a ring reads best when it spans a good part of the screen
   function ringAlpha(r: number, d: number, min = 40): number {
@@ -451,11 +462,14 @@ function mount(host: HTMLElement, p: Planets): World | null {
         el("span", { class: "mid", style: `left: ${at(255).toFixed(1)}%` }, "Earth"), el("span", {}, "hotter")));
   }
 
-  // ?at=51 Peg (a star or a planet) opens straight onto that system; the address always says what is open
-  function setAt(name: string | null) {
+  // ?at=51 Peg (a star or a planet) opens straight onto that system and ?tour=3 onto the tour's third stop; the
+  // address always says what is open
+  function setAt(name: string | null, stop?: number) {
     const u = new URL(location.href);
     if (name) u.searchParams.set("at", name);
     else u.searchParams.delete("at");
+    if (stop) u.searchParams.set("tour", String(stop));
+    else u.searchParams.delete("tour");
     history.replaceState(history.state, "", u.pathname + u.search + u.hash);
   }
   function find(name: string): System | undefined {
@@ -477,6 +491,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
       el("div", { class: "u-body" },
         el("p", { class: "u-big" }, int(c.confirmed)),
         el("p", { class: "u-sub" }, "planets found around other stars"),
+        tour.length ? tourButton() : null,
         el("div", { class: "u-stats" },
           toggle("waiting", [el("b", {}, int(c.waiting)), el("span", {}, "waiting to be confirmed")]),
           toggle("tessa", [el("b", {}, int(c.tessa)), el("span", {}, "found by Tessa")])),
@@ -549,12 +564,17 @@ function mount(host: HTMLElement, p: Planets): World | null {
     return b;
   }
 
-  function select(s: System) {
-    endIntro(false);
-    selected = s;
+  function ring(s: System | null) {
+    selPoint.visible = !!s;
+    if (!s) return;
     (selGeom.attributes.position.array as Float32Array).set([s.at.x, s.at.y, s.at.z]);
     selGeom.attributes.position.needsUpdate = true;
-    selPoint.visible = true;
+  }
+  function select(s: System) {
+    endIntro(false);
+    leaveTour(false);
+    selected = s;
+    ring(s);
     hint.hidden = true;
     setAt(s.host);
     centred.textContent = `Centred on ${s.host}`;
@@ -563,11 +583,14 @@ function mount(host: HTMLElement, p: Planets): World | null {
   }
 
   // ---- camera moves
-  let tween: { from: THREE.Vector3; to: THREE.Vector3; fromD: number; toD: number; dir: THREE.Vector3; t0: number; ms: number } | null = null;
-  function flyTo(to: THREE.Vector3, dist: number) {
-    const dir = camera.position.clone().sub(controls.target).normalize();
-    tween = { from: controls.target.clone(), to: to.clone(), fromD: camera.position.distanceTo(controls.target), toD: dist, dir,
-      t0: performance.now(), ms: still ? 1 : 1800 };
+  type Tween = { from: THREE.Vector3; to: THREE.Vector3; fromD: number; toD: number; fromDir: THREE.Vector3; toDir: THREE.Vector3;
+    t0: number; ms: number };
+  let tween: Tween | null = null;
+  // fly the view's centre to a point and end up dist away from it, looking along dir if given
+  function flyTo(to: THREE.Vector3, dist: number, dir?: THREE.Vector3, ms = 1800) {
+    const from = camera.position.clone().sub(controls.target).normalize();
+    tween = { from: controls.target.clone(), to: to.clone(), fromD: camera.position.distanceTo(controls.target), toD: dist,
+      fromDir: from, toDir: (dir ?? from).clone().normalize(), t0: performance.now(), ms: still ? 1 : ms };
   }
   const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2);
 
@@ -579,6 +602,9 @@ function mount(host: HTMLElement, p: Planets): World | null {
     selected = null;
     selPoint.visible = false;
     tween = null;
+    stopAt = -1;
+    tourSys = null;
+    clock = null;
     controls.target.set(0, 0, 0);
     intro = { t0: performance.now() };
     introCard();
@@ -601,6 +627,89 @@ function mount(host: HTMLElement, p: Planets): World | null {
       if (sec <= t2) return y1 + ((sec - t1) / (t2 - t1)) * (y2 - y1);
     }
     return CLOCK[CLOCK.length - 1][1];
+  }
+
+  // ---- the tour: each stop is a flight, a year on the discovery clock and a filter
+  let stopAt = -1;
+  let tourSys: System | null = null;
+  let clock: { from: number; to: number; t0: number; ms: number } | null = null;
+  // run the clock to a year: planets found later fade out, ones found by then flare in
+  function runClock(to: number, ms: number) {
+    clock = { from: Math.min(uniforms.uYear.value, 2028.9), to, t0: performance.now(), ms: still ? 1 : ms };
+  }
+  // show the Sun and a system together, looking across the line between them from a little above
+  function withSun(at: THREE.Vector3, dist?: number) {
+    const side = new THREE.Vector3().crossVectors(at, new THREE.Vector3(0, 1, 0));
+    if (side.lengthSq() < 1e-6) side.copy(HOME.dir);
+    side.normalize();
+    if (side.dot(camera.position.clone().sub(controls.target)) < 0) side.negate();
+    side.y += 0.45;
+    const fit = Math.max(at.length() * (innerWidth > 900 ? 1.3 : 2.4), 30);
+    flyTo(at.clone().multiplyScalar(0.5), dist ?? fit, side, 2400);
+  }
+  function tourButton() {
+    const b = el("button", { type: "button", class: "u-btn u-tour" }, "Take the tour");
+    b.addEventListener("click", () => tourStop(0));
+    return b;
+  }
+  function tourStop(k: number) {
+    endIntro(false);
+    const s = tour[k];
+    stopAt = k;
+    selected = null;
+    hint.hidden = true;
+    controls.autoRotate = false;
+    idleSince = performance.now();
+    focus = s.focus ?? null;
+    paint();
+    runClock(s.year, s.year < 2000 ? 1600 : 3600);
+    tourSys = s.at ? find(s.at) ?? null : null;
+    ring(tourSys);
+    if (tourSys) {
+      stopTag.node.textContent = tourSys.host;
+      stopTag.w = stopTag.h = undefined;
+      stopTag.at.copy(tourSys.at);
+      centred.textContent = `The Sun and ${tourSys.host}`;
+      withSun(tourSys.at, s.dist);
+    } else {
+      centred.textContent = "Centred on the Sun";
+      flyTo(new THREE.Vector3(), s.dist ?? HOME.dist, HOME.dir, 2400);
+    }
+    setAt(null, k + 1);
+    tourCard(k);
+  }
+  function leaveTour(toOverview = true) {
+    if (stopAt < 0) return;
+    stopAt = -1;
+    tourSys = null;
+    runClock(3000, 1200);
+    focus = null;
+    paint();
+    if (toOverview) {
+      overview();
+      flyTo(new THREE.Vector3(), HOME.dist, HOME.dir, 2400);
+    }
+  }
+  function tourCard(k: number) {
+    const s = tour[k], last = k === tour.length - 1;
+    const leave = el("button", { type: "button", class: "u-bar-btn" }, "Leave");
+    leave.addEventListener("click", () => leaveTour());
+    const next = el("button", { type: "button", class: "u-btn" }, last ? "Explore" : "Next");
+    next.addEventListener("click", () => (last ? leaveTour() : tourStop(k + 1)));
+    const ask = s.ask ? el("button", { type: "button", class: "u-btn" }, "Ask Tessa") : null;
+    ask?.addEventListener("click", () => openAsk());
+    const back = k > 0 ? el("button", { type: "button", class: "u-bar-btn" }, "Back") : null;
+    back?.addEventListener("click", () => tourStop(k - 1));
+    const hadFocus = card.contains(document.activeElement);
+    card.replaceChildren(bar([dot("var(--ok)"), "Tour", el("span", { class: "u-of" }, `${k + 1} of ${tour.length}`)], leave),
+      el("div", { class: "u-body" },
+        el("div", { class: "u-steps", "aria-hidden": "true" }, ...tour.map((_, i) => el("span", { class: i <= k ? "on" : "" }))),
+        s.figure ? el("p", { class: "u-big" }, s.figure) : null,
+        el("h2", { class: "u-title" }, s.title),
+        el("p", { class: "u-text" }, s.text),
+        s.links?.length ? el("p", { class: "u-links" }, ...s.links.map((l) => el("a", { href: l.href, "data-link": true }, l.label))) : null,
+        el("div", { class: "u-actions" }, next, ask, back)));
+    if (hadFocus) next.focus({ preventScroll: true });
   }
 
   // ---- input
@@ -661,6 +770,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
     else if (ev.key === "+" || ev.key === "=") sph.radius = Math.max(controls.minDistance, sph.radius / 1.4);
     else if (ev.key === "-") sph.radius = Math.min(controls.maxDistance, sph.radius * 1.4);
     else if (ev.key === "Escape" && selected) { overview(); flyTo(new THREE.Vector3(), HOME.dist); return; }
+    else if (ev.key === "Escape" && stopAt >= 0) { leaveTour(); return; }
     else return;
     ev.preventDefault();
     if (intro) endIntro();
@@ -717,8 +827,15 @@ function mount(host: HTMLElement, p: Planets): World | null {
       const t = Math.min((now - tween.t0) / tween.ms, 1), e = ease(t);
       controls.target.lerpVectors(tween.from, tween.to, e);
       const d = Math.exp(Math.log(tween.fromD) + (Math.log(tween.toD) - Math.log(tween.fromD)) * e);
-      camera.position.copy(controls.target).addScaledVector(tween.dir, d);
+      v.lerpVectors(tween.fromDir, tween.toDir, e);
+      if (v.lengthSq() < 1e-6) v.copy(tween.toDir);
+      camera.position.copy(controls.target).addScaledVector(v.normalize(), d);
       if (t >= 1) tween = null;
+    }
+    if (clock) {
+      const t = Math.min((now - clock.t0) / clock.ms, 1);
+      uniforms.uYear.value = t < 1 ? clock.from + (Math.min(clock.to, 2028.9) - clock.from) * ease(t) : clock.to;
+      if (t >= 1) clock = null;
     }
     if (!still && !controls.autoRotate && now - idleSince > 15000) controls.autoRotate = true;
     controls.update();
@@ -727,6 +844,8 @@ function mount(host: HTMLElement, p: Planets): World | null {
     dustMat.uniforms.uFade.value = 0.35 + 0.65 * Math.min(Math.max((fromSun - 300) / 5000, 0), 1);
     sun.scale.setScalar(Math.max(fromSun * 0.004, 0.02));
     for (const r of rings) (r.line.material as THREE.LineBasicMaterial).opacity = 0.5 * ringAlpha(r.r, fromSun);
+    const pm = patch.material as THREE.LineBasicMaterial;
+    pm.opacity += ((tour[stopAt]?.patch ? 0.6 : 0) - pm.opacity) * (still ? 1 : 0.06);
     renderer.render(scene, camera);
 
     const w = canvas.clientWidth, h = canvas.clientHeight;
@@ -734,14 +853,16 @@ function mount(host: HTMLElement, p: Planets): World | null {
     for (const l of labels) {
       v.copy(l.at).project(camera);
       const a = l.show ? l.show(fromSun) : 1;
-      // labels near the right edge hang to the left of their point
-      const x = ((v.x + 1) / 2) * w, y = ((1 - v.y) / 2) * h, flip = x > w - 240;
+      const x = ((v.x + 1) / 2) * w, y = ((1 - v.y) / 2) * h;
       let hide = v.z > 1 || Math.abs(v.x) > 1.1 || Math.abs(v.y) > 1.1 || a < 0.02;
+      let flip = false;
       if (!hide) {
         l.w ??= l.node.offsetWidth;
         l.h ??= l.node.offsetHeight;
+        // a label that would run off the right edge hangs to the left of its point
+        flip = x + l.w > w - 12;
         const box = [flip ? x - l.w : x, y, flip ? x : x + l.w, y + l.h];
-        hide = taken.some((t) => box[0] < t[2] && box[2] > t[0] && box[1] < t[3] && box[3] > t[1]);
+        hide = box[0] < 0 || box[2] > w || box[3] > h || taken.some((t) => box[0] < t[2] && box[2] > t[0] && box[1] < t[3] && box[3] > t[1]);
         if (!hide) taken.push(box);
       }
       l.node.style.opacity = hide ? "0" : String(a);
@@ -761,13 +882,16 @@ function mount(host: HTMLElement, p: Planets): World | null {
     scaleBar.style.width = `${nice / per}px`;
   }
 
-  const at = new URLSearchParams(location.search).get("at");
+  const params = new URLSearchParams(location.search);
+  const at = params.get("at"), stop = Number(params.get("tour")) - 1;
   const start = at ? find(at) : undefined;
-  if (introDone || still || start) {
+  const onTour = stop >= 0 && stop < tour.length;
+  if (introDone || still || start || onTour) {
     introDone = true;
     uniforms.uYear.value = 3000;
     camera.position.copy(HOME.dir).multiplyScalar(HOME.dist);
     if (start) select(start);
+    else if (onTour) tourStop(stop);
     else overview();
   } else startIntro();
   resize();
