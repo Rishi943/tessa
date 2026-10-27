@@ -42,4 +42,8 @@ for (let i = 0; i < todo.length; i += PER_CALL) {
   writeFileSync(outPath, JSON.stringify(notes, null, 1));
   console.log(`${Math.min(i + PER_CALL, todo.length)}/${todo.length}`);
 }
+const metaPath = join(dir, "caseclosed.meta.json");  // running cost, for the site's funnel
+const meta = existsSync(metaPath) ? JSON.parse(readFileSync(metaPath, "utf8")) : { model, cost_usd: 0 };
+meta.cost_usd += cost;
+writeFileSync(metaPath, JSON.stringify(meta, null, 1));
 console.log(`${Object.keys(notes).length} notes; $${cost.toFixed(4)}`);

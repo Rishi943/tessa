@@ -69,17 +69,38 @@ def dossier(tic: int, model: str, prompt: str) -> dict | None:
     return None
 
 
+def dip_row(page: dict) -> dict:
+    """One line per gate-1 pass, for the site's list of dips and Ask Tessa's search."""
+    c, d = page["checks"], page["dossier"] or {}
+    r = lambda v, n=None: None if v is None else round(v, n)  # Gaia has gaps
+    return {"tic": page["tic"], "batch": page["batch"], "status": page["status"],
+            "period_d": r(c["signal"]["period"], 5), "depth_ppm": r(c["signal"]["depth_ppm"]),
+            "snr": r(c["signal"]["snr"], 1), "rp_rearth": r(c["size"]["rp_rearth"], 2),
+            "tmag": r(c["star"]["tmag"], 2), "teff": r(c["star"]["teff"]), "dist_pc": r(c["star"]["distance"], 1),
+            "ra": r(c["star"]["ra"], 4), "dec": r(c["star"]["dec"], 4),
+            "line": page["case_closed"] or d.get("public_summary") or "; ".join(page["reasons"]),
+            "reasons": page["reasons"], "dossier": bool(d), "tools": len(d.get("tools_called", []))}
+
+
 def export(out: Path, model: str, prompt: str) -> dict:
     (out / "stars").mkdir(parents=True, exist_ok=True)
-    pool = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "ra", "dec", "tmag", "teff", "rad", "two_min_sectors"])
+    pool = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "ra", "dec", "parallax", "tmag", "teff", "rad",
+                                                              "two_min_sectors"])
     status = pd.Series(STATUS["pool"], index=pool["tic"])
     held = {int(t) for t in (ROOT / "survey" / "holdout.txt").read_text(encoding="utf-8").split()}
     status[status.index.isin(held)] = STATUS["held back"]
 
     counts = {}
+    dips = []
+    costs = {"vetting": 0.0, "investigation": 0.0, "case_closed": 0.0, "observing": 0.0, "audit": 0.0}
     for name, results, vet_dir, lc_dir in RUNS:
         if not results.exists():
             continue
+        for step, csv_name in (("vetting", f"dossiers.{model}.{prompt}.csv"), ("investigation", f"investigations.{model}.inv1.csv")):
+            if (vet_dir / csv_name).exists():
+                costs[step] += float(pd.read_csv(vet_dir / csv_name)["cost"].fillna(0).sum())
+        if (vet_dir / "caseclosed.meta.json").exists():
+            costs["case_closed"] += json.loads((vet_dir / "caseclosed.meta.json").read_text(encoding="utf-8"))["cost_usd"]
         res = pd.read_csv(results)
         status[status.index.isin(res["tic"])] = STATUS["searched"]
         final = {}
@@ -94,25 +115,32 @@ def export(out: Path, model: str, prompt: str) -> dict:
             counts[st["status"]] = counts.get(st["status"], 0) + 1
             checks = json.loads((vet_dir / f"{tic}.json").read_text(encoding="utf-8"))
             sig = {k: checks["signal"][k] for k in ("period", "t0", "dur")}
+            cand = vet_dir / "candidates" / f"{tic}.json"
+            c = json.loads(cand.read_text(encoding="utf-8")) if cand.exists() else {}
+            eph = (c.get("when") or {}).get("ephemeris") or {}
+            if eph.get("ok"):  # the refitted ephemeris centres the fold better than the search grid
+                sig = {**sig, "period": eph["period"], "t0": eph["t0_btjd"]}
             raw = load_lc(tic, lc_dir)
             page = {"tic": tic, "batch": name, "status": st["status"],
                     "reasons": [x for x in st["reasons"].split("; ") if x],
                     "gate1": {"dip_snr": r["dip_snr"], "flipped_snr": r["bump_snr"], "transits": int(r["dip_transits"])},
                     "case_closed": closed.get(str(tic)), "checks": checks, "dossier": dossier(tic, model, prompt),
+                    "ephem": {"period": sig["period"], "t0": sig["t0"]},
                     **light_curve(detrend(raw["time"], raw["flux"], raw["sector"]), sig)}
             ev = DATA / "evidence" / f"{tic}.json"
             if ev.exists():
                 page["evidence"] = json.loads(ev.read_text(encoding="utf-8"))
-            cand = vet_dir / "candidates" / f"{tic}.json"
-            if cand.exists():
-                c = json.loads(cand.read_text(encoding="utf-8"))
+            if c:
                 page["novelty"], page["when"], page["observing"] = c.get("novelty"), c.get("when"), c.get("observing")
+                costs["observing"] += (c.get("observing") or {}).get("cost_usd", 0)
                 audit = DATA / "dossiers" / f"{tic}.muse-wonder-1.0.{prompt}.json"  # second opinion, shortlist only
                 if audit.exists():
                     run = json.loads(audit.read_text(encoding="utf-8"))
                     page["audit"] = {**run["dossier"], "model": run["model"], "cost_usd": run["cost"]}
+                    costs["audit"] += run["cost"]
             (out / "stars" / f"{tic}.json").write_text(json.dumps(page, separators=(",", ":"), default=float),
                                                          encoding="utf-8")
+            dips.append(dip_row(page))
         gate = vet_dir.parent.parent / f"{name}_gate1.json"
         counts[f"{name}_searched"] = int(len(res))
         if gate.exists():
@@ -121,10 +149,14 @@ def export(out: Path, model: str, prompt: str) -> dict:
     sky = pool.assign(status=pool["tic"].map(status).astype(int))
     (out / "sky.json").write_text(json.dumps({
         "tic": sky["tic"].tolist(), "ra": sky["ra"].round(4).tolist(), "dec": sky["dec"].round(4).tolist(),
-        "tmag": sky["tmag"].round(2).tolist(), "teff": sky["teff"].round(0).astype(int).tolist(),
-        "status": sky["status"].tolist(), "codes": STATUS}, separators=(",", ":")), encoding="utf-8")
+        "dist": (1000 / sky["parallax"]).round(2).tolist(), "tmag": sky["tmag"].round(2).tolist(),
+        "teff": sky["teff"].round(0).astype(int).tolist(), "status": sky["status"].tolist(), "codes": STATUS},
+        separators=(",", ":")), encoding="utf-8")
+    (out / "dips.json").write_text(json.dumps(dips, separators=(",", ":"), default=float), encoding="utf-8")
     summary = {"pool": len(pool), "funnel": json.loads((DATA / "targets_funnel.json").read_text(encoding="utf-8")),
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
+               "costs_usd": {k: round(v, 4) for k, v in costs.items()},
+               "dossiers": sum(d["dossier"] for d in dips), "investigated": sum(d["tools"] > 0 for d in dips),
                **counts}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")
     return summary
