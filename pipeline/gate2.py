@@ -18,8 +18,11 @@ from pathlib import Path
 
 from .novelty import novelty
 from .paths import CACHE, DATA
-from .vet import CENTROID_REJECT_SIGMA
+from .vet import CENTROID_REJECT_SIGMA, gaps, load_lc
 from .when import when
+
+
+TESS_ORBIT_D = 13.7  # TESS goes round the Earth every 13.7 days and stops to send data home each time
 
 
 def evidence(tic: int) -> dict:
@@ -67,6 +70,13 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
     pc = c["phase_curve"]
     if ge(pc["ratio_to_depth"], 0.3) and ge(pc["chi2"], 50):
         out.append(f"phase_curve: the star swings {pc['ratio_to_depth']:.2f}x the dip at this period")
+    # dips on gaps in the data: more than chance allows, or a period that matches TESS's own 13.7-day orbit
+    # with half or more of them there
+    g = c.get("gaps") or {}
+    orbit = abs(c["signal"]["period"] - TESS_ORBIT_D) < 1 and g.get("near_gap", 0) >= max(g.get("transits", 0) / 2, 2)
+    if g.get("p_chance") is not None and g["near_gap"] >= 2 and (g["p_chance"] < 0.05 and g["near_gap"] >= 3 or orbit):
+        out.append(f"gaps: {g['near_gap']} of {g['transits']} transits sit within a day of a gap in the data, "
+                   f"where TESS's 13.7-day orbit fakes dips ({g['expected_share']:.0%} would by chance)")
     if (c["refit"]["transits"] or 0) < 3:
         out.append(f"refit: only {c['refit']['transits']} transits")
     return out
@@ -96,6 +106,8 @@ def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple
         return "rejected", evidence_rejects(checks, ev), {}
     if dossier is None:
         return "awaiting agent", [], {}
+    if "gaps" not in checks:  # vetted before the check existed
+        checks["gaps"] = gaps(load_lc(checks["tic"], lc_dir), sig)
     d = dossier["dossier"]
     agent = [f"{r['check']}: {r['why']}" for r in d["reasons"]]
     if d["verdict"] == "reject":
@@ -142,6 +154,9 @@ def main() -> None:
             (vet_dir / "candidates" / f"{tic}.json").write_text(
                 json.dumps({"tic": tic, "signal": checks["signal"], "size": checks["size"], "star": checks["star"], **extra},
                            indent=1, default=float), encoding="utf-8")
+        elif (vet_dir / "candidates" / f"{tic}.json").exists():  # no longer a candidate: set its file aside
+            (vet_dir / "candidates" / "retired").mkdir(exist_ok=True)
+            (vet_dir / "candidates" / f"{tic}.json").replace(vet_dir / "candidates" / "retired" / f"{tic}.json")
         print(f"TIC {tic}: {status}" + (f" ({reasons[0][:100]})" if reasons else ""), flush=True)
     with (vet_dir / "status.csv").open("w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, ["tic", "status", "reasons"])

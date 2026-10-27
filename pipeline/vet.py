@@ -223,6 +223,24 @@ def shape(lc: dict, sig: dict) -> dict:
             "v_sigma": float(np.sign(v - flat) * np.sqrt(abs(v - flat)) / beta)}
 
 
+def gaps(raw: dict, sig: dict, edge_d: float = 1.0) -> dict:
+    """Do the transits sit on gaps in the data? TESS stops every 13.7 days to send data home, and the edges of
+    those gaps (and of each sector) are where scattered light and pointing drift fake dips. By chance a transit
+    lands within edge_d of an edge as often as the data does; many more than that is an artefact, not a planet."""
+    t = np.sort(raw["time"][np.isfinite(raw["time"])])
+    cut = np.where(np.diff(t) > 0.5)[0]
+    edges = np.concatenate([[t[0]], t[cut], t[cut + 1], [t[-1]]])
+    near_edge = lambda x: np.min(np.abs(edges[:, None] - np.atleast_1d(x)[None, :]), axis=0) < edge_d  # noqa: E731
+    n = np.arange(np.ceil((t[0] - sig["t0"]) / sig["period"]), np.floor((t[-1] - sig["t0"]) / sig["period"]) + 1)
+    mids = sig["t0"] + n * sig["period"]
+    i = np.searchsorted(t, mids).clip(1, len(t) - 1)
+    covered = mids[np.minimum(np.abs(t[i] - mids), np.abs(t[i - 1] - mids)) < sig["dur"] / 2]
+    expected = float(near_edge(t).mean())  # the share of the data within edge_d of an edge
+    k = int(near_edge(covered).sum()) if len(covered) else 0
+    p = float(stats.binom.sf(k - 1, len(covered), expected)) if len(covered) else 1.0
+    return {"transits": int(len(covered)), "near_gap": k, "expected_share": expected, "p_chance": p}
+
+
 def gaia_field(tic: int, star: dict) -> tuple[pd.DataFrame, pd.Series] | None:
     """Gaia DR3 stars within NEIGHBOUR_ARCSEC (cached), with "mag" in the band closest to TESS and
     "sep" from the target at the TIC's epoch, and the target's own row; None if it isn't found."""
@@ -339,7 +357,7 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
         "odd_even": odd_even(lc, sig), "secondary": secondary(lc, sig),
         "sectors": sector_depths(lc, sig), "size": size(sig, star),
         "duration": duration(sig, star), "phase_curve": phase_curve(lc, sig), "shape": shape(lc, sig),
-        "neighbours": neighbours(tic, star, sig),
+        "neighbours": neighbours(tic, star, sig), "gaps": gaps(raw, sig),
         "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)

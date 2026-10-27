@@ -11,6 +11,7 @@ export interface Env extends SearchEnv {
   META_API_KEY: string;
   ASK_LIMIT: RateLimit;  // per visitor
   ASK_GLOBAL: RateLimit;  // everyone together, to keep the credit safe
+  ASK_EFFORT?: string;    // Muse Spark's reasoning effort; unset, the model picks its own
 }
 
 const META_URL = "https://api.meta.ai/v1/chat/completions";
@@ -67,7 +68,8 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
         const res = await fetch(META_URL, {
           method: "POST",
           headers: { authorization: `Bearer ${env.META_API_KEY}`, "content-type": "application/json" },
-          body: JSON.stringify({ model: MODEL, messages, tools: last ? undefined : TOOLS, temperature: 0.3, max_tokens: 4096 }),
+          body: JSON.stringify({ model: MODEL, messages, tools: last ? undefined : TOOLS, temperature: 0.3, max_tokens: 4096,
+            ...(env.ASK_EFFORT ? { reasoning_effort: env.ASK_EFFORT } : {}) }),
         });
         if (!res.ok) {
           console.log("meta api", res.status, (await res.text()).slice(0, 300));
