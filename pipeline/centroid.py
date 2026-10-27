@@ -140,11 +140,16 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
 
 def where(tic: int, sig: dict, max_sectors: int = MAX_SECTORS) -> dict:
     star = star_info(tic)
-    with open(DATA / "fetch_manifest.csv", newline="", encoding="utf-8") as f:
-        row = next((r for r in csv.DictReader(f) if int(r["tic"]) == tic), None)
+    row = None
+    for manifest in [DATA / "fetch_manifest.csv", *sorted(CACHE.glob("lc*/manifest.csv"))]:
+        with open(manifest, newline="", encoding="utf-8") as f:
+            row = next((r for r in csv.DictReader(f) if int(r["tic"]) == tic), None)
+        if row:
+            break
     if row is None:  # stars outside the survey: whatever TESScut has
         from astroquery.mast import Tesscut
-        sectors = [int(s) for s in Tesscut.get_sectors(coordinates=SkyCoord(star["ra"], star["dec"], unit="deg"))["sector"]]
+        got = Tesscut.get_sectors(coordinates=SkyCoord(star["ra"], star["dec"], unit="deg"))["sector"]
+        sectors = [int(s) for s in got if int(s) < 1000]  # 1000+ are not survey sectors
     else:
         sectors = [int(s) for s in row["sectors"].split()]
     sectors = sorted(sectors)[-max_sectors:]  # the latest have the shortest cadence
