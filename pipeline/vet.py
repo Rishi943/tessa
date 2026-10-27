@@ -357,6 +357,18 @@ def signal_from_results(tic: int, results: Path) -> dict:
             "depth_ppm": float(r["dip_depth_ppm"]), "snr": float(r["dip_snr"])}
 
 
+def finite(x):
+    """NaN and infinity become null: they are not JSON, and the agent's reader rejects them (a star with no
+    even-numbered transit has no even depth)."""
+    if isinstance(x, dict):
+        return {k: finite(v) for k, v in x.items()}
+    if isinstance(x, (list, tuple)):
+        return [finite(v) for v in x]
+    if isinstance(x, (float, np.floating)) and not np.isfinite(x):
+        return None
+    return x
+
+
 def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool) -> None:
     """Vet every gate 1 pass in results; one JSON per star and a summary table."""
     out.mkdir(parents=True, exist_ok=True)
@@ -367,7 +379,7 @@ def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool) -> None:
         path = out / f"{tic}.json"
         try:
             d = json.loads(path.read_text(encoding="utf-8")) if path.exists()                 else vet(tic, signal_from_results(tic, results), lc_dir, centroid=centroid)
-            path.write_text(json.dumps(d, indent=1, default=float), encoding="utf-8")
+            path.write_text(json.dumps(finite(d), indent=1, default=float), encoding="utf-8")
             rows.append({"tic": tic, "verdict": d["code_verdict"], "reasons": "; ".join(d["reasons"]),
                          "period": d["signal"]["period"], "depth_ppm": round(d["signal"]["depth_ppm"]),
                          "snr": round(d["signal"]["snr"], 1), "rp_rearth": round(d["size"]["rp_rearth"], 2),
