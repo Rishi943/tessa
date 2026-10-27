@@ -1,0 +1,23 @@
+{
+  "name": "tessa-site",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "data": "node scripts/copy-data.mjs",
+    "dev": "npm run data && vite",
+    "build": "npm run data && vite build",
+    "check": "tsc --noEmit && tsc --noEmit -p worker",
+    "preview": "npm run build && wrangler dev",
+    "deploy": "npm run build && wrangler deploy"
+  },
+  "dependencies": {
+    "three": "0.186.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261027.1",
+    "@types/three": "0.186.0",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "wrangler": "4.153.0"
+  }
+}

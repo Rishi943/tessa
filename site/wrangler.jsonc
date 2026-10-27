@@ -1,0 +1,20 @@
+// tessa.braveai.solutions: the built site as static assets, plus a Worker for /api/ask.
+// The Meta key is a secret: npx wrangler secret put META_API_KEY
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "tessa",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "assets": {
+    "directory": "dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "routes": [{ "pattern": "tessa.braveai.solutions", "custom_domain": true }],
+  "ratelimits": [
+    { "name": "ASK_LIMIT", "namespace_id": "4301", "simple": { "limit": 6, "period": 60 } },
+    { "name": "ASK_GLOBAL", "namespace_id": "4302", "simple": { "limit": 120, "period": 60 } }
+  ],
+  "observability": { "enabled": true }
+}
