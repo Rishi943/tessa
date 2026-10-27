@@ -5,9 +5,9 @@ binaries and known objects are closed here, so the agent (and its model calls) o
 what survives. The rules are deliberately conservative: a real planet should never be
 rejected by them, so anything borderline goes to the agent instead.
 
-Run: python -m pipeline.vet TIC --results results.csv [--lc data/cache/lc] [--blind]
+Run: python -m pipeline.vet TIC --results results.csv [--lc data/cache/lc] [--blind] [--no-centroid]
 Prints the checks as JSON. --blind skips the known-object match, for scoring the vetting on
-stars whose answer is already known.
+stars whose answer is already known; --no-centroid skips the TESScut download.
 """
 import argparse
 import contextlib
@@ -38,6 +38,7 @@ MAX_DURATION_RATIO = 3.0  # observed / central duration for this star
 PHASE_BINS = 10
 VARIABILITY_RATIO = 0.5  # out-of-transit swing at this period, as a fraction of the dip depth,
 VARIABILITY_CHI2 = 100  # at this significance (red-noise-scaled chi2 over PHASE_BINS - 1 dof)
+CENTROID_REJECT_SIGMA = 5.0  # dip this far off the target and on a Gaia star that could make it
 
 # Shape and neighbours (reported, never rejected on: the agent weighs them)
 INGRESS_FRACTIONS = np.round(np.arange(0.05, 0.51, 0.05), 2)  # 0.5 is a V
@@ -315,11 +316,17 @@ def verdict(checks: dict) -> tuple[str, list[str]]:
                    f"({pc['ratio_to_depth']:.1f}x the dip): rotation or a contact binary")
     if checks["duration"]["ratio"] > MAX_DURATION_RATIO:
         why.append(f"transit {checks['duration']['ratio']:.1f}x longer than this star allows")
+    c = checks.get("centroid") or {}
+    if c.get("on_star") and c["offset_sigma"] >= CENTROID_REJECT_SIGMA:
+        s = c["on_star"]
+        why.append(f"the dip comes from Gaia {s['source_id']}, {s['sep_arcsec']}\" away: difference imaging puts it "
+                   f"{c['offset_arcsec']:.1f}\" off this star ({c['offset_sigma']:.1f} sigma)")
     return ("reject" if why else "agent"), why
 
 
-def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False) -> dict:
-    """sig: period, t0, dur (days), depth_ppm, snr, from the search."""
+def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool = True) -> dict:
+    """sig: period, t0, dur (days), depth_ppm, snr, from the search. The centroid check downloads
+    cutouts, so it runs only on signals that pass every other rule."""
     raw = load_lc(tic, lc_dir)
     lc = detrend(raw["time"], raw["flux"], raw["sector"])
     star = star_info(tic)
@@ -333,6 +340,10 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False) -> dict:
         "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)
+    if centroid and checks["code_verdict"] == "agent":
+        from .centroid import where  # centroid imports this module
+        checks["centroid"] = where(tic, sig)
+        checks["code_verdict"], checks["reasons"] = verdict(checks)
     return checks
 
 
@@ -349,8 +360,10 @@ def main() -> None:
     ap.add_argument("--results", required=True, help="search results.csv with this star's signal")
     ap.add_argument("--lc", default=str(CACHE / "lc"), help="folder with the lc_NNN.npz shards")
     ap.add_argument("--blind", action="store_true", help="skip the known-object match")
+    ap.add_argument("--no-centroid", action="store_true", help="skip difference imaging (downloads cutouts)")
     args = ap.parse_args()
-    out = vet(args.tic, signal_from_results(args.tic, Path(args.results)), Path(args.lc), args.blind)
+    out = vet(args.tic, signal_from_results(args.tic, Path(args.results)), Path(args.lc), args.blind,
+              not args.no_centroid)
     print(json.dumps(out, indent=1, default=float))
 
 
