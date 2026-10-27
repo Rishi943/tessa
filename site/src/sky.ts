@@ -148,11 +148,12 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
     for (const s of Object.keys(STATUS) as Status[]) {
       rgb[s] = new THREE.Color(css(STATUS[s].color.slice(4, -1)));
     }
+    const poolAlpha = Number(css("--pool-alpha")) || 0.75;
     for (let i = 0; i < n; i++) {
       const s = status[idx[i]];
       const c = rgb[s];
       col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
-      const base = s === "pool" || s === "held back" ? 0.75 : 1;
+      const base = s === "pool" || s === "held back" ? poolAlpha : 1;
       alpha[i] = focused && s !== focused && !(focused === "pool" && s === "held back") ? base * 0.12 : base;
     }
     geom.attributes.color.needsUpdate = true;
