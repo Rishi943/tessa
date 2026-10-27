@@ -35,6 +35,9 @@ SECONDARY_SNR = 7.0
 SECONDARY_OVER_BUMP = 1.5
 ODD_EVEN_SIGMA = 4.0
 MAX_DURATION_RATIO = 3.0  # observed / central duration for this star
+PHASE_BINS = 10
+VARIABILITY_RATIO = 0.5  # out-of-transit swing at this period, as a fraction of the dip depth,
+VARIABILITY_CHI2 = 100  # at this significance (red-noise-scaled chi2 over PHASE_BINS - 1 dof)
 
 # Shape and neighbours (reported, never rejected on: the agent weighs them)
 INGRESS_FRACTIONS = np.round(np.arange(0.05, 0.51, 0.05), 2)  # 0.5 is a V
@@ -144,6 +147,25 @@ def sector_depths(lc: dict, sig: dict) -> dict:
             "p_constant": float(stats.chi2.sf(chi2, len(rows) - 1)) if len(rows) > 1 else 1.0}
 
 
+def phase_curve(lc: dict, sig: dict) -> dict:
+    """Does the star brighten and dim at this period outside the dip?
+
+    A planet adds at most a few ppm out of transit. A spotted star rotating at this period, or a
+    contact or ellipsoidal binary, swings by as much as the dip itself, and the box search then
+    picks the minimum of that swing as a "transit"."""
+    p = sig["period"]
+    x = phase_offset(lc["t"], p, sig["t0"]) / p
+    out = np.abs(x) * p > sig["dur"]
+    b = np.minimum(((x[out] + 0.5) * PHASE_BINS).astype(int), PHASE_BINS - 1)
+    sw = np.bincount(b, lc["w"][out], PHASE_BINS)
+    filled = sw > 0
+    m = np.bincount(b, lc["w"][out] * lc["y"][out], PHASE_BINS)[filled] / sw[filled]
+    mean = np.sum(sw[filled] * m) / sw[filled].sum()
+    chi2 = float(np.sum(sw[filled] * (m - mean) ** 2)) / red_noise(lc, sig, np.ones(len(lc["t"]), bool)) ** 2
+    amp = float(m.max() - m.min()) * 1e6
+    return {"amplitude_ppm": amp, "ratio_to_depth": amp / sig["depth_ppm"], "chi2": chi2, "dof": int(filled.sum()) - 1}
+
+
 def size(sig: dict, star: dict) -> dict:
     """Planet radius implied by the depth, after undoing dilution by nearby stars."""
     contratio = star["contratio"] or 0.0
@@ -197,12 +219,9 @@ def shape(lc: dict, sig: dict) -> dict:
             "v_sigma": float(np.sign(v - flat) * np.sqrt(abs(v - flat)) / beta)}
 
 
-def neighbours(tic: int, star: dict, sig: dict) -> dict:
-    """Gaia DR3 stars near the target bright enough to make this dip if they were binaries.
-
-    A neighbour could be the source if the eclipse it would need, the observed depth scaled
-    up by the brightness ratio, is at most MAX_ECLIPSE_DEPTH. Only centroid or difference
-    imaging can then tell; this just says whether such a star exists and how close it is."""
+def gaia_field(tic: int, star: dict) -> tuple[pd.DataFrame, pd.Series] | None:
+    """Gaia DR3 stars within NEIGHBOUR_ARCSEC (cached), with "mag" in the band closest to TESS and
+    "sep" from the target at the TIC's epoch, and the target's own row; None if it isn't found."""
     path = CACHE / "gaia_neighbours" / f"{tic}.csv"
     if path.exists():
         df = pd.read_csv(path)
@@ -227,8 +246,20 @@ def neighbours(tic: int, star: dict, sig: dict) -> dict:
     mine = df[df["source_id"] == star.get("source_id")]
     close = mine if len(mine) else df[df["sep"] < 5]
     if close.empty:
+        return None
+    return df, close.loc[close["mag"].idxmin()]
+
+
+def neighbours(tic: int, star: dict, sig: dict) -> dict:
+    """Gaia DR3 stars near the target bright enough to make this dip if they were binaries.
+
+    A neighbour could be the source if the eclipse it would need, the observed depth scaled
+    up by the brightness ratio, is at most MAX_ECLIPSE_DEPTH. Only centroid or difference
+    imaging can then tell; this just says whether such a star exists and how close it is."""
+    field = gaia_field(tic, star)
+    if field is None:
         return {"target_found": False}
-    me = close.loc[close["mag"].idxmin()]
+    df, me = field
     others = df.drop(index=me.name)
     need = sig["depth_ppm"] * 1e-6 * 10 ** (0.4 * (others["mag"] - me["mag"]))
     able = others[need <= MAX_ECLIPSE_DEPTH].assign(need=need[need <= MAX_ECLIPSE_DEPTH])
@@ -236,8 +267,9 @@ def neighbours(tic: int, star: dict, sig: dict) -> dict:
             "could_cause": int(len(able)),
             "could_cause_within_1px": int((able["sep"] < TESS_PIXEL_ARCSEC).sum()),
             "plausible_within_1px": int(((able["sep"] < TESS_PIXEL_ARCSEC) & (able["need"] <= PLAUSIBLE_ECLIPSE)).sum()),
-            "closest_that_could": [{"sep_arcsec": round(float(r.sep), 1), "delta_mag": round(float(r.mag - me["mag"]), 2),
-                                    "eclipse_needed": round(float(r.need), 4)} for r in able.head(3).itertuples()]}
+            "closest_that_could": [{"source_id": int(r.source_id), "sep_arcsec": round(float(r.sep), 1),
+                                    "delta_mag": round(float(r.mag - me["mag"]), 2), "eclipse_needed": round(float(r.need), 4)}
+                                   for r in able.head(3).itertuples()]}
 
 
 def harmonic(p_cat: float, p_sig: float) -> float | None:
@@ -277,6 +309,10 @@ def verdict(checks: dict) -> tuple[str, list[str]]:
         why.append(f"odd and even transits differ by {checks['odd_even']['diff_sigma']:.1f} sigma")
     if checks["size"]["rp_rearth"] > MAX_PLANET_REARTH:
         why.append(f"too large for a planet: {checks['size']['rp_rearth']:.0f} Earth radii")
+    pc = checks["phase_curve"]
+    if pc["ratio_to_depth"] >= VARIABILITY_RATIO and pc["chi2"] >= VARIABILITY_CHI2:
+        why.append(f"the star varies by {pc['amplitude_ppm']:.0f} ppm at this period outside the dip "
+                   f"({pc['ratio_to_depth']:.1f}x the dip): rotation or a contact binary")
     if checks["duration"]["ratio"] > MAX_DURATION_RATIO:
         why.append(f"transit {checks['duration']['ratio']:.1f}x longer than this star allows")
     return ("reject" if why else "agent"), why
@@ -292,7 +328,8 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False) -> dict:
         "refit": check_peak(lc, sig["period"], sig["t0"], sig["dur"], -1),
         "odd_even": odd_even(lc, sig), "secondary": secondary(lc, sig),
         "sectors": sector_depths(lc, sig), "size": size(sig, star),
-        "duration": duration(sig, star), "shape": shape(lc, sig), "neighbours": neighbours(tic, star, sig),
+        "duration": duration(sig, star), "phase_curve": phase_curve(lc, sig), "shape": shape(lc, sig),
+        "neighbours": neighbours(tic, star, sig),
         "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)
