@@ -42,19 +42,21 @@ export function parseDossier(text) {
   return d;
 }
 
-export async function writeDossier(checks, id, version) {
+// effort sets Muse Spark's reasoning_effort ("low" ... "xhigh"); without it the model picks its own level.
+export async function writeDossier(checks, id, version, effort) {
+  const model = effort ? { ...MODELS[id], reasoning: true, compat: { ...MODELS[id].compat, supportsReasoningEffort: true } } : MODELS[id];
   const context = {
     systemPrompt: systemPrompt(version),
     messages: [{ role: "user", content: userMessage(checks), timestamp: Date.now() }],
     tools: [],
   };
   const t0 = Date.now();
-  const msg = await complete(MODELS[id], context, { apiKey: apiKey() });
+  const msg = await complete(model, context, { apiKey: apiKey(), ...(effort && { reasoningEffort: effort }) });
   if (msg.stopReason === "error") throw new Error(msg.errorMessage);
   const text = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   return {
-    model: id, prompt: version, ms: Date.now() - t0,
-    tokens: { input: msg.usage.input, output: msg.usage.output }, cost: msg.usage.cost.total,
+    model: id, prompt: version, ...(effort && { effort }), ms: Date.now() - t0,
+    tokens: { input: msg.usage.input, cached: msg.usage.cacheRead, output: msg.usage.output }, cost: msg.usage.cost.total,
     raw: text,
   };
 }

@@ -1,7 +1,7 @@
 // Investigate flagged stars: the agent picks tools (pipeline/tools.py) to settle each flag, then
 // writes a dossier. Tool results are measured by code and saved as evidence that gate 2 reads,
 // so the agent decides what to look at, never what passes.
-// Run: node agent/investigate.js VET_DIR [--model muse-spark-1.3-contributor] [--jobs 3] [--tic TIC ...]
+// Run: node agent/investigate.js VET_DIR [--model muse-spark-1.3-contributor] [--jobs 6] [--tic TIC ...]
 //   Without --tic it takes every star VET_DIR/status.csv (from pipeline/gate2.py) calls flagged.
 import { execFile } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -74,11 +74,12 @@ export async function investigate(checks, flags, modelId) {
   if (last?.stopReason === "error") throw new Error(last.errorMessage);
   const raw = last.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   const dossier = parseDossier(raw);
+  const sum = (k) => assistant.reduce((s, m) => s + (m.usage?.[k] ?? 0), 0);
   const known = { ...checks, tools: used.map((u) => u.result) };
   return {
     model: modelId, prompt: VERSION, ms: Date.now() - t0, flags, tools: used, raw, dossier,
     cost: assistant.reduce((s, m) => s + (m.usage?.cost?.total ?? 0), 0),
-    tokens: { input: assistant.reduce((s, m) => s + (m.usage?.input ?? 0), 0), output: assistant.reduce((s, m) => s + (m.usage?.output ?? 0), 0) },
+    tokens: { input: sum("input"), cached: sum("cacheRead"), output: sum("output") },
     invented: inventedNumbers(dossier, known, prompt),
   };
 }
@@ -90,7 +91,7 @@ if (import.meta.url === `file:///${process.argv[1].replace(/\\/g, "/")}`) {
     return at >= 0 ? args.splice(at, 2)[1] : fallback;
   };
   const model = opt("--model", "muse-spark-1.3-contributor");
-  const jobs = Number(opt("--jobs", "3"));
+  const jobs = Number(opt("--jobs", "6"));
   const at = args.indexOf("--tic");
   const only = at >= 0 ? args.splice(at).slice(1).map(Number) : null;
   const [dir] = args;
