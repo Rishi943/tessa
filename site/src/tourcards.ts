@@ -72,7 +72,8 @@ function hook(ctx: Ctx): Show {
   const one = f.found === 1;
   return show(el("div", {}), [
     { at: 0, text: `In ${f.days} day${f.days > 1 ? "s" : ""}, Tessa searched ${int(f.searched)} nearby stars.` },
-    { at: 3, text: `It found ${one ? "one [[candidate|possible new world]]" : `${words(f.found).toLowerCase()} [[candidate|possible new worlds]]`}: ${ctx.host}.` },
+    { at: 3, text: one ? `It found one [[candidate|possible new world]]: ${ctx.host}.`
+      : `It found ${words(f.found).toLowerCase()} [[candidate|possible new worlds]]. The clearest is ${ctx.host}.` },
     { at: 6.5, text: `${f.rp ? `About ${f.rp.toFixed(1)} times Earth's width, with` : "With"} a year just ${Math.round(f.period * 24)} hours long, `
       + `${int(Math.round((ctx.star?.checks?.star?.distance ?? 0) * 3.26156))} light-years from us.` },
   ]);
