@@ -71,7 +71,6 @@ p { margin: 0 0 1em; }
   padding: 0.5rem 1rem; cursor: pointer; font: 500 0.95rem var(--sans);
 }
 .ask-open:hover { background: var(--ink); color: var(--page); }
-.brand small { font: 400 0.55em var(--mono); color: var(--muted); margin-left: 0.35rem; letter-spacing: 0; }
 @media (max-width: 40rem) { .bar nav { display: none; } }
 
 /* Sky hero */
@@ -241,35 +240,75 @@ footer.foot p { margin: 0; max-width: var(--read); }
 .timeline .what { color: var(--ink-2); }
 
 /* Ask Tessa drawer */
+/* Ask Tessa: a column on the live view, no window: words over a soft fade, so it can stay open while you explore.
+   Only its contents take the pointer, so the map still turns under the faded edge. */
 .ask {
-  position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: min(28rem, 100vw);
-  background: var(--surface); border-left: 1px solid var(--hair); box-shadow: -12px 0 40px var(--shade);
-  display: flex; flex-direction: column;
+  position: fixed; z-index: 40; top: 0; right: 0; bottom: 0; width: min(30rem, 100vw);
+  padding: 4.6rem var(--gutter) 1.2rem 5rem; display: flex; flex-direction: column; pointer-events: none;
+  background: linear-gradient(90deg, rgba(7, 9, 18, 0) 0%, rgba(7, 9, 18, 0.74) 32%, rgba(7, 9, 18, 0.9) 100%);
 }
+.ask > * { pointer-events: auto; }
 .ask[hidden] { display: none; }
-.ask header { display: flex; align-items: baseline; gap: 0.75rem; padding: 1rem 1.25rem 0.75rem; border-bottom: 1px solid var(--hair); }
-.ask header h2 { font: 400 1.5rem/1 var(--serif); }
-.ask header p { margin: 0; color: var(--muted); font-size: 0.82rem; }
-.ask .close { margin-left: auto; background: none; border: 0; font-size: 1.5rem; line-height: 1; cursor: pointer; color: var(--ink-2); padding: 0.2rem 0.4rem; }
-.ask .log { flex: 1; overflow-y: auto; padding: 1rem 1.25rem; display: grid; align-content: start; gap: 0.9rem; }
-.ask .msg-user { justify-self: end; background: var(--raise); border: 1px solid var(--hair); border-radius: 1rem 1rem 0.25rem 1rem; padding: 0.5rem 0.85rem; max-width: 85%; }
-.ask .msg-tessa { line-height: 1.55; }
+body:not(.world) .ask { background: var(--surface); border-left: 1px solid var(--hair); padding-left: 1.5rem; }
+.ask .log { flex: 1; overflow-y: auto; overscroll-behavior: contain; display: grid; align-content: end; gap: 1rem; padding: 2.5rem 0.2rem 0.4rem 0;
+  -webkit-mask-image: linear-gradient(transparent 0, #000 2.5rem); mask-image: linear-gradient(transparent 0, #000 2.5rem); }
+.ask .hello p { margin: 0 0 0.5rem; color: var(--ink-2); }
+.ask .hello .hi { font: 250 2.1rem/1.05 var(--sans); font-stretch: 118%; letter-spacing: -0.02em; color: var(--ink); margin: 0 0 0.35rem; }
+.ask .starters { display: grid; justify-items: start; gap: 0.45rem; margin-top: 0.7rem; }
+.ask .starters button, .ask .acts button:not(.solid) { padding: 0; border: 0; background: none; color: var(--ink-2); font: inherit; text-align: left; cursor: pointer;
+  text-decoration: underline; text-decoration-color: rgba(236, 235, 230, 0.3); text-underline-offset: 0.25em; }
+.ask .starters button:hover, .ask .acts button:not(.solid):hover { color: var(--ink); }
+.ask .starters button.go { color: var(--tessa); text-decoration-color: rgba(94, 234, 212, 0.45); }
+.ask .msg-user { justify-self: end; max-width: 85%; text-align: right; font-weight: 500; }
+.ask .msg-user span { display: block; font: 400 0.75rem var(--mono); color: var(--muted); }
+.ask .steps { display: grid; gap: 0.1rem; }
+.ask .step, .ask .thinking { font: 400 0.8rem/1.4 var(--mono); color: var(--muted); }
+.ask .step::before { content: "✓ "; color: var(--tessa); }
+.ask .msg-tessa { color: var(--ink-2); line-height: 1.55; }
+.ask .msg-tessa p { margin: 0 0 0.6rem; }
 .ask .msg-tessa p:last-child { margin-bottom: 0; }
-.ask .msg-tessa ul { margin: 0 0 1em; padding-left: 1.2rem; }
-.ask .step { font-size: 0.82rem; color: var(--muted); display: flex; gap: 0.4rem; align-items: center; }
-.ask .step::before { content: ""; width: 0.4rem; height: 0.4rem; border-radius: 50%; background: var(--searched); flex: none; }
-.ask .err { color: var(--rejected); font-size: 0.9rem; }
-.ask-fig { margin: 0; }
-.ask-fig .chart { padding: 0.4rem; }
-.ask-fig figcaption { font-size: 0.8rem; color: var(--muted); margin-top: 0.3rem; }
-.ask .starters { display: grid; gap: 0.4rem; }
-.ask .starters button { text-align: left; background: none; border: 1px solid var(--hair); border-radius: 0.5rem; padding: 0.55rem 0.75rem; cursor: pointer; color: var(--ink-2); }
-.ask .starters button:hover { border-color: var(--ink-2); color: var(--ink); }
-.ask form { display: flex; gap: 0.5rem; padding: 0.85rem 1.25rem 1rem; border-top: 1px solid var(--hair); }
-.ask textarea { flex: 1; resize: none; min-height: 2.6rem; max-height: 8rem; border: 1px solid var(--hair); background: var(--page); color: var(--ink); border-radius: 0.6rem; padding: 0.55rem 0.75rem; font: inherit; }
-.ask form button { background: var(--ink); color: var(--page); border: 0; border-radius: 0.6rem; padding: 0 1rem; font-weight: 600; cursor: pointer; }
-.ask form button:disabled { opacity: 0.5; cursor: default; }
-.ask .foot { padding: 0 1.25rem 0.9rem; color: var(--muted); font-size: 0.78rem; margin: 0; }
+.ask .msg-tessa ul { margin: 0 0 0.6rem; padding-left: 1.1rem; }
+.ask .msg-tessa b { color: var(--ink); font-weight: 500; }
+.ask .acts { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 1.1rem; }
+.ask .acts .solid { padding: 0.5rem 0.9rem; border: 0; background: var(--ink); color: var(--page); font: 500 0.92rem var(--sans); cursor: pointer; }
+.ask .ping { border-left: 2px solid var(--tessa); padding: 0.1rem 0 0.1rem 0.7rem; }
+.ask .ping .when { display: block; font: 400 0.75rem var(--mono); color: var(--tessa); }
+.ask .ping p { margin: 0; color: var(--ink-2); }
+.ask .ping b { color: var(--ink); font-weight: 500; }
+.ask .err { color: var(--rejected); font-size: 0.9rem; margin: 0; }
+.x-fig { margin: 0; }
+.x-fig figcaption { font: 400 0.78rem var(--mono); color: var(--muted); margin: 0 0 0.35rem; }
+.x-fig .chart { padding: 0; }
+.x-svg svg { display: block; width: 100%; height: auto; }
+.x-fig .m-plot, .x-fig .m-plot.short { height: 190px; }
+.x-fig .m-graph { height: 90px; }
+.x-fig .m-wrap { height: 170px; }
+.x-links { display: flex; flex-wrap: wrap; gap: 0.3rem 0.9rem; margin-top: 0.4rem; }
+.x-links button { padding: 0; border: 0; background: none; font: 400 0.82rem var(--mono); color: var(--muted); cursor: pointer; }
+.x-links button[aria-pressed="true"] { color: var(--ink); text-decoration: underline; text-underline-offset: 0.25em; }
+.ask form { display: flex; gap: 0.9rem; align-items: end; padding: 0.8rem 0 0.4rem; }
+.ask textarea { flex: 1; resize: none; min-height: 2.2rem; max-height: 8rem; border: 0; border-bottom: 1px solid var(--line); background: none; color: var(--ink);
+  padding: 0.4rem 0; font: inherit; }
+.ask textarea:focus { outline: none; border-bottom-color: var(--ink); }
+.ask form button { border: 0; background: none; color: var(--ink); padding: 0.4rem 0; font: 500 1rem var(--sans); cursor: pointer;
+  text-decoration: underline; text-underline-offset: 0.25em; }
+.ask form button:disabled { opacity: 0.4; cursor: default; }
+.ask .foot { margin: 0; font: 400 0.72rem/1.4 var(--mono); color: var(--muted); }
+.ask-pill { display: none; }
+body.asking .bar { z-index: 45; }  /* the header's Close stays above the chat's fade */
+@media (min-width: 901px) { body.asking .u-readout { opacity: 0; } }
+/* with the chat open, the tour's and the search's words keep clear of it */
+@media (min-width: 901px) { body.asking .t-card { right: calc(min(30rem, 100vw) - 1rem); } }
+@media (max-width: 900px) {
+  .ask { width: 100vw; padding: 4.2rem 1rem 0.9rem; background: rgba(7, 9, 18, 0.94); }
+  .ask-pill:not([hidden]) { display: block; align-self: flex-start; margin-bottom: 0.4rem; padding: 0.3rem 0.7rem; border: 1px solid var(--tessa);
+    background: none; color: var(--tessa); font: 400 0.8rem var(--mono); cursor: pointer; }
+}
+/* the tour's first stop points at Ask Tessa, and the button pulses three times */
+.ask-open.pulse { position: relative; }
+.ask-open.pulse::after { content: ""; position: absolute; inset: -2px; border: 1px solid var(--tessa); opacity: 0; animation: ask-pulse 1.6s ease-out 3; pointer-events: none; }
+@keyframes ask-pulse { 0% { opacity: 0.9; inset: -2px; } 100% { opacity: 0; inset: -14px; } }
+@media (prefers-reduced-motion: reduce) { .ask-open.pulse::after { animation: none; opacity: 0.8; } }
 
 .loading { padding: 4rem var(--gutter); color: var(--muted); }
 
@@ -420,12 +459,13 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .t-stage { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 1rem 1.1rem; border: 1px solid rgba(236, 235, 230, 0.07); background: rgba(7, 9, 18, 0.92); }
 .t-show { cursor: pointer; }
 /* jargon: a dotted underline, and the definition on hover or tap */
-.term { position: relative; text-decoration: underline dotted rgba(236, 235, 230, 0.55); text-underline-offset: 0.22em; cursor: help; outline: none; }
+.term { position: relative; text-decoration: underline dotted rgba(236, 235, 230, 0.55); text-underline-offset: 0.22em; cursor: pointer; outline: none; }
 .term:hover::after, .term:focus::after {
-  content: attr(data-def); position: absolute; left: 0; bottom: calc(100% + 0.45rem); z-index: 5; width: min(18rem, 70vw);
+  content: attr(data-def) "\A\A" "Click to ask Tessa about it"; position: absolute; left: 0; bottom: calc(100% + 0.45rem); z-index: 5; width: min(18rem, 70vw);
   padding: 0.55rem 0.7rem; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2);
-  font: 400 0.85rem/1.45 var(--sans); text-shadow: none; white-space: normal; letter-spacing: 0;
+  font: 400 0.85rem/1.45 var(--sans); text-shadow: none; white-space: pre-line; letter-spacing: 0;
 }
+.t-hint { margin: 0.9rem 0 0; display: flex; align-items: center; gap: 0.5rem; font: 400 0.85rem var(--mono); color: var(--tessa); }
 .term:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
 .t-chips .u-k { margin-right: 0.3rem; }
 .m-show { position: relative; }

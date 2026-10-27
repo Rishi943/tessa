@@ -1,7 +1,7 @@
 // tessa.braveai.solutions: the static site comes straight from the assets; this Worker only answers
 // /api/ask, where Muse Spark answers questions about the survey with tools over the exported files, and
 // /api/search/*, which hands visitors a star to search in their browser and records what they found.
-import { search } from "./search";
+import { poolSize, search } from "./search";
 import type { SearchEnv } from "./search";
 import { SYSTEM, TOOLS, runTool, stepText } from "./tools";
 
@@ -36,7 +36,7 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
   const [mine, all] = await Promise.all([env.ASK_LIMIT.limit({ key: ip }), env.ASK_GLOBAL.limit({ key: "all" })]);
   if (!mine.success || !all.success) return new Response("slow down", { status: 429 });
 
-  let body: { messages?: { role: string; content: string }[]; page?: string };
+  let body: { messages?: { role: string; content: string }[]; page?: string; search?: unknown };
   try {
     body = await request.json();
   } catch {
@@ -49,15 +49,19 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
     return new Response("bad question", { status: 400 });
   }
   const page = typeof body.page === "string" && /^\/[\w/#-]{0,40}$/.test(body.page) ? body.page : "/";
+  // the reader's own running search, as their page reports it: data, kept short
+  const reader = body.search && typeof body.search === "object" ? JSON.stringify(body.search).slice(0, 1500) : "";
 
   const { readable, writable } = new TransformStream();
   const out = writable.getWriter();
   const enc = new TextEncoder();
-  const emit = (type: string, text: string) => out.write(enc.encode(JSON.stringify({ type, text }) + "\n"));
+  const send = (ev: Record<string, unknown>) => out.write(enc.encode(JSON.stringify(ev) + "\n"));
+  const emit = (type: string, text: string) => send({ type, text });
 
   ctx.waitUntil((async () => {
     try {
-      const messages: Msg[] = [{ role: "system", content: `${SYSTEM}\n\nThe reader is on the page ${page}.` }, ...turns];
+      const messages: Msg[] = [{ role: "system", content: `${SYSTEM}\n\nThe reader is on the page ${page}.\n`
+        + `The reader's search: ${reader || "none running"}` }, ...turns];
       for (let round = 0; round < MAX_ROUNDS; round++) {
         const last = round === MAX_ROUNDS - 1;
         const res = await fetch(META_URL, {
@@ -79,10 +83,13 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
             let args: Record<string, unknown> = {};
             try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* the tool reports the bad call */ }
             await emit("step", stepText(call.function.name, args));
-            const result = await runTool(call.function.name, args, (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))));
-            if (call.function.name === "show" && result.includes('"shown":true')) {
-              await out.write(enc.encode(JSON.stringify({ type: "show", tic: Math.trunc(Number(args.tic)), view: args.view }) + "\n"));
-            }
+            const get = (path: string) => env.ASSETS.fetch(new Request(new URL(path, request.url)));
+            const result = await runTool(call.function.name, args, get, { db: env.DB, poolSize: () => poolSize(env, request.url), reader });
+            const tic = Math.trunc(Number(args.tic)) || null;
+            // pictures and buttons go to the page as their own events, beside the answer
+            if (call.function.name === "show" && result.includes('"shown":true')) await send({ type: "show", tic, view: args.view });
+            if (call.function.name === "explain" && result.includes('"shown":true')) await send({ type: "explain", topic: args.topic, tic });
+            if (call.function.name === "offer_search" && result.includes('"offered"')) await send({ type: "offer", stars: Number(args.stars) });
             messages.push({ role: "tool", tool_call_id: call.id, content: result });
           }
           continue;

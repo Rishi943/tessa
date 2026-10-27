@@ -15,6 +15,8 @@ interface Star { tic: number; ra: number; dec: number; dist: number; tmag: numbe
 const CLAIM_S = 900;  // a search takes seconds; a claim lasts long enough for a slow laptop
 let stars: Star[] | null = null;
 
+export const poolSize = async (env: SearchEnv, url: string) => (await list(env, url)).length;
+
 async function list(env: SearchEnv, url: string): Promise<Star[]> {
   stars ??= await (await env.ASSETS.fetch(new Request(new URL("/data/search/stars.json", url)))).json() as Star[];
   return stars;

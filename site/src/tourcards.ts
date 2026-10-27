@@ -44,8 +44,8 @@ export function rich(text: string): Node[] {
   return out;
 }
 
-// the numbers the cards quote
-function facts({ p, s, star }: Ctx) {
+// the numbers the cards quote (Ask Tessa's pictures quote them too)
+export function facts({ p, s, star }: Ctx) {
   const searched = Number(s.searched_total ?? s.survey_searched ?? 0);
   const g1 = (s.gate1_total ?? s.survey_gate1 ?? {}) as { pass?: number; flipped_pass?: number };
   const gate = (star && (s[`${star.batch}_gate1`] as { floor: number; false_pass_rate: number } | undefined)) || { floor: 0, false_pass_rate: 0.01 };
@@ -294,6 +294,9 @@ function end(ctx: Ctx, onSearch: () => void): Show {
 // the method cards, for the dip stop and its "other ways" chips
 const METHODS: [Method, string, Group][] = [["dip", "The dip", "transit"], ["wobble", "The wobble", "rv"], ["bent", "Bent light", "lens"], ["photo", "Photographs", "other"]];
 
+// a tour picture on its own, for Ask Tessa's answers
+export const scene = (kind: "fold" | "odds", ctx: Ctx): Show => (kind === "fold" ? fold(ctx) : odds(ctx));
+
 export interface CardOpts {
   kind: CardKind; ctx: Ctx; index: number; total: number;
   onNext(): void; onBack(): void; onLeave(): void; onFocus(g: Group | null): void; onSearch(): void;
@@ -340,7 +343,9 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
         el("div", { class: "t-top" }, el("span", { class: "t-where" }, el("span", { class: "u-dot", style: "background: var(--ok)" }),
           el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`), el("b", {}, NAME[o.kind])), leave),
         el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" })))),
-      el("div", { class: "t-say" }, spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null, text),
+      el("div", { class: "t-say" }, spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null, text,
+        // the first stop shows where to get help with any word, and the button pulses to match
+        o.index === 0 ? el("p", { class: "t-hint" }, el("span", { class: "u-dot", style: "background: var(--tessa)" }), "Any word unclear? Ask Tessa, top right.") : null),
       el("div", { class: "t-stat" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null, chips),
       el("div", { class: "t-ctrl" }, el("div", { class: "t-nav" }, back, pips, fwdBox), pause)),
     el("div", { class: "t-stage" }, box));
@@ -397,6 +402,11 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
     }
   }
   load(make());
+  if (o.index === 0) {
+    const buttons = document.querySelectorAll(".bar .ask-open");
+    buttons.forEach((b) => b.classList.add("pulse"));
+    setTimeout(() => buttons.forEach((b) => b.classList.remove("pulse")), 5200);
+  }
   const go = (n: number) => {
     if (n < 0) { o.onBack(); return; }
     if (n >= cur.beats.length) { o.onNext(); return; }

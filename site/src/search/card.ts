@@ -10,7 +10,16 @@ import { cores, run } from "./engine";
 import type { Run } from "./engine";
 
 export interface SearchStar { tic: number; ra: number; dec: number; dist: number; tmag: number; teff: number | null; rad: number | null; mass: number | null }
-export interface SearchOpts { floor: number; odds: string; start?: boolean; onStar(s: SearchStar): void; onLeave(): void; onAgain(): void }
+// start: a batch size to begin at once (Ask Tessa's button, /search?go=10)
+export interface SearchOpts { floor: number; odds: string; start?: number; onStar(s: SearchStar): void; onLeave(): void; onAgain(): void }
+
+// The running batch, for Ask Tessa: she reads it to answer "how's my search going?", and hears when a star clears
+// the bar or the batch ends (a "tessa:search" event on window)
+interface Done { tic: number; cleared: boolean; best_score: number; period_days: number | null }
+let state: { star: number; of: number; done: Done[]; minutes_left: number } | null = null;
+export const searchState = () => state;
+const tell = (detail: { kind: "cleared" | "finished"; tic?: number; period?: number; k: number; n: number; found: number }) =>
+  dispatchEvent(new CustomEvent("tessa:search", { detail }));
 
 const css = (n: string) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const LY = 3.26156;
@@ -58,7 +67,7 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
   fetch("/api/search/stats").then((r) => r.json()).then((s: { left: number }) => stat(int(s.left), "stars left to search")).catch(() => {});
 
   let job: { stop(): void } | null = null, dead = false, stopAfter = false;
-  if (o.start) queueMicrotask(() => batch(1));
+  if (o.start) queueMicrotask(() => batch(o.start!));
 
   async function batch(n: number) {
     try { localStorage.setItem(HANDLE, handle.value.trim()); } catch { /* private mode */ }
@@ -68,17 +77,22 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     ctrl.replaceChildren(...(n > 1 ? [stop] : []));
     const t0 = performance.now(), found: number[] = [];
     let done = 0, err = "";
+    state = { star: 1, of: n, done: [], minutes_left: Math.round((n * perStar) / 60) };
     for (let i = 0; i < n && !dead && !stopAfter; i++) {
       try {
         const res = await fetch("/api/search/next");
         const body = await res.json() as { star?: SearchStar; error?: string };
         if (!body.star) throw new Error(body.error ?? "no star free right now");
         const pace = done ? (performance.now() - t0) / 1000 / done : perStar;
+        if (state) { state.star = i + 1; state.minutes_left = Math.round(((n - i) * pace) / 60); }
         const r = await one(body.star, n > 1 ? i + 1 : 0, n, pace);
         if (!r) return;
         done++;
         if (r.verdict.pass) found.push(body.star.tic);
         post(body.star, r, who);
+        const v = r.verdict;
+        state?.done.push({ tic: body.star.tic, cleared: v.pass, best_score: Number((v.dip?.snr ?? v.topDip).toFixed(1)), period_days: v.dip ? Number(v.dip.period.toFixed(3)) : null });
+        if (v.pass) tell({ kind: "cleared", tic: body.star.tic, period: v.dip!.period, k: i + 1, n, found: found.length });
         if (n > 1 && i < n - 1) await new Promise((x) => setTimeout(x, r.verdict.pass ? 4000 : 1500));
       } catch (e) {
         err = `The search couldn't go on: ${(e as Error).message}. Try again in a minute.`;
@@ -86,7 +100,9 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
         break;
       }
     }
+    state = null;
     if (dead) return;
+    if (done) tell({ kind: "finished", k: done, n, found: found.length });
     if (n > 1 && done && !err) {
       const secs = (performance.now() - t0) / 1000;
       say(found.length
@@ -149,7 +165,7 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
       : `I searched a star for planets in my browser with Tessa${found ? ": it cleared the bar!" : "."}`;
     return el("a", { class: "u-btn", href: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(`${location.origin}/search`)}`, target: "_blank", rel: "noopener" }, "Share");
   }
-  function dispose() { dead = true; job?.stop(); node.remove(); }
+  function dispose() { dead = true; state = null; job?.stop(); node.remove(); }
   return { node, dispose };
 }
 

@@ -12,7 +12,7 @@ import { tourCard } from "./tourcards";
 import { searchCard } from "./search/card";
 import { AU_PER_PC, jdNow, systemView } from "./system";
 import type { SystemView } from "./system";
-import { css, el, fix, int } from "./util";
+import { css, el, fix, int, navigate } from "./util";
 
 const D2R = Math.PI / 180;
 const LY = 3.26156;  // light-years per parsec
@@ -212,7 +212,7 @@ function lightYear(pc: number): string {
 const orbitText = (d: number) => (d < 2 ? `${int(d * 24)} hours` : d < 730 ? `${fix(d, d < 10 ? 1 : 0)} days` : `${fix(d / 365.25, 1)} years`);
 const tempText = (k: number) => `${int(Math.round((k - 273.15) / 10) * 10)} °C`;
 
-interface World { showHost(host: string): boolean; dispose(): void }
+interface World { showHost(host: string): boolean; search(n: number): void; dispose(): void }
 
 let introDone = false;
 let current: World | null = null;
@@ -234,6 +234,11 @@ export function leaveUniverse() {
 // Ask Tessa's "show it on the map", for a star in this view (TESS candidates and Tessa's own are named by TIC)
 export function flyToTic(tic: number): boolean {
   return current?.showHost(`TIC ${tic}`) ?? false;
+}
+// Ask Tessa's search button: here if the universe is open, otherwise by going to it
+export function startSearch(n: number) {
+  if (current) current.search(n);
+  else navigate(`/search?go=${n}`);
 }
 
 function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPage | null): World | null {
@@ -743,8 +748,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     b.addEventListener("click", () => searchMode());
     return b;
   }
-  // start: begin searching at once (/search?go=1 and "Search another star")
-  function searchMode(start = false) {
+  // start: a batch size to begin at once (/search?go=10, Ask Tessa's button)
+  function searchMode(start = 0) {
     endIntro(false);
     closeSystem();
     leaveTour(false);
@@ -1039,13 +1044,14 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     camera.position.copy(HOME.dir).multiplyScalar(HOME.dist);
     if (start) select(start);
     else if (onTour) tourStop(stop);
-    else if (onSearch) searchMode(params.get("go") === "1");
+    else if (onSearch) searchMode([1, 10, 50, 100].includes(Number(params.get("go"))) ? Number(params.get("go")) : 0);
     else overview();
   } else startIntro();
   resize();
   raf = requestAnimationFrame(frame);
 
   return {
+    search(n) { if (sum) searchMode(n); },
     showHost(name) {
       const s = find(name);
       if (!s) return false;
