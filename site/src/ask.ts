@@ -1,5 +1,8 @@
 // Ask Tessa: a drawer that talks to the Worker's /api/ask, where Muse Spark answers from Tessa's own
 // files with tools. The Worker streams one JSON object per line: steps as it works, then the answer.
+import { foldChart, lightCurve, sectorDepths, snrBars } from "./charts";
+import { getStar } from "./data";
+import { flyTo } from "./home";
 import { el, navigate } from "./util";
 
 type Turn = { role: "user" | "assistant"; content: string };
@@ -78,6 +81,23 @@ function render(text: string): HTMLElement {
   return box;
 }
 
+// A chart from the star's own exported data, drawn by the same code as its page
+async function picture(tic: number, view: string): Promise<HTMLElement | null> {
+  if (view === "map") {
+    flyTo(tic);
+    return null;
+  }
+  try {
+    const page = await getStar(tic);
+    const chart = view === "fold" ? foldChart(page) : view === "light_curve" ? lightCurve(page)
+      : view === "depth_by_sector" ? sectorDepths(page) : page.when ? snrBars(page.when.ground_snr_per_transit) : null;
+    return chart && el("figure", { class: "ask-fig" }, chart,
+      el("figcaption", {}, el("a", { href: `/star/${tic}` }, `TIC ${tic}`), ", from its case file"));
+  } catch {
+    return null;
+  }
+}
+
 async function ask(question: string) {
   const q = question.trim();
   if (!q || send.disabled) return;
@@ -108,10 +128,14 @@ async function ask(question: string) {
         const line = buf.slice(0, nl).trim();
         buf = buf.slice(nl + 1);
         if (!line) continue;
-        const ev = JSON.parse(line) as { type: string; text: string };
+        const ev = JSON.parse(line) as { type: string; text: string; tic: number; view: string };
         if (ev.type === "step") {
           thinking.remove();
           steps.append(el("div", { class: "step" }, ev.text));
+        } else if (ev.type === "show") {
+          thinking.remove();
+          const fig = await picture(ev.tic, ev.view);
+          if (fig) log.append(fig);
         } else if (ev.type === "answer") {
           thinking.remove();
           log.append(render(ev.text));

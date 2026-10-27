@@ -76,6 +76,9 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
             try { args = JSON.parse(call.function.arguments || "{}"); } catch { /* the tool reports the bad call */ }
             await emit("step", stepText(call.function.name, args));
             const result = await runTool(call.function.name, args, (path) => env.ASSETS.fetch(new Request(new URL(path, request.url))));
+            if (call.function.name === "show" && result.includes('"shown":true')) {
+              await out.write(enc.encode(JSON.stringify({ type: "show", tic: Math.trunc(Number(args.tic)), view: args.view }) + "\n"));
+            }
             messages.push({ role: "tool", tool_call_id: call.id, content: result });
           }
           continue;

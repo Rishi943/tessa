@@ -53,6 +53,7 @@ const fragment = /* glsl */ `
 
 export interface SkyView {
   focus(status: Status | null): void;
+  flyTo(tic: number): boolean;
   dispose(): void;
 }
 
@@ -174,7 +175,10 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
     // Keep the whole 100 pc sphere in view on narrow screens, and push it right on wide ones
     const fit = w / h < 1 ? 3.3 / Math.max(w / h, 0.55) : 3.3;
     camera.position.z = fit;
-    camera.setViewOffset(w, h, w > 840 ? -w * 0.17 : 0, 0, w, h);
+    // With the Ask drawer open, pull the Sun left of it so a star turned to the front stays in view
+    const drawer = document.querySelector<HTMLElement>("aside.ask");
+    const centre = w <= 840 ? w / 2 : drawer && !drawer.hidden ? Math.min(w * 0.67, w - drawer.offsetWidth - 260) : w * 0.67;
+    camera.setViewOffset(w, h, w / 2 - centre, 0, w, h);
     camera.updateProjectionMatrix();
     request();
   }
@@ -286,6 +290,9 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
   canvas.addEventListener("pointerleave", () => { tip.hidden = true; });
 
   const ro = new ResizeObserver(resize);
+  const drawerWatch = new MutationObserver(resize);
+  const drawerEl = document.querySelector("aside.ask");
+  if (drawerEl) drawerWatch.observe(drawerEl, { attributes: true, attributeFilter: ["hidden"] });
   ro.observe(canvas);
   const io = new IntersectionObserver(([e]) => {
     visible = e.isIntersecting;
@@ -300,7 +307,39 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
   paint();
   resize();
 
+  // Turn the map so a star faces the reader, and label it. Rotation order is XYZ: Ry first, then Rx.
+  let flyLabel: HTMLElement | null = null;
+  function flyTo(tic: number): boolean {
+    const row = sky.tic.indexOf(tic);
+    if (row < 0) return false;
+    const i = order.indexOf(row);
+    const x = pos[i * 3], y = pos[i * 3 + 1], z = pos[i * 3 + 2];
+    const ry = Math.atan2(-x, z);
+    const rx = Math.max(-1.4, Math.min(1.4, Math.atan2(y, Math.hypot(x, z))));
+    const fromY = world.rotation.y, fromX = world.rotation.x;
+    const dy = ((ry - fromY + Math.PI * 3) % (Math.PI * 2)) - Math.PI;  // shortest way round
+    const start = performance.now(), ms = still ? 0 : 1400;
+    lastTouch = start + 8000;
+    if (!labels.some((l) => l.el.textContent === `TIC ${tic}`)) {
+      flyLabel?.remove();
+      labels.splice(labels.findIndex((l) => l.el === flyLabel) >>> 0, flyLabel ? 1 : 0);
+      addLabel(`TIC ${tic}`, new THREE.Vector3(x, y, z), true, `/star/${tic}`);
+      flyLabel = labels[labels.length - 1].el;
+    }
+    const step = (now: number) => {
+      const t = ms ? Math.min((now - start) / ms, 1) : 1;
+      const e = t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
+      world.rotation.y = fromY + dy * e;
+      world.rotation.x = fromX + (rx - fromX) * e;
+      request();
+      if (t < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    return true;
+  }
+
   return {
+    flyTo,
     focus(s) {
       focused = s;
       paint();
@@ -310,6 +349,7 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
       cancelAnimationFrame(raf);
       spin = 0;
       ro.disconnect();
+      drawerWatch.disconnect();
       io.disconnect();
       themeWatch.disconnect();
       mq.removeEventListener("change", paint);

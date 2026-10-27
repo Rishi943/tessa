@@ -3,12 +3,23 @@ import { getDips, getSky, getStar, getSummary } from "./data";
 import type { Dip, StarPage, Status, Summary } from "./data";
 import { mountSky } from "./sky";
 import type { SkyView } from "./sky";
-import { STATUS, badge, el, fix, int, mark, spectral, usd } from "./util";
+import { STATUS, badge, el, fix, int, mark, navigate, spectral, usd } from "./util";
 
 const LEGEND: Status[] = ["candidate", "flagged", "rejected", "searched", "pool"];
 
 let sky: SkyView | null = null;
 let visit = 0;  // the sky loads slowly; a late load must not mount onto a page already left
+let pendingFly: number | null = null;
+
+// Ask Tessa's "show it on the map": go home if needed, then turn the map once it exists
+export function flyTo(tic: number) {
+  window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  if (sky && location.pathname === "/") sky.flyTo(tic);
+  else {
+    pendingFly = tic;
+    if (location.pathname !== "/") navigate("/");
+  }
+}
 export function leaveHome() {
   visit++;
   sky?.dispose();
@@ -43,6 +54,11 @@ export async function home(main: HTMLElement) {
   getSky().then((data) => {
     if (visit !== mine) return;
     sky = mountSky(hero, data, (focus) => buttons.forEach((b, i) => b.setAttribute("aria-pressed", String(LEGEND[i] === focus))));
+    if (sky && pendingFly != null) {
+      const tic = pendingFly;
+      pendingFly = null;
+      setTimeout(() => sky?.flyTo(tic), 300);
+    }
     buttons.forEach((b, i) => b.addEventListener("click", () => {
       const s = LEGEND[i];
       sky?.focus(b.getAttribute("aria-pressed") === "true" ? null : s);
