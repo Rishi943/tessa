@@ -1,9 +1,10 @@
 """Gate 2: does a vetted signal become a candidate?
 
 Fixed rules the agent cannot change. A candidate needs every code check in the planet-like range
-(the same table the agent reads), the agent's own "gate2" verdict, nothing in novelty check B, and
-a test: a future TESS sector or a night on the ground when the transit time is still known. The
-agent can stop a signal by rejecting or flagging it, but never pass one the rules don't.
+(the same table the agent reads) or settled by evidence from the agent's tools (pipeline/tools.py,
+measured by code), the agent's own "gate2" verdict, nothing in novelty check B, and a test: a
+future TESS sector or a night on the ground when the transit time is still known. The agent can
+stop a signal by rejecting or flagging it, but never pass one the rules don't.
 
 Run: python -m pipeline.gate2 VET_DIR --results results.csv [--lc data/cache/lc]
      [--model muse-spark-1.3-contributor] [--prompt v5]

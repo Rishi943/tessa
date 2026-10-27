@@ -2,8 +2,9 @@
 
 sky.json has every star in the pool, column by column, with a status code; summary.json has the
 funnel and the counts; stars/TIC.json has, for every star that passed gate 1, its light curve
-(binned and folded), the code checks, the agent's dossier, the gate 2 status and, for candidates,
-the novelty check and the predictions.
+(binned and folded), the code checks, the agent's dossier, the gate 2 status (with the case-closed line
+for rejected stars and the tools' evidence for investigated ones) and, for candidates, the novelty
+check and the predictions.
 
 Run: python -m pipeline.export [--out data/site] [--model muse-spark-1.3-contributor] [--prompt v5]
 """
@@ -58,11 +59,14 @@ def light_curve(lc: dict, sig: dict) -> dict:
 
 
 def dossier(tic: int, model: str, prompt: str) -> dict | None:
-    path = DATA / "dossiers" / f"{tic}.{model}.{prompt}.json"
-    if not path.exists():
-        return None
-    run = json.loads(path.read_text(encoding="utf-8"))
-    return {**run["dossier"], "model": run["model"], "prompt": run["prompt"], "cost_usd": run["cost"]}
+    """The investigation's dossier when the agent investigated this star, else the vetting one."""
+    for version in ("inv1", prompt):
+        path = DATA / "dossiers" / f"{tic}.{model}.{version}.json"
+        if path.exists():
+            run = json.loads(path.read_text(encoding="utf-8"))
+            return {**run["dossier"], "model": run["model"], "prompt": run["prompt"], "cost_usd": run["cost"],
+                    "tools_called": [t["tool"] for t in run.get("tools", [])]}
+    return None
 
 
 def export(out: Path, model: str, prompt: str) -> dict:
@@ -79,6 +83,7 @@ def export(out: Path, model: str, prompt: str) -> dict:
         res = pd.read_csv(results)
         status[status.index.isin(res["tic"])] = STATUS["searched"]
         final = {}
+        closed = json.loads((vet_dir / "caseclosed.json").read_text(encoding="utf-8"))             if (vet_dir / "caseclosed.json").exists() else {}
         if (vet_dir / "status.csv").exists():
             with (vet_dir / "status.csv").open(newline="", encoding="utf-8") as f:
                 final = {int(r["tic"]): r for r in csv.DictReader(f)}
@@ -93,12 +98,19 @@ def export(out: Path, model: str, prompt: str) -> dict:
             page = {"tic": tic, "batch": name, "status": st["status"],
                     "reasons": [x for x in st["reasons"].split("; ") if x],
                     "gate1": {"dip_snr": r["dip_snr"], "flipped_snr": r["bump_snr"], "transits": int(r["dip_transits"])},
-                    "checks": checks, "dossier": dossier(tic, model, prompt),
+                    "case_closed": closed.get(str(tic)), "checks": checks, "dossier": dossier(tic, model, prompt),
                     **light_curve(detrend(raw["time"], raw["flux"], raw["sector"]), sig)}
+            ev = DATA / "evidence" / f"{tic}.json"
+            if ev.exists():
+                page["evidence"] = json.loads(ev.read_text(encoding="utf-8"))
             cand = vet_dir / "candidates" / f"{tic}.json"
             if cand.exists():
                 c = json.loads(cand.read_text(encoding="utf-8"))
-                page["novelty"], page["when"] = c.get("novelty"), c.get("when")
+                page["novelty"], page["when"], page["observing"] = c.get("novelty"), c.get("when"), c.get("observing")
+                audit = DATA / "dossiers" / f"{tic}.muse-wonder-1.0.{prompt}.json"  # second opinion, shortlist only
+                if audit.exists():
+                    run = json.loads(audit.read_text(encoding="utf-8"))
+                    page["audit"] = {**run["dossier"], "model": run["model"], "cost_usd": run["cost"]}
             (out / "stars" / f"{tic}.json").write_text(json.dumps(page, separators=(",", ":"), default=float),
                                                          encoding="utf-8")
         gate = vet_dir.parent.parent / f"{name}_gate1.json"
