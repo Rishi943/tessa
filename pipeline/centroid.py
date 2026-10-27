@@ -33,20 +33,32 @@ MAX_SECTORS = 6
 IN_CORE = 0.4  # in-transit frames: within this fraction of the duration from mid-transit
 OUT_GAP, OUT_MIN_D = 0.75, 0.125  # out-of-transit frames: from 0.75 durations out, for at least 3 h
 ON_TARGET_SIGMA = 3.0
+SYSTEMATIC_ARCSEC = 1.0  # assumed floor, 0.05 px, added to the combined error
 BTJD_2016 = 388.5  # 2016.0 (Gaia DR3's epoch) in BTJD
 
 
 def cutout(ra: float, dec: float, sector: int) -> Path:
+    """The cutout as a compact .npz (time, float32 flux, quality, WCS header); the FITS, about
+    four times larger, is deleted."""
     folder = CACHE / "tesscut"
+    out = folder / f"s{sector:04d}_{ra:.6f}_{dec:.6f}_{CUTOUT_PX}.npz"
+    if out.exists():
+        return out
     hits = list(folder.glob(f"tess-s{sector:04d}-*_{ra:.6f}_{dec:.6f}_{CUTOUT_PX}x{CUTOUT_PX}_astrocut.fits"))
-    if hits:
-        return hits[0]
-    from astroquery.mast import Tesscut
-    folder.mkdir(parents=True, exist_ok=True)
-    with contextlib.redirect_stdout(sys.stderr):
-        got = Tesscut.download_cutouts(coordinates=SkyCoord(ra, dec, unit="deg"), size=CUTOUT_PX,
-                                       sector=sector, path=str(folder))
-    return Path(got["Local Path"][0])
+    if not hits:
+        from astroquery.mast import Tesscut
+        folder.mkdir(parents=True, exist_ok=True)
+        with contextlib.redirect_stdout(sys.stderr):
+            got = Tesscut.download_cutouts(coordinates=SkyCoord(ra, dec, unit="deg"), size=CUTOUT_PX,
+                                           sector=sector, path=str(folder))
+        hits = [Path(got["Local Path"][0])]
+    with fits.open(hits[0], memmap=False) as h:
+        d = h[1].data
+        np.savez_compressed(out, time=np.asarray(d["TIME"], float), flux=np.asarray(d["FLUX"], np.float32),
+                            quality=np.asarray(d["QUALITY"], np.int32), wcs=h[2].header.tostring(),
+                            sector=int(h[0].header["SECTOR"]))
+    hits[0].unlink()
+    return out
 
 
 def gaussian(params, x, y):
@@ -77,11 +89,10 @@ def fit(image: np.ndarray, centre: tuple[float, float], sigma: float | None = No
 
 
 def sector_offset(path: Path, sig: dict) -> dict | None:
-    with fits.open(path) as h:
-        d = h[1].data
-        t, flux, q = np.asarray(d["TIME"], float), np.asarray(d["FLUX"], float), np.asarray(d["QUALITY"])
-        wcs = WCS(h[2].header)
-        sector = int(h[0].header["SECTOR"])
+    with np.load(path) as z:
+        t, flux, q = z["time"], z["flux"].astype(float), z["quality"]
+        wcs = WCS(fits.Header.fromstring(str(z["wcs"])))
+        sector = int(z["sector"])
     good = (q == 0) & np.isfinite(t) & np.isfinite(flux).reshape(len(t), -1).any(axis=1)
     t, flux = t[good], flux[good]
     p, dur = sig["period"], sig["dur"]
@@ -106,8 +117,9 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
     boot = np.array([fit(diffs[rng.integers(0, len(diffs), len(diffs))].mean(axis=0), d_fit[1:3], sigma)[:3]
                      for _ in range(BOOTSTRAPS)])
     amp_err = np.std(boot[:, 0])
-    if diff_fit[0] <= 0 or diff_fit[0] < 3 * amp_err:
-        return {"sector": sector, "transits": len(diffs), "diff_snr": float(diff_fit[0] / amp_err), "used": False}
+    snr = float(diff_fit[0] / amp_err) if amp_err > 0 else float("nan")
+    if not snr >= 3:  # also when the fit failed
+        return {"sector": sector, "transits": len(diffs), "diff_snr": snr if np.isfinite(snr) else None, "used": False}
 
     # Offsets on the sky (arcsec east, north) of the difference image from the direct image.
     def sky(x, y):
@@ -121,7 +133,7 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
     off = offset(diff_fit[1], diff_fit[2])
     cloud = np.array([offset(b[1], b[2]) for b in boot])
     err = float(np.sqrt(np.mean(np.var(cloud, axis=0))))
-    return {"sector": sector, "transits": len(diffs), "diff_snr": float(diff_fit[0] / amp_err), "used": True,
+    return {"sector": sector, "transits": len(diffs), "diff_snr": snr, "used": True,
             "east_arcsec": float(off[0]), "north_arcsec": float(off[1]), "err_arcsec": err,
             "mid_btjd": float(np.median(t))}
 
@@ -156,8 +168,13 @@ def where(tic: int, sig: dict, max_sectors: int = MAX_SECTORS) -> dict:
     w = np.array([1 / r["err_arcsec"] ** 2 for r in used])
     east = float(np.sum(w * [r["east_arcsec"] for r in used]) / w.sum())
     north = float(np.sum(w * [r["north_arcsec"] for r in used]) / w.sum())
-    err = float(1 / np.sqrt(w.sum()))
-    mid = float(np.mean([r["mid_btjd"] for r in used]))
+    err = 1 / np.sqrt(w.sum())
+    # Bootstrapping three or four transits understates the error, so sectors that disagree beyond
+    # their errors widen it; then the floor for pointing jitter and PSF changes.
+    chi2 = sum(((r["east_arcsec"] - east) ** 2 + (r["north_arcsec"] - north) ** 2) / r["err_arcsec"] ** 2 for r in used)
+    inflation = float(max(1.0, np.sqrt(chi2 / (2 * len(used) - 2)))) if len(used) > 1 else 1.0
+    err = float(np.hypot(err * inflation, SYSTEMATIC_ARCSEC))
+    mid =float(np.mean([r["mid_btjd"] for r in used]))
 
     # Where each plausible neighbour would put the difference image, at the data's epoch.
     years = (mid - BTJD_2016) / 365.25
@@ -190,7 +207,8 @@ def where(tic: int, sig: dict, max_sectors: int = MAX_SECTORS) -> dict:
         verdict = "inconclusive"
         why = f"consistent with the target but also with {len(near)} neighbour(s) that could fake it"
     return {"verdict": verdict, "why": why, "offset_arcsec": off, "err_arcsec": err, "offset_sigma": sigma,
-            "east_arcsec": east, "north_arcsec": north, "sectors_used": len(used),
+            "east_arcsec": east, "north_arcsec": north, "sectors_used": len(used), "error_inflation": inflation,
+            "on_star": near[0] if verdict == "off_target" and near else None,
             "suspects": suspects[:5], "sectors": per}
 
 
