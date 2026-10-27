@@ -1,70 +1,28 @@
-/* Tokens. Dark is the sky at nautical twilight (the sun 12 degrees down, when Tessa's ground windows
-   open); light is a photographic plate. Status colours were checked with the dataviz validator
-   (all pairs, both modes). */
+/* Tokens. One theme: space black. The three hued status colours pass the dataviz validator on
+   --page (all pairs); --searched is a deliberate grey, the stars where nothing was found. */
 :root {
-  color-scheme: light;
-  --page: #f3f4f8;
-  --surface: #fbfbfd;
-  --raise: #ffffff;
-  --ink: #141a33;
-  --ink-2: #454d6c;
-  --muted: #646c8a;
-  --hair: #e1e4ee;
-  --axis: #c3c8d8;
-  --pool: #b4bbd2;
-  --pool-alpha: 0.4;  /* 93k overlapping dots: thinner on paper than on the night sky */
-  --searched: #5d6688;
-  --candidate: #c27400;
-  --flagged: #6b4fd8;
-  --rejected: #cc3d5a;
-  --focus: #6b4fd8;
-  --shade: rgba(20, 26, 51, 0.08);
-  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
-  --sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
-  --wide: 76rem;
-  --read: 42rem;
-  --gutter: clamp(1rem, 4vw, 2.5rem);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --page: #0d1430;
-    --surface: #121a36;
-    --raise: #19224a;
-    --ink: #edf0fa;
-    --ink-2: #b3bad3;
-    --muted: #8a92b4;
-    --hair: #232c54;
-    --axis: #3a4470;
-    --pool: #4a5490;
-  --pool-alpha: 0.75;
-    --pool-alpha: 0.75;
-    --searched: #8f99c2;
-    --candidate: #c4871a;
-    --flagged: #8a6ee0;
-    --rejected: #e05a70;
-    --focus: #ffd28a;
-    --shade: rgba(0, 0, 0, 0.35);
-  }
-}
-:root[data-theme="dark"] {
   color-scheme: dark;
-  --page: #0d1430;
-  --surface: #121a36;
-  --raise: #19224a;
-  --ink: #edf0fa;
-  --ink-2: #b3bad3;
-  --muted: #8a92b4;
-  --hair: #232c54;
-  --axis: #3a4470;
-  --pool: #4a5490;
+  --page: #070912;
+  --surface: #0c0f1c;
+  --raise: #131729;
+  --ink: #ECEBE6;  /* braveai.solutions ink and muted */
+  --ink-2: #c4c3bd;
+  --muted: #9C9B95;
+  --hair: #1c2138;
+  --axis: #343b5c;
+  --pool: #3f4775;
   --pool-alpha: 0.75;
   --searched: #8f99c2;
   --candidate: #c4871a;
   --flagged: #8a6ee0;
   --rejected: #e05a70;
   --focus: #ffd28a;
-  --shade: rgba(0, 0, 0, 0.35);
+  --shade: rgba(0, 0, 0, 0.45);
+  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
+  --sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  --wide: 76rem;
+  --read: 42rem;
+  --gutter: clamp(1rem, 4vw, 2.5rem);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -103,8 +61,6 @@ p { margin: 0 0 1em; }
 .bar nav a { text-decoration: none; color: var(--ink-2); }
 .bar nav a:hover { color: var(--ink); text-decoration: underline; }
 .bar-end { margin-left: auto; display: flex; gap: 0.6rem; align-items: center; }
-.theme { width: 2.25rem; height: 2.25rem; border: 1px solid var(--hair); background: none; border-radius: 50%; display: grid; place-items: center; cursor: pointer; }
-.theme svg { width: 1.1rem; }
 .ask-open {
   border: 1px solid var(--ink); background: var(--ink); color: var(--page);
   border-radius: 2rem; padding: 0.42rem 1rem; cursor: pointer; font-weight: 600; font-size: 0.95rem;

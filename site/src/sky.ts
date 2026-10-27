@@ -299,10 +299,6 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
     if (visible) request();
   });
   io.observe(canvas);
-  const themeWatch = new MutationObserver(paint);
-  themeWatch.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  const mq = matchMedia("(prefers-color-scheme: dark)");
-  mq.addEventListener("change", paint);
 
   paint();
   resize();
@@ -351,8 +347,6 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
       ro.disconnect();
       drawerWatch.disconnect();
       io.disconnect();
-      themeWatch.disconnect();
-      mq.removeEventListener("change", paint);
       geom.dispose();
       material.dispose();
       renderer.dispose();

@@ -45,13 +45,6 @@ document.addEventListener("click", (e) => {
 });
 window.addEventListener("popstate", route);
 
-document.querySelector(".theme")!.addEventListener("click", () => {
-  const dark = getComputedStyle(document.documentElement).colorScheme.includes("dark");
-  const next = dark ? "light" : "dark";
-  document.documentElement.dataset.theme = next;
-  try { localStorage.setItem("theme", next); } catch { /* private mode: the toggle still works for this visit */ }
-});
-
 setupAsk();
 route();
 // Shareable questions: /?ask=When+is+the+next+transit

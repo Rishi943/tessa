@@ -23,11 +23,6 @@ function dataTable(head: string[], rows: (string | number)[][], label: string): 
       el("tbody", {}, ...rows.map((r) => el("tr", {}, ...r.map((c) => el("td", {}, c)))))));
 }
 
-function watchTheme(draw: () => void) {
-  new MutationObserver(draw).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", draw);
-}
-
 // Every sector side by side (the gaps between them are months, so they are cut out), binned to 30 min,
 // with a tick under each predicted transit.
 export function lightCurve(page: StarPage): HTMLElement {
@@ -127,7 +122,6 @@ export function lightCurve(page: StarPage): HTMLElement {
   });
   canvas.addEventListener("pointerleave", () => { tip.hidden = true; });
   new ResizeObserver(draw).observe(canvas);
-  watchTheme(draw);
   return box;
 }
 
