@@ -3,7 +3,7 @@
 Funnel:
   Gaia DR3 stars within 100 pc with K/M colours
   -> matched to the TESS Input Catalog (via Gaia DR2 IDs; TIC 8.2 is built on DR2)
-  -> dwarfs: 2300-5300 K, radius <= 0.9 Rsun, Tmag <= 13.5, contamination < 0.2
+  -> dwarfs: 2300-5300 K, radius <= 0.9 Rsun, Tmag <= 14.5, contamination < 0.2
   -> novelty check A: not a TOI, CTOI, confirmed-planet host or known eclipsing binary
   -> observed in >= 1 TESS sector with released data
   -> ranked by the expected SNR of a 1.5 Earth-radius planet on a 10-day orbit
@@ -27,9 +27,11 @@ MAX_GAIA_G = 15.5
 MIN_BP_RP = 0.9  # roughly K0 and cooler
 TEFF_RANGE = (2300, 5300)
 MAX_RADIUS = 0.9
-MAX_TMAG = 13.5  # QLP and TESS-SPOC FFI light curves reach about this depth
+MAX_TMAG = 14.5  # the G cut ends about here for M dwarfs; 97% of a 1,000-star sample at 13.5-14.5
+# had QLP or TESS-SPOC light curves (2026-10-27)
 MAX_CONTRATIO = 0.2
 SURVEY_FETCH = 6000
+BATCH2_FETCH = 18000  # the next never-2-minute stars in rank order, after the pool reached Tmag 14.5
 MIN_SECTORS = 1  # one-sector stars stay in the pool; the expected-SNR ranking pushes them down
 
 # Latest sectors with released light curves on MAST, checked 2026-10-26:
@@ -241,8 +243,6 @@ def build(trace: list[int]) -> pd.DataFrame:
     funnel.append({"step": "never 2-minute targets", "stars": ffi_only})
 
     # Survey order: stars never given 2-minute cadence (the least-searched), best expected SNR first.
-    # The fetch step downloads the top SURVEY_FETCH; the searched set and the held-back set are
-    # drawn from it later.
     write_survey(df)
 
     df.to_parquet(DATA / "targets.parquet")
@@ -252,10 +252,20 @@ def build(trace: list[int]) -> pd.DataFrame:
 
 def write_survey(df: pd.DataFrame) -> None:
     """survey_order.txt (TIC IDs, for the fetch) and survey_stars.txt (radius and mass, for the
-    search's expected transit durations), both plain text so a Kaggle job can carry them."""
-    survey = df[df["two_min_sectors"] == 0].head(SURVEY_FETCH)
-    (DATA / "survey_order.txt").write_text("\n".join(map(str, survey["tic"])) + "\n", encoding="utf-8")
-    survey[["tic", "rad", "mass"]].to_csv(DATA / "survey_stars.txt", sep=" ", index=False, float_format="%.4f")
+    search's expected transit durations), both plain text so a Kaggle job can carry them.
+
+    The first survey's SURVEY_FETCH stars are fixed once written, since the held-back set is drawn
+    from them; batch2 takes the next BATCH2_FETCH never-2-minute stars in rank order."""
+    never = df[df["two_min_sectors"] == 0]
+
+    def write(stars: pd.DataFrame, name: str) -> None:
+        (DATA / f"{name}_order.txt").write_text("\n".join(map(str, stars["tic"])) + "\n", encoding="utf-8")
+        stars[["tic", "rad", "mass"]].to_csv(DATA / f"{name}_stars.txt", sep=" ", index=False, float_format="%.4f")
+
+    if not (DATA / "survey_order.txt").exists():
+        write(never.head(SURVEY_FETCH), "survey")
+    first = {int(t) for t in (DATA / "survey_order.txt").read_text(encoding="utf-8").split()}
+    write(never[~never["tic"].isin(first)].head(BATCH2_FETCH), "batch2")
 
 
 def main() -> None:
