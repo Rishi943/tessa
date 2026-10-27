@@ -243,12 +243,19 @@ def build(trace: list[int]) -> pd.DataFrame:
     # Survey order: stars never given 2-minute cadence (the least-searched), best expected SNR first.
     # The fetch step downloads the top SURVEY_FETCH; the searched set and the held-back set are
     # drawn from it later.
-    survey = df[df["two_min_sectors"] == 0].head(SURVEY_FETCH)
-    (DATA / "survey_order.txt").write_text("\n".join(map(str, survey["tic"])) + "\n", encoding="utf-8")
+    write_survey(df)
 
     df.to_parquet(DATA / "targets.parquet")
     (DATA / "targets_funnel.json").write_text(json.dumps(funnel, indent=2), encoding="utf-8")
     return df
+
+
+def write_survey(df: pd.DataFrame) -> None:
+    """survey_order.txt (TIC IDs, for the fetch) and survey_stars.txt (radius and mass, for the
+    search's expected transit durations), both plain text so a Kaggle job can carry them."""
+    survey = df[df["two_min_sectors"] == 0].head(SURVEY_FETCH)
+    (DATA / "survey_order.txt").write_text("\n".join(map(str, survey["tic"])) + "\n", encoding="utf-8")
+    survey[["tic", "rad", "mass"]].to_csv(DATA / "survey_stars.txt", sep=" ", index=False, float_format="%.4f")
 
 
 def main() -> None:
