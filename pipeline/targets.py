@@ -32,6 +32,7 @@ MAX_TMAG = 14.5  # the G cut ends about here for M dwarfs; 97% of a 1,000-star s
 MAX_CONTRATIO = 0.2
 SURVEY_FETCH = 6000
 BATCH2_FETCH = 18000  # the next never-2-minute stars in rank order, after the pool reached Tmag 14.5
+BATCH3_FETCH = 3000  # stars that were 2-minute targets in one sector only, for visitors to search
 MIN_SECTORS = 1  # one-sector stars stay in the pool; the expected-SNR ranking pushes them down
 
 # Latest sectors with released light curves on MAST, checked 2026-10-26:
@@ -255,7 +256,8 @@ def write_survey(df: pd.DataFrame) -> None:
     search's expected transit durations), both plain text so a Kaggle job can carry them.
 
     The first survey's SURVEY_FETCH stars are fixed once written, since the held-back set is drawn
-    from them; batch2 takes the next BATCH2_FETCH never-2-minute stars in rank order."""
+    from them; batch2 takes the next BATCH2_FETCH never-2-minute stars in rank order, and batch3 the first
+    BATCH3_FETCH that were 2-minute targets once (their other sectors are full-frame only)."""
     never = df[df["two_min_sectors"] == 0]
 
     def write(stars: pd.DataFrame, name: str) -> None:
@@ -266,6 +268,7 @@ def write_survey(df: pd.DataFrame) -> None:
         write(never.head(SURVEY_FETCH), "survey")
     first = {int(t) for t in (DATA / "survey_order.txt").read_text(encoding="utf-8").split()}
     write(never[~never["tic"].isin(first)].head(BATCH2_FETCH), "batch2")
+    write(df[df["two_min_sectors"] == 1].head(BATCH3_FETCH), "batch3")
 
 
 def main() -> None:
