@@ -15,7 +15,9 @@ Self-contained (no package imports) so it can run as a Kaggle job on the fetch o
 Without CuPy it runs the NumPy reference, which is fine for a star or two and slow beyond that.
 
 Output: results.csv (one row per star: best dip, best bump, gate 1 verdict) and peaks.csv
-(the top periodogram peaks on each side with their per-transit checks).
+(the top periodogram peaks on each side with their per-transit checks). --keep-passes also copies
+the light curves of the gate 1 passes into passes/ (one shard and a manifest), so vetting needs
+only those instead of every shard.
 """
 import argparse
 import csv
@@ -516,6 +518,30 @@ def run(args, part: int, nparts: int) -> None:
         log(f"shard {n} done")
 
 
+def keep_passes(out: Path, lc: str) -> None:
+    with (out / "results.csv").open(newline="") as f:
+        passes = [r for r in csv.DictReader(f) if r["gate1"] == "pass"]
+    shards = find_shards(lc)
+    arrays = {}
+    for n in sorted({int(r["shard"]) for r in passes}):
+        with np.load(shards[n]) as z:
+            for r in passes:
+                if int(r["shard"]) == n:
+                    arrays.update({k: z[k] for k in z.files if k.startswith(f"{r['tic']}_")})
+    (out / "passes").mkdir(exist_ok=True)
+    np.savez_compressed(out / "passes" / "lc_000.npz", **arrays)
+    tics = {r["tic"] for r in passes}
+    manifests = [Path(d) / "manifest.csv" for d, _, files in os.walk(lc) if "manifest.csv" in files]
+    with manifests[0].open(newline="") as f:
+        reader = csv.DictReader(f)
+        rows = [{**r, "shard": 0} for r in reader if r["tic"] in tics]
+    with (out / "passes" / "manifest.csv").open("w", newline="") as f:
+        w = csv.DictWriter(f, reader.fieldnames)
+        w.writeheader()
+        w.writerows(rows)
+    log(f"kept {len(rows)} passes' light curves in passes/")
+
+
 def merge(out: Path, nparts: int) -> None:
     for name in ("results", "peaks"):
         parts = [out / f"{name}_part{i}.csv" for i in range(nparts)]
@@ -538,6 +564,7 @@ def main() -> None:
     ap.add_argument("--part", help="internal: i/n, this worker's share of the shards")
     ap.add_argument("--cpu", action="store_true", help="NumPy reference instead of the GPU kernel")
     ap.add_argument("--max-minutes", type=float, default=660, help="stop cleanly after this long")
+    ap.add_argument("--keep-passes", action="store_true", help="copy gate 1 passes' light curves to OUT/passes")
     args = ap.parse_args()
     if args.calibrate:
         calibrate(Path(args.calibrate))
@@ -563,6 +590,8 @@ def main() -> None:
         run(args, 0, 1)
     if not args.tics:
         calibrate(Path(args.out) / "results.csv")
+    if args.keep_passes:
+        keep_passes(Path(args.out), args.lc)
 
 
 if __name__ == "__main__":
