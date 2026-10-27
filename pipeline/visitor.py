@@ -1,6 +1,7 @@
 """Light curves for visitors to search in their own browser.
 
-The held-back stars were set aside and never searched. Each one is detrended exactly as the search does it
+The held-back stars were set aside and never searched, and neither were batch 3's (2-minute targets in one
+sector only, fetched into data/cache/lc_batch3). Each one is detrended exactly as the search does it
 (running median, flares dropped, 10-minute bins) and written as a small binary file the site's search reads:
 
   uint32 n, float64 t_ref, uint8 n_sectors,
@@ -13,7 +14,7 @@ round to the second and fluxes to float16 (about 3 significant digits), well ins
 Also writes stars.json (where each star is and what it is) and parity files: the same format for survey stars
 whose GPU search results are known, so the browser's search can be checked against the pipeline's.
 
-Run: python -m pipeline.visitor [--limit 300]
+Run: python -m pipeline.visitor [--limit 300] [--batch3 3000]
 """
 import argparse
 import csv
@@ -61,18 +62,20 @@ def encode(lc_raw: dict) -> bytes | None:
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--limit", type=int, default=300, help="how many held-back stars to publish")
+    ap.add_argument("--batch3", type=int, default=0, help="also publish this many batch-3 stars")
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "parity").mkdir(exist_ok=True)
     held = [int(t) for t in (ROOT / "survey" / "holdout.txt").read_text(encoding="utf-8").split()]
     info = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "rad", "mass", "ra", "dec", "parallax", "tmag", "teff"]
                            ).set_index("tic")
+    batch3 = [int(t) for t in (DATA / "batch3_order.txt").read_text(encoding="utf-8").split()] if args.batch3 else []
     stars, size = [], 0
-    for tic in held:
-        if len(stars) >= args.limit:
-            break
+    for tic, lc_dir, cap in [*((t, CACHE / "lc", args.limit) for t in held), *((t, CACHE / "lc_batch3", args.limit + args.batch3) for t in batch3)]:
+        if len(stars) >= cap:
+            continue
         try:
-            blob = encode(load_lc(tic, CACHE / "lc"))
+            blob = encode(load_lc(tic, lc_dir))
         except (StopIteration, KeyError):
             continue
         if blob is None:
@@ -84,7 +87,7 @@ def main() -> None:
                       "tmag": round(float(r.tmag), 2), "teff": None if pd.isna(r.teff) else int(r.teff),
                       "rad": None if pd.isna(r.rad) else round(float(r.rad), 4), "mass": None if pd.isna(r.mass) else round(float(r.mass), 4)})
     (OUT / "stars.json").write_text(json.dumps(stars, separators=(",", ":")), encoding="utf-8")
-    print(f"{len(stars)} held-back stars, {size / 1e6:.1f} MB")
+    print(f"{len(stars)} stars for visitors, {size / 1e6:.1f} MB")
 
     # parity: the same format for survey stars, with the GPU search's own results to compare against
     with (DATA / "survey_results.csv").open(newline="", encoding="utf-8") as f:
