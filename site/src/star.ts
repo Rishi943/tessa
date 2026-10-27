@@ -105,6 +105,11 @@ function agentPanel(p: StarPage): HTMLElement {
       if (line) box.append(el("p", {}, el("b", {}, `${TOOL_NAMES[t] ?? t}: `), line));
     }
   }
+  if (d.invented?.length) {
+    box.append(el("p", { class: "sub" }, el("b", {}, "Marked: "),
+      `this dossier contains ${d.invented.length === 1 ? "a number" : "numbers"} that appear nowhere in the data the model was given `
+      + `(${d.invented.join(", ")}). Treat ${d.invented.length === 1 ? "it" : "them"} as the model's error.`));
+  }
   box.append(el("details", { class: "data-toggle", open: d.reasons.length <= 4 },
     el("summary", {}, `The dossier, check by check (${d.reasons.length})`), reasonsList(d)));
   if (d.open_questions?.length) {

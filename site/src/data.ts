@@ -13,6 +13,7 @@ export interface Summary {
   held_back: number;
   by_status: Record<Status, number>;
   costs_usd: Record<"vetting" | "investigation" | "case_closed" | "observing" | "audit", number>;
+  invented?: { dossiers: number; with_invented_numbers: number };
   dossiers: number;
   investigated: number;
   rejected: number; flagged: number; candidate: number;
@@ -28,7 +29,7 @@ export interface Dip {
 export interface Reason { check: string; value: string; why: string }
 export interface Dossier {
   verdict: string; reasons: Reason[]; open_questions?: string[]; public_summary?: string;
-  model: string; prompt?: string; cost_usd: number; tools_called?: string[];
+  model: string; prompt?: string; cost_usd: number; tools_called?: string[]; invented?: number[];
 }
 
 export interface Ground { site: string; mid_utc: string; from_utc: string; to_utc: string; timing_err_min: number; alt_mid: number }

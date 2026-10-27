@@ -65,7 +65,7 @@ def dossier(tic: int, model: str, prompt: str) -> dict | None:
         if path.exists():
             run = json.loads(path.read_text(encoding="utf-8"))
             return {**run["dossier"], "model": run["model"], "prompt": run["prompt"], "cost_usd": run["cost"],
-                    "tools_called": [t["tool"] for t in run.get("tools", [])]}
+                    "tools_called": [t["tool"] for t in run.get("tools", [])], "invented": run.get("invented", [])}
     return None
 
 
@@ -93,12 +93,16 @@ def export(out: Path, model: str, prompt: str) -> dict:
     counts = {}
     dips = []
     costs = {"vetting": 0.0, "investigation": 0.0, "case_closed": 0.0, "observing": 0.0, "audit": 0.0}
+    invented = {"dossiers": 0, "with_invented_numbers": 0}  # numbers a model wrote that were not in its input
     for name, results, vet_dir, lc_dir in RUNS:
         if not results.exists():
             continue
         for step, csv_name in (("vetting", f"dossiers.{model}.{prompt}.csv"), ("investigation", f"investigations.{model}.inv1.csv")):
             if (vet_dir / csv_name).exists():
-                costs[step] += float(pd.read_csv(vet_dir / csv_name)["cost"].fillna(0).sum())
+                runs = pd.read_csv(vet_dir / csv_name)
+                costs[step] += float(runs["cost"].fillna(0).sum())
+                invented["dossiers"] += len(runs)
+                invented["with_invented_numbers"] += int((runs["invented"].fillna(0) > 0).sum())
         if (vet_dir / "caseclosed.meta.json").exists():
             costs["case_closed"] += json.loads((vet_dir / "caseclosed.meta.json").read_text(encoding="utf-8"))["cost_usd"]
         res = pd.read_csv(results)
@@ -163,7 +167,7 @@ def export(out: Path, model: str, prompt: str) -> dict:
         (out / "pool" / f"{shard}.json").write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
     summary = {"pool": len(pool), "funnel": json.loads((DATA / "targets_funnel.json").read_text(encoding="utf-8")),
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
-               "costs_usd": {k: round(v, 4) for k, v in costs.items()},
+               "costs_usd": {k: round(v, 4) for k, v in costs.items()}, "invented": invented,
                "dossiers": sum(d["dossier"] for d in dips), "investigated": sum(d["tools"] > 0 for d in dips),
                **counts}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")

@@ -168,7 +168,8 @@ function method(summary: Summary, dips: Dip[], searched: number): HTMLElement {
     el("h2", {}, "Code keeps the bar; the model explains and doubts"),
     el("p", { class: "intro" },
       "Each step below runs on every star that reached it. Code makes every yes; Meta's models read the evidence, chase what doesn't add up, "
-      + "and say it in words. Everything a model writes is checked for numbers it didn't get from the data."),
+      + "and say it in words. Everything a model writes is checked for numbers it didn't get from the data"
+      + (summary.invented ? `: so far ${summary.invented.with_invented_numbers} of ${summary.invented.dossiers} dossiers had one, and it is marked.` : ".")),
     steps,
     el("p", { class: "costline" }, `Model cost for the whole search so far: ${usd(total)}, or ${usd((total / searched) * 1000)} per thousand stars searched.`)));
 }
