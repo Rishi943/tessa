@@ -36,20 +36,24 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
                      if o["radius_from"].startswith("Gaia")]
     all_sectors = ev.get("centroid_all", {}).get("verdict")
     out = []
-    if c["odd_even"]["diff_sigma"] >= 3:
+    # a check that couldn't be measured is null (vet.finite); comparisons skip it, and odd/even says so
+    ge = lambda v, x: v is not None and v >= x  # noqa: E731
+    if c["odd_even"]["diff_sigma"] is None:
+        out.append("odd_even: no even-numbered transit to compare")
+    elif c["odd_even"]["diff_sigma"] >= 3:
         out.append(f"odd_even: odd and even transits differ by {c['odd_even']['diff_sigma']:.1f} sigma")
     s = c["secondary"]
-    if s["snr"] >= 5 and s["snr"] >= 1.5 * s["best_brightening_snr"]:
+    if ge(s["snr"], 5) and s["snr"] >= 1.5 * (s["best_brightening_snr"] or 0):
         out.append(f"secondary: a dip at phase {s['phase']:.2f} with SNR {s['snr']:.1f}")
     if c["sectors"].get("p_constant") is not None and c["sectors"]["p_constant"] < 0.01             and by_source not in ("steady", "differs_by_source"):
         out.append(f"sectors: depth changes between sectors (p = {c['sectors']['p_constant']:.1g})")
-    if c["size"]["rp_rearth"] >= 10:
+    if ge(c["size"]["rp_rearth"], 10):
         out.append(f"size: {c['size']['rp_rearth']:.1f} Earth radii")
-    if c["duration"]["ratio"] > 1.5 and not any(r <= 1.5 for r in gaia_duration):
+    if (c["duration"]["ratio"] or 0) > 1.5 and not any(r <= 1.5 for r in gaia_duration):
         out.append(f"duration: {c['duration']['ratio']:.1f}x the central transit")
     if any(k["harmonic"] is not None for k in c["known"]):
         out.append("known: a catalogued object at this period")
-    if c["shape"]["v_sigma"] >= 3:
+    if ge(c["shape"]["v_sigma"], 3):
         out.append(f"shape: V-shaped at {c['shape']['v_sigma']:.1f} sigma")
     cen = c.get("centroid") or {}
     on_target = cen.get("verdict") == "on_target" or all_sectors == "on_target"
@@ -61,9 +65,9 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
     if cen.get("verdict") == "off_target" and not on_target:
         out.append(f"centroid: the dip sits {cen['offset_arcsec']:.1f}\" off the target ({cen['offset_sigma']:.1f} sigma)")
     pc = c["phase_curve"]
-    if pc["ratio_to_depth"] >= 0.3 and pc["chi2"] >= 50:
+    if ge(pc["ratio_to_depth"], 0.3) and ge(pc["chi2"], 50):
         out.append(f"phase_curve: the star swings {pc['ratio_to_depth']:.2f}x the dip at this period")
-    if c["refit"]["transits"] < 3:
+    if (c["refit"]["transits"] or 0) < 3:
         out.append(f"refit: only {c['refit']['transits']} transits")
     return out
 
