@@ -4,7 +4,8 @@ sky.json has every star in the pool, column by column, with a status code; summa
 funnel and the counts; stars/TIC.json has, for every star that passed gate 1, its light curve
 (binned and folded), the code checks, the agent's dossier, the gate 2 status (with the case-closed line
 for rejected stars and the tools' evidence for investigated ones) and, for candidates, the novelty
-check and the predictions.
+check and the predictions. planets.json has every confirmed planet and every TESS candidate still
+waiting, from the NASA Exoplanet Archive, with Tessa's candidates among them.
 
 Run: python -m pipeline.export [--out data/site] [--model muse-spark-1.3-contributor] [--prompt v5]
 """
@@ -16,6 +17,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+from . import catalogs
 from .paths import CACHE, DATA, ROOT
 from .search import detrend
 from .vet import load_lc, phase_offset
@@ -25,6 +27,7 @@ RUNS = [("survey", DATA / "survey_results.csv", DATA / "vet" / "survey", CACHE /
         ("batch2", DATA / "batch2_results.csv", DATA / "vet" / "batch2", CACHE / "lc_batch2")]
 STATUS = {"pool": 0, "held back": 1, "searched": 2, "rejected": 3, "flagged": 4, "awaiting agent": 7,
           "candidate": 5, "known": 6}
+TESS = "Transiting Exoplanet Survey Satellite (TESS)"  # the archive's name for it
 BIN_D = 0.5 / 24  # light-curve bins for the page
 FOLD_HALF = 3.0  # folded view: this many transit durations each side
 FOLD_BINS = 60
@@ -82,6 +85,46 @@ def dip_row(page: dict) -> dict:
             "reasons": page["reasons"], "dossier": bool(d), "tools": len(d.get("tools_called", []))}
 
 
+def universe(out: Path, ours: list[dict]) -> dict:
+    """planets.json: every confirmed planet, every TESS candidate still waiting, and Tessa's candidates, column by
+    column. kind is 0 confirmed, 1 TESS candidate, 2 Tessa's. Rows without a distance can't be placed and are only
+    counted."""
+    p, t = catalogs.planets(), catalogs.open_tois()
+    rows = pd.concat([
+        pd.DataFrame({"kind": 0, "name": p["pl_name"], "host": p["hostname"], "ra": p["ra"], "dec": p["dec"],
+                      "dist": p["sy_dist"], "method": p["discoverymethod"], "year": p["disc_year"],
+                      "facility": p["disc_facility"], "period": p["pl_orbper"], "radius": p["pl_rade"],
+                      "mass": p["pl_bmasse"], "teq": p["pl_eqt"], "teff": p["st_teff"]}),
+        pd.DataFrame({"kind": 1, "name": "TOI-" + t["toi"].map("{:.2f}".format), "host": "TIC " + t["tid"].astype(str),
+                      "ra": t["ra"], "dec": t["dec"], "dist": t["st_dist"], "method": "Transit",
+                      "year": t["toi_created"].str[:4].astype(int), "facility": TESS, "period": t["pl_orbper"],
+                      "radius": t["pl_rade"], "mass": np.nan, "teq": t["pl_eqt"], "teff": t["st_teff"]}),
+        pd.DataFrame([{"kind": 2, "name": f"TIC {o['tic']}", "host": f"TIC {o['tic']}", "ra": o["checks"]["star"]["ra"],
+                       "dec": o["checks"]["star"]["dec"], "dist": o["checks"]["star"]["distance"], "method": "Transit",
+                       "year": 2026, "facility": TESS, "period": o["ephem"]["period"],
+                       "radius": o["checks"]["size"]["rp_rearth"], "mass": np.nan, "teq": np.nan,
+                       "teff": o["checks"]["star"]["teff"]} for o in ours]),
+    ], ignore_index=True)
+    placed = rows.dropna(subset=["ra", "dec", "dist"])
+    methods = rows.loc[rows["kind"] == 0, "method"].value_counts().index.tolist()
+    facilities = placed["facility"].value_counts().index.tolist()
+    col = lambda name, nd: [None if pd.isna(v) else round(float(v), nd) for v in placed[name]]
+    data = {"methods": methods, "facilities": facilities,
+            "counts": {"confirmed": int((rows["kind"] == 0).sum()), "waiting": int((rows["kind"] == 1).sum()),
+                       "tessa": len(ours), "unplaced": {"confirmed": int((p["sy_dist"].isna()).sum()),
+                                                          "waiting": int((t["st_dist"].isna()).sum())},
+                       "by_method": {m: {"planets": int(((rows["kind"] == 0) & (rows["method"] == m)).sum()),
+                                         "first": int(rows.loc[(rows["kind"] == 0) & (rows["method"] == m), "year"].min())}
+                                     for m in methods}},
+            "kind": placed["kind"].tolist(), "name": placed["name"].tolist(), "host": placed["host"].tolist(),
+            "ra": col("ra", 4), "dec": col("dec", 4), "dist": col("dist", 2),
+            "method": placed["method"].map(methods.index).tolist(), "year": placed["year"].astype(int).tolist(),
+            "facility": placed["facility"].map(facilities.index).tolist(), "period": col("period", 5),
+            "radius": col("radius", 2), "mass": col("mass", 2), "teq": col("teq", 0), "teff": col("teff", 0)}
+    (out / "planets.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    return data["counts"]
+
+
 def export(out: Path, model: str, prompt: str) -> dict:
     (out / "stars").mkdir(parents=True, exist_ok=True)
     pool = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "ra", "dec", "parallax", "tmag", "teff", "rad",
@@ -91,7 +134,7 @@ def export(out: Path, model: str, prompt: str) -> dict:
     status[status.index.isin(held)] = STATUS["held back"]
 
     counts = {}
-    dips = []
+    dips, ours = [], []
     costs = {"vetting": 0.0, "investigation": 0.0, "case_closed": 0.0, "observing": 0.0, "audit": 0.0}
     invented = {"dossiers": 0, "with_invented_numbers": 0}  # numbers a model wrote that were not in its input
     for name, results, vet_dir, lc_dir in RUNS:
@@ -145,6 +188,8 @@ def export(out: Path, model: str, prompt: str) -> dict:
             (out / "stars" / f"{tic}.json").write_text(json.dumps(page, separators=(",", ":"), default=float),
                                                          encoding="utf-8")
             dips.append(dip_row(page))
+            if page["status"] == "candidate":
+                ours.append(page)
         gate = vet_dir.parent.parent / f"{name}_gate1.json"
         counts[f"{name}_searched"] = int(len(res))
         if gate.exists():
@@ -169,7 +214,7 @@ def export(out: Path, model: str, prompt: str) -> dict:
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
                "costs_usd": {k: round(v, 4) for k, v in costs.items()}, "invented": invented,
                "dossiers": sum(d["dossier"] for d in dips), "investigated": sum(d["tools"] > 0 for d in dips),
-               **counts}
+               "universe": universe(out, ours), **counts}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")
     return summary
 

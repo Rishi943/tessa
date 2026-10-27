@@ -5,6 +5,7 @@ to force a fresh copy (novelty check B does this for every detection).
 """
 import time
 from pathlib import Path
+from urllib.parse import quote
 
 import pandas as pd
 import requests
@@ -22,6 +23,12 @@ CONFIRMED_URL = (
     "query=select+pl_name,hostname,tic_id,pl_orbper+from+pscomppars&format=csv"
 )
 TWO_MIN_URL = "https://tess.mit.edu/public/target_lists/2m/all_targets_S{sector:03d}_v1.csv"
+# For the site's universe: every confirmed planet, and the TESS candidates still waiting (PC, APC)
+TAP = "https://exoplanetarchive.ipac.caltech.edu/TAP/sync?format=csv&query="
+PLANETS_SQL = ("select pl_name,hostname,ra,dec,sy_dist,discoverymethod,disc_year,disc_facility,pl_orbper,pl_rade,"
+               "pl_bmasse,pl_eqt,st_teff from pscomppars")
+OPEN_TOI_SQL = ("select toi,tid,tfopwg_disp,ra,dec,st_dist,pl_orbper,pl_rade,pl_eqt,st_teff,toi_created from toi "
+                "where tfopwg_disp in ('PC','APC')")
 
 
 def _cached(name: str, fetch, max_age_days: float) -> Path:
@@ -82,6 +89,16 @@ def confirmed(max_age_days: float = 7) -> pd.DataFrame:
         "planet": df["pl_name"],
         "period": df["pl_orbper"],
     })
+
+
+def planets(max_age_days: float = 7) -> pd.DataFrame:
+    """Every confirmed planet, one row each with the archive's best values (pscomppars)."""
+    return pd.read_csv(_cached("planets.csv", lambda: _get(TAP + quote(PLANETS_SQL)), max_age_days))
+
+
+def open_tois(max_age_days: float = 7) -> pd.DataFrame:
+    """TOIs the TESS follow-up group still lists as planet candidates (PC) or ambiguous (APC)."""
+    return pd.read_csv(_cached("open_tois.csv", lambda: _get(TAP + quote(OPEN_TOI_SQL)), max_age_days))
 
 
 def tess_ebs(max_age_days: float = 365) -> pd.DataFrame:
