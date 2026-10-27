@@ -359,16 +359,63 @@ button.u-label.tessa { pointer-events: auto; background: none; border: 0; margin
 button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointer; }
 .u-tour { margin: 0 0 1.1rem; }
 
-/* the tour card: a thin progress line, the stop's figure and a few lines */
+/* the tour: one card, centred at the bottom, over the universe; the universe dims behind cards with a picture */
 .u-of { color: var(--muted); margin-left: 0.4rem; }
-.u-steps { display: flex; gap: 3px; margin: 0 0 1.1rem; }
-.u-steps span { flex: 1; height: 2px; background: var(--line); }
-.u-steps span.on { background: var(--ink-2); }
-.u-body h2.u-title { font: 400 1.05rem/1.35 var(--sans); font-stretch: 100%; letter-spacing: 0; margin: 0.45rem 0 0.55rem; }
-.u-text { margin: 0 0 1.1rem; color: var(--ink-2); line-height: 1.55; }
-.u-links { display: flex; flex-direction: column; gap: 0.35rem; margin: -0.2rem 0 1.1rem; font: 400 0.85rem var(--mono); }
-.u-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.6rem 1.1rem; }
-.u-actions .u-btn { margin: 0; }
+.t-dim { position: absolute; inset: 0; background: rgba(7, 9, 18, 0.62); opacity: 0; transition: opacity 0.8s; pointer-events: none; }
+.t-dim.on { opacity: 1; }
+.t-card {
+  position: absolute; left: 50%; bottom: var(--gutter); transform: translateX(-50%); z-index: 3;
+  width: min(40rem, calc(100% - 2 * var(--gutter))); max-height: calc(100% - 5.5rem);
+  display: flex; flex-direction: column;
+  background: rgba(8, 9, 14, 0.82); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); border: 1px solid var(--line);
+}
+.t-prog { display: flex; gap: 3px; padding: 0.7rem 1.1rem 0; }
+.t-prog span { flex: 1; height: 2px; background: var(--line); }
+.t-prog span.on { background: var(--ink-2); }
+.t-body { padding: 0.8rem 1.1rem 1rem; overflow-y: auto; overscroll-behavior: contain; }
+.t-head { display: flex; align-items: baseline; gap: 0.4rem 0.75rem; flex-wrap: wrap; }
+.t-big { font: 250 clamp(1.9rem, 4vw, 2.6rem)/1 var(--sans); font-stretch: 118%; letter-spacing: -0.03em; margin: 0; font-variant-numeric: tabular-nums; }
+.t-sub { margin: 0; color: var(--ink-2); }
+.t-tag { margin-left: auto; font: 400 0.78rem var(--mono); color: var(--ok); border: 1px solid currentColor; padding: 0.05rem 0.45rem; }
+.t-show { margin-top: 0.4rem; cursor: pointer; }
+.t-show:empty { display: none; }
+.t-step { display: flex; gap: 0.9rem; align-items: baseline; margin-top: 0.8rem; min-height: 2.9em; }
+.t-nav { display: inline-flex; align-items: baseline; gap: 2px; flex: none; font: 400 0.8rem var(--mono); color: var(--muted); }
+.t-count { padding: 0 0.4rem; min-width: 2.6em; text-align: center; }
+.t-arrow { font: 400 1rem/1 var(--mono); color: var(--ink-2); background: none; border: 1px solid var(--line); width: 2rem; height: 1.8rem; cursor: pointer; padding: 0; }
+.t-arrow:hover:not(:disabled) { border-color: var(--ink-2); color: var(--ink); }
+.t-arrow:disabled { opacity: 0.3; cursor: default; }
+.t-arrow.end { border-color: var(--ink); color: var(--ink); }
+.t-text { margin: 0; font-size: 1.05rem; line-height: 1.45; }
+.t-chips { margin-top: 0.7rem; align-items: center; }
+.t-chips .u-k { margin-right: 0.3rem; }
+.m-show { position: relative; }
+.m-wrap { position: relative; }
+.m-stage { display: block; width: 100%; height: 240px; }
+.m-over { position: absolute; inset: 0; pointer-events: none; }
+.m-strip { display: block; width: 100%; height: 40px; margin-top: 4px; }
+.m-graph { display: block; width: 100%; height: 120px; margin-top: 6px; }
+.m-plot { display: block; width: 100%; height: 260px; }
+.m-plot.short { height: 200px; }
+.later { opacity: 0; transition: opacity 0.8s; }
+.later.show { opacity: 1; }
+.t-checks { list-style: none; margin: 0.2rem 0 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0.35rem 1rem; }
+.t-checks.later:not(.show) { display: none; }
+.t-check { display: grid; grid-template-columns: 1.2rem 1fr; column-gap: 0.4rem; opacity: 0; transform: translateY(4px); transition: opacity 0.4s, transform 0.4s; }
+.t-check.on { opacity: 1; transform: none; }
+.t-check small { grid-column: 2; color: var(--muted); font-size: 0.82rem; }
+.t-tick { color: var(--ok); font-weight: 600; }
+.t-check b { font-weight: 500; }
+.t-quote { margin: 0.8rem 0 0; padding: 0.2rem 0 0.2rem 0.8rem; border-left: 2px solid var(--ok); color: var(--ink-2); font-size: 0.95rem; line-height: 1.5; }
+.t-quote.later:not(.show) { display: none; }
+.m-show .u-actions { gap: 0.6rem; }
+.t-countdown { font: 400 0.9rem var(--mono); color: var(--tessa); margin: 0.5rem 0 0; }
+@media (max-width: 900px) {
+  .m-stage { height: 190px; }
+  .m-graph { height: 100px; }
+  .m-plot { height: 200px; }
+  .t-card { bottom: 0.75rem; }
+}
 .u-label.stop { color: var(--ink); }
 .u-label.patch { color: var(--tessa); }
 

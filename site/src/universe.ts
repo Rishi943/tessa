@@ -4,11 +4,11 @@
 // zoom, click a point to fly there.
 import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { openAsk } from "./ask";
-import { getPlanets, getSummary } from "./data";
-import type { Planets, Summary } from "./data";
-import { stops } from "./tour";
+import { getPlanets, getStar, getSummary } from "./data";
+import type { Planets, StarPage, Summary } from "./data";
+import { STOPS } from "./tour";
 import type { Group } from "./tour";
+import { tourCard } from "./tourcards";
 import { css, el, fix, int } from "./util";
 
 const D2R = Math.PI / 180;
@@ -261,7 +261,10 @@ let current: World | null = null;
 export async function universe(main: HTMLElement) {
   // the tour reads its counts from the summary; without it the map still works, just without a tour
   const [data, sum] = await Promise.all([getPlanets(), getSummary().catch(() => null)]);
-  current = mount(main, data, sum);
+  // the tour tells the story of Tessa's candidate, from its case file (light curve, checks, predictions)
+  const i = data.kind.indexOf(2);
+  const star = i >= 0 ? await getStar(Number(data.host[i].replace(/^TIC /, ""))).catch(() => null) : null;
+  current = mount(main, data, sum, star);
 }
 
 export function leaveUniverse() {
@@ -274,9 +277,10 @@ export function flyToTic(tic: number): boolean {
   return current?.showHost(`TIC ${tic}`) ?? false;
 }
 
-function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null {
+function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPage | null): World | null {
   const sys = systems(p);
-  const tour = sum ? stops(p, sum) : [];
+  const tour = sum && star ? STOPS : [];
+  const ctx = { p, s: sum as Summary, star, host: star ? `TIC ${star.tic}` : "" };
   const section = el("section", { class: "world-view", "aria-label": "Every planet found around another star" });
   const canvas = el("canvas", { class: "universe", tabindex: 0, role: "img",
     "aria-label": `${int(p.counts.confirmed)} confirmed planets and ${int(p.counts.waiting)} TESS candidates at their true places around the Sun. Arrow keys turn the view, plus and minus zoom.` });
@@ -296,7 +300,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
   const centred = el("span", { class: "u-centred" });
   const hint = el("p", { class: "u-hint" }, "Drag to turn, scroll to zoom, click a world");
   const readout = el("div", { class: "u-readout", "aria-hidden": "true" }, hint, el("div", {}, scaleBar, scaleText), centred);
-  section.append(canvas, labelLayer, tip, card, readout);
+  const dim = el("div", { class: "t-dim" });  // darkens the universe behind a tour card with its own picture
+  section.append(canvas, labelLayer, dim, tip, card, readout);
   host.append(section);
 
   // ---- the planets
@@ -399,14 +404,14 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
     new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a)), 2, (d) => ringAlpha(r, d, 160));
   });
   sys.filter((s) => s.kind === 2).forEach((s) => {
-    const b = el("button", { type: "button", class: "u-label tessa", tabindex: -1 }, s.host, el("small", {}, "found by Tessa"));
+    const r0 = s.rows[0], rp = p.radius[r0], per = p.period[r0];
+    const b = el("button", { type: "button", class: "u-label tessa", tabindex: -1 }, s.host, el("small", {}, "found by Tessa"),
+      rp && per ? el("small", {}, `${rp.toFixed(1)} times Earth's width, ${Math.round(per * 24)}-hour year`) : null);
     b.addEventListener("click", () => select(s));
     label(b, s.at, 1, (d) => (uniforms.uYear.value > 2028 && d < 8000 ? 1 : 0));
   });
   label(el("span", { class: "u-label patch" }, "Tessa's patch", el("small", {}, "within 326 light-years")),
     new THREE.Vector3(100 * Math.cos(2.3), 0, 100 * Math.sin(2.3)), 1, () => (tour[stopAt]?.patch ? 1 : 0));
-  // the system a tour stop is about (Tessa's have their own label)
-  const stopTag = label(el("span", { class: "u-label stop" }), new THREE.Vector3(), 1, () => (tourSys && tourSys.kind !== 2 ? 1 : 0));
 
   // a ring reads best when it spans a good part of the screen
   function ringAlpha(r: number, d: number, min = 40): number {
@@ -605,6 +610,10 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
     stopAt = -1;
     tourSys = null;
     clock = null;
+    tourEl?.dispose();
+    tourEl = null;
+    card.hidden = false;
+    dim.classList.remove("on");
     controls.target.set(0, 0, 0);
     intro = { t0: performance.now() };
     introCard();
@@ -629,23 +638,26 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
     return CLOCK[CLOCK.length - 1][1];
   }
 
-  // ---- the tour: each stop is a flight, a year on the discovery clock and a filter
+  // ---- the tour: each stop sets the universe behind its card: a flight, a year on the discovery clock, a filter
   let stopAt = -1;
   let tourSys: System | null = null;
+  let tourEl: { node: HTMLElement; dispose(): void } | null = null;
   let clock: { from: number; to: number; t0: number; ms: number } | null = null;
   // run the clock to a year: planets found later fade out, ones found by then flare in
   function runClock(to: number, ms: number) {
     clock = { from: Math.min(uniforms.uYear.value, 2028.9), to, t0: performance.now(), ms: still ? 1 : ms };
   }
-  // show the Sun and a system together, looking across the line between them from a little above
-  function withSun(at: THREE.Vector3, dist?: number) {
+  // show the Sun and a system together, looking across the line between them from a little above, in the space
+  // the tour card leaves free
+  function withSun(at: THREE.Vector3) {
     const side = new THREE.Vector3().crossVectors(at, new THREE.Vector3(0, 1, 0));
     if (side.lengthSq() < 1e-6) side.copy(HOME.dir);
     side.normalize();
     if (side.dot(camera.position.clone().sub(controls.target)) < 0) side.negate();
     side.y += 0.45;
-    const fit = Math.max(at.length() * (innerWidth > 900 ? 1.3 : 2.4), 30);
-    flyTo(at.clone().multiplyScalar(0.5), dist ?? fit, side, 2400);
+    const free = Math.max(innerHeight - (tourEl?.node.offsetHeight ?? 0) - 90, innerHeight * 0.3);
+    const fit = Math.max(at.length() * (innerWidth > 900 ? 1.3 : 2.4) * (innerHeight / free), 30);
+    flyTo(at.clone().multiplyScalar(0.6), fit, side, 2400);  // a little nearer the system than the Sun: it is the subject
   }
   function tourButton() {
     const b = el("button", { type: "button", class: "u-btn u-tour" }, "Take the tour");
@@ -662,54 +674,48 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
     idleSince = performance.now();
     focus = s.focus ?? null;
     paint();
-    runClock(s.year, s.year < 2000 ? 1600 : 3600);
-    tourSys = s.at ? find(s.at) ?? null : null;
+    runClock(s.year, 2400);
+    tourSys = s.at ? find(ctx.host) ?? null : null;
     ring(tourSys);
-    if (tourSys) {
-      stopTag.node.textContent = tourSys.host;
-      stopTag.w = stopTag.h = undefined;
-      stopTag.at.copy(tourSys.at);
+    dim.classList.toggle("on", !!s.dim);
+    card.hidden = true;
+    tourEl?.dispose();
+    tourEl = tourCard({ kind: s.card, ctx, index: k, total: tour.length,
+      onNext: () => (k < tour.length - 1 ? tourStop(k + 1) : leaveTour()),
+      onBack: () => { if (k > 0) tourStop(k - 1); },
+      onLeave: () => leaveTour(),
+      onFocus: (g) => { focus = g; paint(); } });
+    section.append(tourEl.node);
+    ro.observe(tourEl.node);
+    resize();
+    if (tourSys && s.dist) {
+      centred.textContent = `Centred on ${tourSys.host}`;
+      flyTo(tourSys.at, s.dist, undefined, 2400);
+    } else if (tourSys) {
       centred.textContent = `The Sun and ${tourSys.host}`;
-      withSun(tourSys.at, s.dist);
+      withSun(tourSys.at);
     } else {
       centred.textContent = "Centred on the Sun";
       flyTo(new THREE.Vector3(), s.dist ?? HOME.dist, HOME.dir, 2400);
     }
     setAt(null, k + 1);
-    tourCard(k);
   }
   function leaveTour(toOverview = true) {
     if (stopAt < 0) return;
     stopAt = -1;
     tourSys = null;
+    tourEl?.dispose();
+    tourEl = null;
+    dim.classList.remove("on");
+    card.hidden = false;
     runClock(3000, 1200);
     focus = null;
     paint();
+    resize();
     if (toOverview) {
       overview();
       flyTo(new THREE.Vector3(), HOME.dist, HOME.dir, 2400);
     }
-  }
-  function tourCard(k: number) {
-    const s = tour[k], last = k === tour.length - 1;
-    const leave = el("button", { type: "button", class: "u-bar-btn" }, "Leave");
-    leave.addEventListener("click", () => leaveTour());
-    const next = el("button", { type: "button", class: "u-btn" }, last ? "Explore" : "Next");
-    next.addEventListener("click", () => (last ? leaveTour() : tourStop(k + 1)));
-    const ask = s.ask ? el("button", { type: "button", class: "u-btn" }, "Ask Tessa") : null;
-    ask?.addEventListener("click", () => openAsk());
-    const back = k > 0 ? el("button", { type: "button", class: "u-bar-btn" }, "Back") : null;
-    back?.addEventListener("click", () => tourStop(k - 1));
-    const hadFocus = card.contains(document.activeElement);
-    card.replaceChildren(bar([dot("var(--ok)"), "Tour", el("span", { class: "u-of" }, `${k + 1} of ${tour.length}`)], leave),
-      el("div", { class: "u-body" },
-        el("div", { class: "u-steps", "aria-hidden": "true" }, ...tour.map((_, i) => el("span", { class: i <= k ? "on" : "" }))),
-        s.figure ? el("p", { class: "u-big" }, s.figure) : null,
-        el("h2", { class: "u-title" }, s.title),
-        el("p", { class: "u-text" }, s.text),
-        s.links?.length ? el("p", { class: "u-links" }, ...s.links.map((l) => el("a", { href: l.href, "data-link": true }, l.label))) : null,
-        el("div", { class: "u-actions" }, next, ask, back)));
-    if (hadFocus) next.focus({ preventScroll: true });
   }
 
   // ---- input
@@ -789,13 +795,19 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
     renderer.setSize(w, h, false);
     uniforms.dpr.value = dpr;
     camera.aspect = w / h;
-    // on wide screens the card covers the left, so centre the view in the space right of it
-    const shift = w > 900 ? Math.min(card.offsetWidth, w * 0.4) / 2 : 0;
-    camera.setViewOffset(w, h, -shift, w > 900 ? 0 : h * 0.16, w, h);
+    // on wide screens the card covers the left, so centre the view in the space right of it; a tour card sits at
+    // the bottom, so the view's centre moves up above it
+    const shift = !tourEl && w > 900 ? Math.min(card.offsetWidth, w * 0.4) / 2 : 0;
+    const lift = tourEl ? Math.min(tourEl.node.offsetHeight, h * 0.7) / 2 : w > 900 ? 0 : h * 0.16;
+    camera.setViewOffset(w, h, -shift, lift, w, h);
     camera.updateProjectionMatrix();
     // labels keep clear of the header, the card and the readout
     const top = document.querySelector<HTMLElement>(".bar")?.offsetHeight ?? 64;
-    keepOut = [[0, 0, w, top], ...[card, readout].map((e) => [e.offsetLeft, e.offsetTop, e.offsetLeft + e.offsetWidth, e.offsetTop + e.offsetHeight])];
+    const base = section.getBoundingClientRect();
+    keepOut = [[0, 0, w, top], ...[card, readout, tourEl?.node].filter((e): e is HTMLElement => !!e && e.offsetWidth > 0).map((e) => {
+      const b = e.getBoundingClientRect();
+      return [b.left - base.left, b.top - base.top, b.right - base.left, b.bottom - base.top];
+    })];
   }
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
@@ -905,6 +917,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null): World | null
       return true;
     },
     dispose() {
+      tourEl?.dispose();
       cancelAnimationFrame(raf);
       ro.disconnect();
       controls.dispose();
