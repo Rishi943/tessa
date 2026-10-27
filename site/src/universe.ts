@@ -655,8 +655,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     side.normalize();
     if (side.dot(camera.position.clone().sub(controls.target)) < 0) side.negate();
     side.y += 0.45;
-    const free = Math.max(innerHeight - (tourEl?.node.offsetHeight ?? 0) - 90, innerHeight * 0.3);
-    const fit = Math.max(at.length() * (innerWidth > 900 ? 1.3 : 2.4) * (innerHeight / free), 30);
+    const fit = Math.max(at.length() * (innerWidth > 900 ? 1.6 : 2.6), 30);
     flyTo(at.clone().multiplyScalar(0.6), fit, side, 2400);  // a little nearer the system than the Sun: it is the subject
   }
   function tourButton() {
@@ -686,7 +685,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       onLeave: () => leaveTour(),
       onFocus: (g) => { focus = g; paint(); } });
     section.append(tourEl.node);
-    ro.observe(tourEl.node);
+    ro.observe(tourEl.node.firstElementChild as HTMLElement);
     resize();
     if (tourSys && s.dist) {
       centred.textContent = `Centred on ${tourSys.host}`;
@@ -795,16 +794,16 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     renderer.setSize(w, h, false);
     uniforms.dpr.value = dpr;
     camera.aspect = w / h;
-    // on wide screens the card covers the left, so centre the view in the space right of it; a tour card sits at
-    // the bottom, so the view's centre moves up above it
-    const shift = !tourEl && w > 900 ? Math.min(card.offsetWidth, w * 0.4) / 2 : 0;
-    const lift = tourEl ? Math.min(tourEl.node.offsetHeight, h * 0.7) / 2 : w > 900 ? 0 : h * 0.16;
-    camera.setViewOffset(w, h, -shift, lift, w, h);
+    // on wide screens the card (or the tour's words) covers the left, so centre the view in the space right of it
+    const side = tourEl ? (tourEl.node.firstElementChild as HTMLElement) : card;
+    const shift = w > 900 ? Math.min(side.getBoundingClientRect().right - section.getBoundingClientRect().left, w * 0.45) / 2 : 0;
+    camera.setViewOffset(w, h, -shift, w > 900 ? 0 : h * 0.16, w, h);
     camera.updateProjectionMatrix();
     // labels keep clear of the header, the card and the readout
     const top = document.querySelector<HTMLElement>(".bar")?.offsetHeight ?? 64;
     const base = section.getBoundingClientRect();
-    keepOut = [[0, 0, w, top], ...[card, readout, tourEl?.node].filter((e): e is HTMLElement => !!e && e.offsetWidth > 0).map((e) => {
+    keepOut = [[0, 0, w, top], ...[card, readout, ...(tourEl ? [...tourEl.node.children] as HTMLElement[] : [])]
+      .filter((e) => e.offsetWidth > 0).map((e) => {
       const b = e.getBoundingClientRect();
       return [b.left - base.left, b.top - base.top, b.right - base.left, b.bottom - base.top];
     })];

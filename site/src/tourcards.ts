@@ -15,6 +15,34 @@ const HACKATHON = Date.UTC(2026, 9, 26);  // building opened Oct 26
 const words = (k: number) => ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"][k] ?? int(k);
 const sig2 = (n: number) => int(Number(n.toPrecision(2)));
 
+// plain definitions for the words a newcomer may not know; [[term]] or [[term|shown words]] in a sentence marks one,
+// and hovering or tapping it shows the definition
+const GLOSSARY: Record<string, string> = {
+  ppm: "Parts per million. 326 ppm means the star dims by 0.0326%, about a third of a thousandth.",
+  "light curve": "A star's brightness, measured again and again over time.",
+  sector: "TESS watches one long strip of sky for about 27 days at a time. Each strip is a sector.",
+  candidate: "A signal that passed every check but hasn't been confirmed as a planet yet.",
+  "case file": "Muse Spark's written report on one dip: what each check found, and its verdict.",
+  "Muse Spark": "Meta's AI model. Tessa uses it to read the evidence on each dip and explain it.",
+  GPU: "A graphics chip. It runs thousands of small calculations at once, which suits a planet search.",
+  score: "How far the dip stands out from the star's normal flicker. Higher is clearer.",
+  TESS: "NASA's Transiting Exoplanet Survey Satellite. Since 2018 it has watched nearly the whole sky for dips.",
+  orbit: "One trip of a planet around its star. Here, one orbit is also the planet's year.",
+  "ground window": "A night when the star is up, the sky is dark, and a dip is due, at one observatory.",
+};
+function rich(text: string): Node[] {
+  const out: Node[] = [];
+  const re = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
+  let at = 0;
+  for (let m = re.exec(text); m; m = re.exec(text)) {
+    out.push(document.createTextNode(text.slice(at, m.index)));
+    out.push(el("span", { class: "term", tabindex: 0, "data-def": GLOSSARY[m[1]] ?? "" }, m[2] ?? m[1]));
+    at = re.lastIndex;
+  }
+  out.push(document.createTextNode(text.slice(at)));
+  return out;
+}
+
 // the numbers the cards quote
 function facts({ p, s, star }: Ctx) {
   const searched = Number(s.searched_total ?? s.survey_searched ?? 0);
@@ -44,7 +72,7 @@ function hook(ctx: Ctx): Show {
   const one = f.found === 1;
   return show(el("div", {}), [
     { at: 0, text: `In ${f.days} day${f.days > 1 ? "s" : ""}, Tessa searched ${int(f.searched)} nearby stars.` },
-    { at: 3, text: `It found ${one ? "one possible new world" : `${words(f.found).toLowerCase()} possible new worlds`}: ${ctx.host}.` },
+    { at: 3, text: `It found ${one ? "one [[candidate|possible new world]]" : `${words(f.found).toLowerCase()} [[candidate|possible new worlds]]`}: ${ctx.host}.` },
     { at: 6.5, text: `${f.rp ? `About ${f.rp.toFixed(1)} times Earth's width, with` : "With"} a year just ${Math.round(f.period * 24)} hours long, `
       + `${int(Math.round((ctx.star?.checks?.star?.distance ?? 0) * 3.26156))} light-years from us.` },
   ]);
@@ -64,11 +92,11 @@ function fold(ctx: Ctx): Show {
   const c = el("canvas", { class: "m-plot" });
   const one = sectors[Math.min(3, sectors.length - 1)];
   return show(el("div", { class: "m-show" }, c), [
-    { at: 0, text: `This is ${ctx.host}'s light: ${int(t.length)} measurements from ${sectors.length} TESS sectors, spread over ${years} years.` },
+    { at: 0, text: `This is ${ctx.host}'s [[light curve|light]]: ${int(t.length)} measurements from ${sectors.length} [[TESS]] [[sector|sectors]], spread over ${years} years.` },
     { at: 4.5, text: "In any one stretch, the dips are lost in the noise." },
-    { at: 8.5, text: `Tessa tries thousands of possible orbits. At ${P.toFixed(2)} days, every dip lines up.` },
-    { at: 13, text: `Stacked together, the dip rises out of the noise: ${f.depth} parts per million, ${f.hours.toFixed(1)} hours long.` },
-    { at: 18, text: `Tessa ran this search on ${int(f.searched)} nearby stars, each in under a second on a GPU.` },
+    { at: 8.5, text: `Tessa tries thousands of possible [[orbit|orbits]]. At ${P.toFixed(2)} days, every dip lines up.` },
+    { at: 13, text: `Stacked together, the dip rises out of the noise: ${f.depth} [[ppm|parts per million]], ${f.hours.toFixed(1)} hours long.` },
+    { at: 18, text: `Tessa ran this search on ${int(f.searched)} nearby stars, each in under a second on a [[GPU]].` },
   ], (tt, k) => {
     const m = smooth(9, 11.5, tt);  // 0 = laid out in time, 1 = folded on the period
     const { g, w, B, T, L } = axes(c, "brightness", m < 0.5 ? `time: ${sectors.length} TESS sectors →` : "hours from the middle of the dip →");
@@ -113,13 +141,22 @@ function odds(ctx: Ctx): Show {
   const order = Array.from({ length: f.searched }, (_, i) => i).sort(() => rnd() - 0.5);
   const rank = new Int32Array(f.searched);
   order.forEach((s, i) => { rank[s] = i; });
+  // the survivor sits in the middle of the grid, so it reads as the point and not a stray mark
+  let mid = 0;
+  const centre = (cols: number) => {
+    const m = Math.floor(Math.ceil(f.searched / cols) / 2) * cols + Math.floor(cols / 2);
+    if (m === mid) return;
+    const top = rank.indexOf(0);  // whichever star holds rank 0 swaps places with the centre one
+    [rank[top], rank[m]] = [rank[m], 0];
+    mid = m;
+  };
   const one = `1 in ${sig2(f.searched / Math.max(f.found, 1))}`;
   return show(el("div", { class: "m-show" }, c), [
     { at: 0, text: "Noise can fake a dip. So Tessa also searches every light curve upside down." },
-    { at: 4.5, text: `A real dip can't show up as a bump. Upside down, this star's best signal scores ${ctx.star!.gate1.flipped_snr.toFixed(1)}; the right way up, ${ctx.star!.gate1.dip_snr.toFixed(1)}.` },
+    { at: 4.5, text: `A real dip can't show up as a bump. Upside down, this star's best signal [[score|scores]] ${ctx.star!.gate1.flipped_snr.toFixed(1)}; the right way up, ${ctx.star!.gate1.dip_snr.toFixed(1)}.` },
     { at: 9.5, text: `Doing that on every star sets the bar at ${f.floor}: only 1 star in ${f.byLuck} clears it by luck.` },
-    { at: 14, text: `Of ${int(f.searched)} stars searched, ${f.pass} cleared the bar. About ${f.luck} of those are expected to be luck.` },
-    { at: 19, text: `Code checks ruled out ${f.pass - f.model} more, and ${f.model} went to Muse Spark. ${words(f.found)} survived: about ${one} stars.` },
+    { at: 14, text: `Of ${int(f.searched)} stars searched, ${f.pass} cleared the bar.` },
+    { at: 19, text: `Code checks ruled out ${f.pass - f.model} of those: stars that eclipse each other, or flicker on their own. ${f.model} went to [[Muse Spark]], and ${f.found === 1 ? "one" : int(f.found)} survived: about ${one} stars.` },
   ], (tt, k) => {
     if (k <= 2) {
       const flip = k === 0 ? smooth(1.5, 3, tt) : 1;
@@ -151,7 +188,8 @@ function odds(ctx: Ctx): Show {
     }
     // the funnel: every star searched is a dot
     const { g, w, h } = fit(c);
-    const cols = Math.ceil(Math.sqrt(f.searched * (w / h))), size = Math.min(w / cols, h / Math.ceil(f.searched / cols)) ;
+    const cols = Math.ceil(Math.sqrt(f.searched * (w / h))), size = Math.min(w / cols, h / Math.ceil(f.searched / cols));
+    centre(cols);
     const passIn = smooth(14.5, 16, tt), modelIn = smooth(19.5, 21, tt);
     for (let i = 0; i < f.searched; i++) {
       const r = rank[i];
@@ -164,7 +202,11 @@ function odds(ctx: Ctx): Show {
       const d = found && modelIn > 0.5 ? size * 2.2 : Math.max(size * 0.62, 1);
       g.fillRect(x + (size - d) / 2, y + (size - d) / 2, d, d);
     }
-    g.fillStyle = css("--muted"); g.fillText("each dot is a star", 0, h - 4);
+    g.fillStyle = css("--muted"); g.fillText("each dot is a star searched", 0, h - 4);
+    if (modelIn > 0.5) {
+      const x = (mid % cols) * size, y = Math.floor(mid / cols) * size;
+      g.fillStyle = "#5eead4"; g.fillText(ctx.host, x + size * 2.5, y + size * 1.2);
+    }
   });
 }
 
@@ -186,8 +228,8 @@ function casefile(ctx: Ctx): Show {
   const list = later(el("ul", { class: "t-checks" }, ...rows), 1);
   const quote = later(el("blockquote", { class: "t-quote" }, d?.public_summary ?? ""), 2);
   return show(el("div", { class: "m-show" }, list, quote), [
-    { at: 0, text: `Finding dips is fast. Checking them is the slow part: ${int(f.waiting)} TESS candidates are still waiting for someone to look.` },
-    { at: 5.5, text: "For every dip that survives the code checks, Muse Spark reads the evidence and writes a case file." },
+    { at: 0, text: `Finding dips is fast. Checking them is the slow part: ${int(f.waiting)} [[TESS]] [[candidate|candidates]] are still waiting for someone to look.` },
+    { at: 5.5, text: "For every dip that survives the code checks, [[Muse Spark]] reads the evidence and writes a [[case file]]." },
     { at: 12, text: `Its verdict on ${ctx.host}:` },
     { at: 17, text: `Every number it writes is checked against the data: ${f.exact} of ${f.files} case files were exact, and the slip was caught. Code makes the final call.` },
     { at: 22.5, text: `A case file costs about $${f.perFile.toFixed(4)}. The model work for the whole survey: $${f.bill.toFixed(2)}.` },
@@ -210,9 +252,9 @@ function predict(ctx: Ctx): Show {
   const pub = tess ? new Date(`${tess.public_from}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "";
   const countdown = el("p", { class: "t-countdown later", "data-from": "1" });
   return show(el("div", { class: "m-show" }, c, countdown), [
-    { at: 0, text: `For Tessa to be right, the next data needs to show the same dip: ${f.depth} ppm, ${f.hours.toFixed(1)} hours long, every ${(f.period * 24).toFixed(1)} hours.` },
-    ...(when ? [{ at: 5.5, text: `The next one is due ${day(when)} UTC, give or take ${err} minutes, seen from ${next.site}.` }] : []),
-    { at: when ? 11 : 5.5, text: `Ground telescopes get ${nights.length} chances in the next 90 days${tess ? `, and TESS looks again in sector ${tess.sector}, with its data public on ${pub}` : ""}.` },
+    { at: 0, text: `For Tessa to be right, the next data needs to show the same dip: ${f.depth} [[ppm]], ${f.hours.toFixed(1)} hours long, every ${(f.period * 24).toFixed(1)} hours.` },
+    ...(when ? [{ at: 5.5, text: `The next dip a telescope on the ground can watch is due ${day(when)} UTC, give or take ${err} minutes, at ${next.site}.` }] : []),
+    { at: when ? 11 : 5.5, text: `Telescopes on the ground get ${nights.length} [[ground window|chances]] in the next 90 days${tess ? `, and [[TESS]] looks again in [[sector]] ${tess.sector}, with its data public on ${pub}` : ""}.` },
     ...(st.observing ? [{ at: when ? 16.5 : 11, text: `Muse Spark's note for observers: ${st.observing.confirmed_by}` }] : []),
   ], (tt, k) => {
     const { g, w, B, T, L } = axes(c, "brightness", "hours from the predicted time →");
@@ -228,7 +270,7 @@ function predict(ctx: Ctx): Show {
     g.fillStyle = css("--muted"); g.fillText(`shaded: ± ${err} min`, X(d + e) + 8, Y(-f.depth) + 4);
     if (when) {
       const ms = when.getTime() - Date.now();
-      countdown.textContent = ms > 0 ? `Next chance in ${Math.floor(ms / 36e5)} h ${Math.floor((ms % 36e5) / 6e4)} min` : "Happening now";
+      countdown.textContent = ms > 0 ? `Next dip due in ${Math.floor(ms / 36e5)} h ${Math.floor((ms % 36e5) / 6e4)} min, watchable from ${next.site}` : "Due now";
     }
     void tt; void k;
   });
@@ -279,19 +321,21 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
   const box = el("div", { class: "t-show" });
   const chips = o.kind === "dip" ? el("div", { class: "u-chips t-chips" }, el("span", { class: "u-k" }, "Other ways planets are found:")) : null;
   const node = el("section", { class: "t-card", "aria-label": "Tour" },
-    el("div", { class: "u-bar" }, el("span", { class: "u-bar-title" }, el("span", { class: "u-dot", style: "background: var(--ok)" }), "Tour",
-      el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`)), leave),
-    el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" }))),
-    el("div", { class: "t-body" },
-      el("div", { class: "t-head" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null,
-        spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null),
-      box, chips, el("div", { class: "t-step" }, el("div", { class: "t-nav" }, back, count, fwd), text)));
+    el("div", { class: "t-side" },
+      el("div", { class: "t-top" }, el("span", { class: "u-bar-title" }, el("span", { class: "u-dot", style: "background: var(--ok)" }), "Tour",
+        el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`)), leave),
+      el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" }))),
+      spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null,
+      el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null,
+      text, el("div", { class: "t-nav" }, back, count, fwd), chips),
+    el("div", { class: "t-stage" }, box));
 
   let cur: Show, t0 = 0, k = -1, raf = 0;
   const load = (s: Show) => {
     cur?.dispose();
     cur = s;
     box.replaceChildren(s.node);
+    node.classList.toggle("bare", !s.node.childElementCount);  // no picture: the universe fills the right
     k = -1;
     t0 = performance.now() - (still ? (s.beats[s.beats.length - 1].at + 30) * 1000 : 0);
   };
@@ -326,7 +370,7 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
   };
   back.addEventListener("click", () => go(k - 1));
   fwd.addEventListener("click", () => go(k + 1));
-  box.addEventListener("click", (ev) => { if (!(ev.target as HTMLElement).closest("a,button")) go(k + 1); });
+  box.addEventListener("click", (ev) => { if (!(ev.target as HTMLElement).closest("a,button,.term")) go(k + 1); });
   const key = (ev: KeyboardEvent) => {
     if ((ev.target as HTMLElement).closest("input,textarea,canvas.universe")) return;
     if (ev.key === "ArrowRight") go(k + 1);
@@ -341,7 +385,7 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
     const kk = Math.max(cur.beats.filter((b) => t >= b.at).length - 1, 0);
     if (kk !== k) {
       k = kk;
-      text.textContent = cur.beats[k].text;
+      text.replaceChildren(...rich(cur.beats[k].text));
       count.textContent = `${k + 1}/${cur.beats.length}`;
       back.disabled = k === 0 && o.index === 0;
       fwd.classList.toggle("end", k === cur.beats.length - 1);
