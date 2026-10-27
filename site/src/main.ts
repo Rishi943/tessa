@@ -1,5 +1,5 @@
 import "./style.css";
-import { setupAsk } from "./ask";
+import { openAsk, setupAsk } from "./ask";
 import { home, leaveHome } from "./home";
 import { starPage } from "./star";
 import { el, navigate } from "./util";
@@ -54,4 +54,7 @@ document.querySelector(".theme")!.addEventListener("click", () => {
 
 setupAsk();
 route();
+// Shareable questions: /?ask=When+is+the+next+transit
+const shared = new URLSearchParams(location.search).get("ask");
+if (shared) openAsk(shared.slice(0, 300));
 

@@ -51,7 +51,7 @@ export const TOOLS = [
     type: "function",
     function: {
       name: "get_star",
-      description: "The full case file for one star with a dip: star properties, the signal, every check, the agent's dossier and tool evidence, and for candidates the predicted transits, ground-telescope windows and observing note.",
+      description: "Look up any star by TIC number. For a star with a dip: the full case file (star properties, the signal, every check, the agent's dossier and tool evidence, and for candidates the predicted transits, ground-telescope windows and observing note). For any other star in the pool: whether it was searched, and its distance, brightness and temperature.",
       parameters: { type: "object", properties: { tic: { type: "integer", description: "TIC number" } }, required: ["tic"] },
     },
   },
@@ -85,7 +85,7 @@ function prune(v: unknown, depth = 0): unknown {
 }
 
 export function stepText(name: string, args: Record<string, unknown>): string {
-  if (name === "get_star") return `Opening the case file for TIC ${args.tic}`;
+  if (name === "get_star") return `Looking up TIC ${args.tic}`;
   if (name === "list_dips") {
     const s = args.status && args.status !== "any" ? `${args.status} ` : "";
     return `Listing ${s}dips${args.query ? ` that mention "${String(args.query).slice(0, 30)}"` : ""}`;
@@ -118,8 +118,15 @@ export async function runTool(name: string, args: Record<string, unknown>, get: 
     const tic = Math.trunc(Number(args.tic));
     if (!Number.isFinite(tic) || tic <= 0) return JSON.stringify({ error: "give a TIC number" });
     const star = await json<Record<string, unknown>>(get, `/data/stars/${tic}.json`);
-    if (!star) return JSON.stringify({ tic, case_file: false, note: "No case file: the search found no repeating dip on this star, or it has not been searched yet." });
-    return JSON.stringify(prune(star));
+    if (star) return JSON.stringify(prune(star));
+    const pool = await json<Record<string, { status: string }>>(get, `/data/pool/${tic % 100}.json`);
+    const row = pool?.[String(tic)];
+    if (!row) return JSON.stringify({ tic, in_pool: false, note: "Not in Tessa's pool: it is not a K or M dwarf within 100 pc with TESS data, or it is already a known planet host or binary." });
+    const meaning: Record<string, string> = {
+      pool: "in the pool but not searched yet", "held back": "held back on purpose to test the method later, so not searched",
+      searched: "searched, and no repeating dip passed gate 1",
+    };
+    return JSON.stringify({ tic, in_pool: true, case_file: false, ...row, meaning: meaning[row.status] ?? row.status });
   }
   return JSON.stringify({ error: `no tool called ${name}` });
 }

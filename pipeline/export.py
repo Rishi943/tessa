@@ -153,6 +153,14 @@ def export(out: Path, model: str, prompt: str) -> dict:
         "teff": sky["teff"].round(0).astype(int).tolist(), "status": sky["status"].tolist(), "codes": STATUS},
         separators=(",", ":")), encoding="utf-8")
     (out / "dips.json").write_text(json.dumps(dips, separators=(",", ":"), default=float), encoding="utf-8")
+    # Any star by TIC, in 100 small files, so Ask Tessa can say what happened to a star without a case file
+    (out / "pool").mkdir(exist_ok=True)
+    names = {v: k for k, v in STATUS.items()}
+    for shard, part in sky.groupby(sky["tic"] % 100):
+        rows = {int(r.tic): {"status": names[r.status], "dist_pc": round(1000 / r.parallax, 1), "tmag": round(r.tmag, 2),
+                             "teff": None if pd.isna(r.teff) else int(r.teff), "ra": round(r.ra, 4), "dec": round(r.dec, 4)}
+                for r in part.itertuples()}
+        (out / "pool" / f"{shard}.json").write_text(json.dumps(rows, separators=(",", ":")), encoding="utf-8")
     summary = {"pool": len(pool), "funnel": json.loads((DATA / "targets_funnel.json").read_text(encoding="utf-8")),
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
                "costs_usd": {k: round(v, 4) for k, v in costs.items()},
