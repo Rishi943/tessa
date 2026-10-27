@@ -41,24 +41,35 @@ def _get(url: str) -> bytes:
     return r.content
 
 
+def _sexagesimal(values: pd.Series, scale: float) -> pd.Series:
+    """"hh:mm:ss" or "dd:mm:ss" to degrees (scale 15 for hours)."""
+    parts = values.astype(str).str.split(":", expand=True).astype(float)
+    sign = values.astype(str).str.strip().str.startswith("-").map({True: -1.0, False: 1.0})
+    return sign * scale * (parts[0].abs() + parts[1] / 60 + parts[2] / 3600)
+
+
 def toi(max_age_days: float = 7) -> pd.DataFrame:
-    """TESS Objects of Interest: tic, toi, period (d), disposition."""
+    """TESS Objects of Interest: tic, toi, period (d), disposition, ra, dec (deg)."""
     df = pd.read_csv(_cached("toi.csv", lambda: _get(TOI_URL), max_age_days))
     return pd.DataFrame({
         "tic": df["TIC ID"].astype("int64"),
         "toi": df["TOI"],
         "period": pd.to_numeric(df["Period (days)"], errors="coerce"),
         "disposition": df["TFOPWG Disposition"],
+        "ra": _sexagesimal(df["RA"], 15.0),
+        "dec": _sexagesimal(df["Dec"], 1.0),
     })
 
 
 def ctoi(max_age_days: float = 7) -> pd.DataFrame:
-    """Community TOIs: tic, ctoi, period (d)."""
+    """Community TOIs: tic, ctoi, period (d), ra, dec (deg)."""
     df = pd.read_csv(_cached("ctoi.csv", lambda: _get(CTOI_URL), max_age_days))
     return pd.DataFrame({
         "tic": df["TIC ID"].astype("int64"),
         "ctoi": df["CTOI"],
         "period": pd.to_numeric(df["Period (days)"], errors="coerce"),
+        "ra": pd.to_numeric(df["RA"], errors="coerce"),
+        "dec": pd.to_numeric(df["Dec"], errors="coerce"),
     })
 
 
