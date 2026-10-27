@@ -15,7 +15,7 @@
   "ratelimits": [
     { "name": "ASK_LIMIT", "namespace_id": "4301", "simple": { "limit": 6, "period": 60 } },
     { "name": "ASK_GLOBAL", "namespace_id": "4302", "simple": { "limit": 120, "period": 60 } },
-    { "name": "SEARCH_LIMIT", "namespace_id": "4303", "simple": { "limit": 20, "period": 60 } }
+    { "name": "SEARCH_LIMIT", "namespace_id": "4303", "simple": { "limit": 40, "period": 60 } }
   ],
   // visitors' searches. Before the first deploy: npx wrangler kv namespace create SEARCHES, and put its id here
   "kv_namespaces": [{ "binding": "SEARCHES", "id": "REPLACE_WITH_SEARCHES_ID" }],

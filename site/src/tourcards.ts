@@ -28,6 +28,7 @@ const GLOSSARY: Record<string, string> = {
   score: "How far the dip stands out from the star's normal flicker. Higher is clearer.",
   TESS: "NASA's Transiting Exoplanet Survey Satellite. Since 2018 it has watched nearly the whole sky for dips.",
   orbit: "One trip of a planet around its star. Here, one orbit is also the planet's year.",
+  bar: "The score a dip must beat. Tessa measured it by searching 4,997 stars upside down, where a real dip can't show up. 14.3 sits above what 99 in 100 of them reached.",
   "ground window": "A night when the star is up, the sky is dark, and a dip is due, at one observatory.",
 };
 export function rich(text: string): Node[] {
@@ -53,7 +54,6 @@ function facts({ p, s, star }: Ctx) {
   const eph = star?.when?.ephemeris;
   return {
     searched, found, pass: g1.pass ?? 0, luck: g1.flipped_pass ?? 0, model: s.dossiers, floor: gate.floor,
-    byLuck: Math.round(1 / (gate.false_pass_rate || 0.01)),
     days: Math.min(Math.max(Math.ceil((Date.now() - HACKATHON) / 864e5), 1), 10),
     waiting: p.counts.waiting, exact: inv.dossiers - inv.with_invented_numbers, files: inv.dossiers,
     perFile: s.dossiers ? s.costs_usd.vetting / s.dossiers : 0,
@@ -154,7 +154,7 @@ function odds(ctx: Ctx): Show {
   return show(el("div", { class: "m-show" }, c), [
     { at: 0, text: "Noise can fake a dip. So Tessa also searches every light curve upside down." },
     { at: 4.5, text: `A real dip can't show up as a bump. Upside down, this star's best signal [[score|scores]] ${ctx.star!.gate1.flipped_snr.toFixed(1)}; the right way up, ${ctx.star!.gate1.dip_snr.toFixed(1)}.` },
-    { at: 9.5, text: `Doing that on every star sets the bar at ${f.floor}: only 1 star in ${f.byLuck} clears it by luck.` },
+    { at: 9.5, text: `Doing that on every star sets the bar at ${f.floor}.` },
     { at: 14, text: `Of ${int(f.searched)} stars searched, ${f.pass} cleared the bar.` },
     { at: 19, text: `Code checks ruled out ${f.pass - f.model} of those: stars that eclipse each other, or flicker on their own. ${f.model} went to [[Muse Spark]], and ${f.found === 1 ? "one" : int(f.found)} survived: about ${one} stars.` },
   ], (tt, k) => {
@@ -252,7 +252,7 @@ function predict(ctx: Ctx): Show {
   const pub = tess ? new Date(`${tess.public_from}T00:00:00Z`).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }) : "";
   const countdown = el("p", { class: "t-countdown later", "data-from": "1" });
   return show(el("div", { class: "m-show" }, c, countdown), [
-    { at: 0, text: `For Tessa to be right, the next data needs to show the same dip: ${f.depth} [[ppm]], ${f.hours.toFixed(1)} hours long, every ${(f.period * 24).toFixed(1)} hours.` },
+    { at: 0, text: `For this candidate to be confirmed as a planet, the next data needs to show the same dip: ${f.depth} [[ppm]], ${f.hours.toFixed(1)} hours long, every ${(f.period * 24).toFixed(1)} hours.` },
     ...(when ? [{ at: 5.5, text: `The next dip a telescope on the ground can watch is due ${day(when)} UTC, give or take ${err} minutes, at ${next.site}.` }] : []),
     { at: when ? 11 : 5.5, text: `Telescopes on the ground get ${nights.length} [[ground window|chances]] in the next 90 days${tess ? `, and [[TESS]] looks again in [[sector]] ${tess.sector}, with its data public on ${pub}` : ""}.` },
     ...(st.observing ? [{ at: when ? 16.5 : 11, text: `Muse Spark's note for observers: ${st.observing.confirmed_by}` }] : []),

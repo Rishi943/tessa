@@ -736,7 +736,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     card.hidden = true;
     section.classList.add("touring");
     history.replaceState(history.state, "", "/search");
-    tourEl = searchCard({ floor: g1.floor, odds, start, onLeave: () => leaveSearch(), onAgain: () => searchMode(true),
+    tourEl = searchCard({ floor: g1.floor, odds, start, onLeave: () => leaveSearch(), onAgain: () => searchMode(),
       onStar: (st) => {
         const at = place(st.ra, st.dec, st.dist);
         ring({ at });
@@ -830,6 +830,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   canvas.addEventListener("pointerleave", () => { tip.hidden = true; });
   canvas.addEventListener("pointerup", (ev) => {
     if (!down || Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 4) return;
+    // a click mid-tour or mid-search would fly off and break it
+    if (stopAt >= 0 || searching) return;
     const r = canvas.getBoundingClientRect();
     const s = pick(ev.clientX - r.left, ev.clientY - r.top);
     if (s) select(s);
