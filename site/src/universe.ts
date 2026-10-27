@@ -6,7 +6,7 @@ import * as THREE from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { getPlanets } from "./data";
 import type { Planets } from "./data";
-import { css, el, fix, int, svg } from "./util";
+import { css, el, fix, int } from "./util";
 
 const D2R = Math.PI / 180;
 const LY = 3.26156;  // light-years per parsec
@@ -19,30 +19,40 @@ const HOME = { dist: 3000, dir: new THREE.Vector3(-0.35, 0.62, 1).normalize() };
 const INTRO_FROM = 1200;  // close enough to see 1992's pulsar planets, 600 pc out, flare
 
 type Group = "transit" | "rv" | "lens" | "other" | "waiting" | "tessa";
-// Three hues pass the palette validator on black (all pairs, with Tessa's amber); every other method is grey.
-// Shapes keep the kinds apart without colour: dots confirmed, rings waiting, diamonds Tessa's.
-const GROUPS: { key: Group; label: string; color: string; shape: number }[] = [
-  { key: "transit", label: "Crossed in front of its star", color: "--m-transit", shape: 0 },
-  { key: "rv", label: "Made its star wobble", color: "--m-rv", shape: 0 },
-  { key: "lens", label: "Bent the light of a star behind it", color: "--m-lens", shape: 0 },
-  { key: "other", label: "Other ways, photographs included", color: "--m-other", shape: 0 },
-  { key: "waiting", label: "TESS candidates, not confirmed yet", color: "--waiting", shape: 1 },
-  { key: "tessa", label: "Found by Tessa", color: "--candidate", shape: 2 },
+// Colour is how hot a world is (its estimated equilibrium temperature): pale near Earth's 255 K, bluer when
+// colder, orange to red when hotter, a diverging scale on log temperature. Planets with no estimate, TESS
+// candidates still waiting and Tessa's own keep one colour each. How a planet was found is a filter, not a colour.
+// Most known worlds sit between 320 and 1,800 K, so the hot side gets most of the hues.
+const HEAT: [number, string][] = [[60, "#4f7cff"], [180, "#93b6ff"], [255, "#f4f1ea"], [420, "#ffe6a3"], [700, "#ffbf5e"],
+  [1100, "#ff8a4c"], [1600, "#ff5c5c"], [2400, "#e2559b"]];
+// Tessa's own are teal, a hue no planet uses, so they never blend in
+const NO_HEAT = "#b9b6ae", WAITING = "#7484b0", TESSA = "#5eead4";
+const FILTERS: { key: Group; label: string; title: string }[] = [
+  { key: "transit", label: "Transit", title: "It crossed in front of its star and dimmed it" },
+  { key: "rv", label: "Wobble", title: "Its pull made its star wobble" },
+  { key: "lens", label: "Lensing", title: "Its gravity bent the light of a star far behind it" },
+  { key: "other", label: "Other", title: "Photographs of the planet itself, timing and the rest" },
 ];
 const GROUP_OF: Record<string, Group> = { Transit: "transit", "Radial Velocity": "rv", Microlensing: "lens" };
+// How each was found, in a word, for the system card
 const HOW: Record<string, string> = {
-  Transit: "it crossed in front of its star and dimmed it (the transit method)",
-  "Radial Velocity": "its pull made its star wobble (radial velocity)",
-  Microlensing: "its gravity bent the light of a star far behind it (microlensing)",
-  Imaging: "a photograph of the planet itself (direct imaging)",
-  "Pulsar Timing": "it shifted the beat of a dead star's radio pulses (pulsar timing)",
-  "Transit Timing Variations": "it tugged a neighbouring planet off its schedule",
-  "Eclipse Timing Variations": "it tugged two stars' eclipses off their schedule",
-  "Orbital Brightness Modulation": "its glow rose and fell as it went round",
-  Astrometry: "its pull moved its star across the sky (astrometry)",
-  "Pulsation Timing Variations": "it shifted the rhythm of a pulsating star",
-  "Disk Kinematics": "it stirred the gas of the disk it is forming in",
+  Transit: "transit", "Radial Velocity": "wobble", Microlensing: "lensing", Imaging: "photo", "Pulsar Timing": "pulsar",
+  "Transit Timing Variations": "timing", "Eclipse Timing Variations": "timing", "Orbital Brightness Modulation": "glow",
+  Astrometry: "astrometry", "Pulsation Timing Variations": "timing", "Disk Kinematics": "disk",
 };
+
+function heat(t: number | null): THREE.Color {
+  if (t == null) return new THREE.Color(NO_HEAT);
+  const x = Math.log(Math.min(Math.max(t, HEAT[0][0]), HEAT[HEAT.length - 1][0]));
+  let k = 1;
+  while (k < HEAT.length - 1 && x > Math.log(HEAT[k][0])) k++;
+  const a = Math.log(HEAT[k - 1][0]), b = Math.log(HEAT[k][0]);
+  return new THREE.Color(HEAT[k - 1][1]).lerp(new THREE.Color(HEAT[k][1]), (x - a) / (b - a));
+}
+const heatHex = (t: number | null) => `#${heat(t).getHexString()}`;
+// the colour a planet wears on the map, so the card matches it
+const planetHex = (p: Planets, i: number) => (p.kind[i] === 2 ? TESSA : p.kind[i] === 1 ? WAITING : heatHex(p.teq[i]));
+
 // The opening clock: seconds into the intro -> the year the sky has reached. Waiting candidates arrive at 2027,
 // Tessa's at 2028, after today's planets.
 const CLOCK: [number, number][] = [[0, 1990.6], [1.2, 1992.4], [8.4, 2026.6], [9.6, 2027.6], [11, 2028.6]];
@@ -126,6 +136,7 @@ const pointVertex = /* glsl */ `
   attribute float year;
   uniform float dpr;
   uniform float uYear;
+  uniform float uTime;
   varying vec3 vColor;
   varying float vShape;
   varying float vAlpha;
@@ -134,7 +145,8 @@ const pointVertex = /* glsl */ `
     float on = clamp(age / 0.7, 0.0, 1.0);
     vColor = color; vShape = shape; vAlpha = alpha * on;
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-    gl_PointSize = age < 0.0 ? 0.0 : size * dpr * (1.0 + 1.6 * (1.0 - on));  // a new find flares, then settles
+    float beat = shape > 1.5 && shape < 2.5 ? 1.0 + 0.14 * sin(uTime * 2.2) : 1.0;  // Tessa's finds breathe
+    gl_PointSize = age < 0.0 ? 0.0 : size * dpr * beat * (1.0 + 1.6 * (1.0 - on));  // a new find flares, then settles
   }`;
 
 const pointFragment = /* glsl */ `
@@ -144,14 +156,16 @@ const pointFragment = /* glsl */ `
   void main() {
     vec2 p = gl_PointCoord * 2.0 - 1.0;
     float r = length(p);
-    float glow = 0.4 * pow(max(1.0 - r, 0.0), 2.2);
+    float glow = 0.5 * pow(max(1.0 - r, 0.0), 2.6);
     float a;
-    if (vShape < 0.5) a = max(1.0 - smoothstep(0.26, 0.4, r), glow);                          // dot
-    else if (vShape < 1.5) a = 1.0 - smoothstep(0.06, 0.14, abs(r - 0.6));                     // ring
-    else a = max(1.0 - smoothstep(0.42, 0.52, abs(p.x) + abs(p.y)), glow * 1.4);              // diamond
+    if (vShape < 0.5) a = max(1.0 - smoothstep(0.2, 0.32, r), glow);                            // a world: core and glow
+    else if (vShape < 1.5) a = 1.0 - smoothstep(0.04, 0.1, abs(r - 0.64));                       // the selection ring
+    else if (vShape < 2.5) a = max(1.0 - smoothstep(0.36, 0.46, abs(p.x) + abs(p.y)), glow * 1.6); // Tessa's
+    else a = 0.9 * pow(max(1.0 - r, 0.0), 1.6);                                                   // waiting: faint dust
     a *= vAlpha;
     if (a < 0.01) discard;
     gl_FragColor = vec4(vColor, a);
+    #include <colorspace_fragment>
   }`;
 
 const dustVertex = /* glsl */ `
@@ -175,35 +189,21 @@ const dustFragment = /* glsl */ `
 
 // Words for numbers a newcomer reads
 const lyNum = (pc: number) => { const ly = pc * LY; return ly < 1000 ? int(ly) : int(Number(ly.toPrecision(2))); };
-const times = (x: number) => (x >= 10 ? int(x) : fix(x, 1));
 const words = (k: number) => ["no", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine"][k] ?? int(k);
+const dot = (color: string) => el("span", { class: "u-dot", style: `background: ${color}` });
 
-function lightLeft(pc: number): string {
-  const ly = Math.round(pc * LY);
-  return ly < NOW ? `The light we see from it tonight left in ${NOW - ly}.` : `The light we see from it tonight left ${lyNum(pc)} years ago.`;
+// The year the light we see tonight set off: a date for near stars, a rounded era for far ones
+function lightYear(pc: number): string {
+  const ly = pc * LY;
+  const y = ly < 1000 ? NOW - Math.round(ly) : Math.round((NOW - Number(ly.toPrecision(2))) / 100) * 100;
+  return y > 0 ? String(y) : `${int(Math.max(-y, 1))} BCE`;
 }
-
-function facts(p: Planets, i: number): string {
-  const out: string[] = [];
-  const r = p.radius[i], m = p.mass[i], per = p.period[i], t = p.teq[i];
-  if (r != null) out.push(r >= 1.15 ? `${times(r)} times as wide as Earth` : r > 0.85 ? "About the size of Earth" : `${fix(r, 1)} of Earth's width`);
-  if (m != null) out.push(`${times(m)} times Earth's mass`);
-  if (per != null) out.push(`A year there lasts ${per < 2 ? `${int(per * 24)} hours` : per < 730 ? `${fix(per, per < 10 ? 1 : 0)} days` : `${fix(per / 365.25, 1)} Earth years`}`);
-  if (t != null) out.push(`Roughly ${int(Math.round((t - 273.15) / 10) * 10)} °C`);
-  return out.length ? `${out.join(". ")}.` : "";
-}
-
-function swatch(g: (typeof GROUPS)[number]): SVGElement {
-  const c = `var(${g.color})`;
-  const body = g.shape === 0 ? `<circle cx="7" cy="7" r="4" fill="${c}"/>`
-    : g.shape === 1 ? `<circle cx="7" cy="7" r="4.2" fill="none" stroke="${c}" stroke-width="1.5"/>`
-      : `<path d="M7 1.5 12.5 7 7 12.5 1.5 7z" fill="${c}"/>`;
-  return svg(`<svg class="sw" viewBox="0 0 14 14" aria-hidden="true">${body}</svg>`);
-}
+const orbitText = (d: number) => (d < 2 ? `${int(d * 24)} hours` : d < 730 ? `${fix(d, d < 10 ? 1 : 0)} days` : `${fix(d / 365.25, 1)} years`);
+const tempText = (k: number) => `${int(Math.round((k - 273.15) / 10) * 10)} °C`;
 
 // A system's planets going round, orbits to scale with each other (Kepler's third law: same star, so the
 // orbit's size goes as the period to the 2/3), time sped up so the innermost goes round every 3 seconds.
-function orrery(p: Planets, rows: number[], color: string): HTMLElement | null {
+function orrery(p: Planets, rows: number[], short: (name: string) => string): HTMLElement | null {
   const known = rows.filter((i) => p.period[i] != null).sort((a, b) => p.period[a]! - p.period[b]!);
   if (!known.length) return null;
   const canvas = el("canvas", { class: "orrery", role: "img",
@@ -212,8 +212,9 @@ function orrery(p: Planets, rows: number[], color: string): HTMLElement | null {
   const pMin = p.period[known[0]]!, pMax = p.period[known[known.length - 1]]!;
   // planets start a golden angle apart, so neighbours named b, c, d don't line up
   const phase = known.map((_, k) => k * 2.39996);
+  const colors = known.map((i) => planetHex(p, i));
   const t0 = performance.now();
-  const H = 132;
+  const H = 120;
   function draw(now: number) {
     if (!canvas.isConnected && now - t0 > 500) return;
     const W = canvas.clientWidth || 320, dpr = Math.min(devicePixelRatio || 1, 2);
@@ -221,26 +222,33 @@ function orrery(p: Planets, rows: number[], color: string): HTMLElement | null {
     const g = canvas.getContext("2d")!;
     g.setTransform(dpr, 0, 0, dpr, 0, 0);
     g.clearRect(0, 0, W, H);
-    const cx = W / 2, cy = H / 2, outer = Math.min(W / 2 - 10, (H / 2 - 8) * 2.6);
+    const cx = W / 2, cy = H / 2, outer = Math.min(W / 2 - 18, (H / 2 - 10) * 2.6);
     const teff = p.teff[known[0]] ?? 5000;
     g.fillStyle = teff < 3900 ? "#ffbf80" : teff < 5300 ? "#ffd9a8" : teff < 6300 ? "#fff1dc" : "#dfe8ff";
-    g.beginPath(); g.arc(cx, cy, 4.5, 0, Math.PI * 2); g.fill();
+    g.beginPath(); g.arc(cx, cy, 4, 0, Math.PI * 2); g.fill();
+    g.font = "11px 'Courier Prime', monospace";
+    g.textBaseline = "middle";
     known.forEach((i, k) => {
-      const a = Math.max(outer * (p.period[i]! / pMax) ** (2 / 3), 10 + k * 3);
-      g.strokeStyle = "rgba(236, 235, 230, 0.18)";
+      const a = Math.max(outer * (p.period[i]! / pMax) ** (2 / 3), 12 + k * 4);
+      g.strokeStyle = "rgba(236, 235, 230, 0.14)";
       g.lineWidth = 1;
-      g.beginPath(); g.ellipse(cx, cy, a, a * 0.38, 0, 0, Math.PI * 2); g.stroke();
+      g.beginPath(); g.ellipse(cx, cy, a, a * 0.36, 0, 0, Math.PI * 2); g.stroke();
       const ang = phase[k] + (still ? 0 : ((now - t0) / 3000) * Math.PI * 2 * (pMin / p.period[i]!));
-      const r = Math.min(Math.max(1.6 + Math.sqrt(p.radius[i] ?? 2) * 1.1, 2), 6.5);
-      g.fillStyle = color;
-      g.beginPath(); g.arc(cx + a * Math.cos(ang), cy + a * 0.38 * Math.sin(ang), r, 0, Math.PI * 2); g.fill();
+      const r = Math.min(Math.max(1.4 + Math.sqrt(p.radius[i] ?? 2) * 1.1, 2), 6.5);
+      const x = cx + a * Math.cos(ang), y = cy + a * 0.36 * Math.sin(ang);
+      g.fillStyle = colors[k];
+      g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.fill();
+      const name = short(p.name[i]);
+      if (name.length <= 3) {
+        g.fillStyle = "rgba(236, 235, 230, 0.6)";
+        g.fillText(name, x + r + 3, y);
+      }
     });
     if (!still) requestAnimationFrame(draw);
   }
   requestAnimationFrame(draw);
   return el("figure", { class: "orrery-box" }, canvas,
-    el("figcaption", {}, known.length > 1 ? "Orbits to scale with each other. Time sped up: the inner one goes round every 3 seconds."
-      : "Time sped up: one orbit every 3 seconds."));
+    el("figcaption", {}, known.length > 1 ? "Orbits to scale, time sped up" : "Time sped up"));
 }
 
 interface World { showHost(host: string): boolean; dispose(): void }
@@ -282,7 +290,8 @@ function mount(host: HTMLElement, p: Planets): World | null {
   const scaleBar = el("span", { class: "u-scale-bar" });
   const scaleText = el("span", {});
   const centred = el("span", { class: "u-centred" });
-  const readout = el("div", { class: "u-readout", "aria-hidden": "true" }, el("div", {}, scaleBar, scaleText), centred);
+  const hint = el("p", { class: "u-hint" }, "Drag to turn, scroll to zoom, click a world");
+  const readout = el("div", { class: "u-readout", "aria-hidden": "true" }, hint, el("div", {}, scaleBar, scaleText), centred);
   section.append(canvas, labelLayer, tip, card, readout);
   host.append(section);
 
@@ -297,9 +306,9 @@ function mount(host: HTMLElement, p: Planets): World | null {
     const q = sys[s];
     slotOf[s] = i;
     pos.set([q.at.x, q.at.y, q.at.z], i * 3);
-    const g = GROUPS.find((x) => x.key === q.group)!;
-    size[i] = q.kind === 2 ? 26 : q.kind === 1 ? 6 : 9 + 2 * Math.min(q.rows.length - 1, 4);
-    shape[i] = g.shape;
+    const rMax = Math.max(...q.rows.map((r) => p.radius[r] ?? 0)) || 2.5;
+    size[i] = q.kind === 2 ? 22 : q.kind === 1 ? 5 : 6.5 + Math.min(Math.max(2.4 * Math.log2(rMax), -1.5), 8) + (q.rows.length > 1 ? 1 : 0);
+    shape[i] = q.kind === 2 ? 2 : q.kind === 1 ? 3 : 0;
     year[i] = q.kind === 2 ? 2028 : q.kind === 1 ? 2027 : q.year;
   });
   const geom = new THREE.BufferGeometry();
@@ -307,7 +316,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
   for (const [name, arr, k] of [["color", col, 3], ["size", size, 1], ["shape", shape, 1], ["alpha", alpha, 1], ["year", year, 1]] as const) {
     geom.setAttribute(name, new THREE.BufferAttribute(arr, k));
   }
-  const uniforms = { dpr: { value: 1 }, uYear: { value: introDone ? 3000 : 1990 } };
+  const uniforms = { dpr: { value: 1 }, uYear: { value: introDone ? 3000 : 1990 }, uTime: { value: 0 } };
   const material = new THREE.ShaderMaterial({ vertexShader: pointVertex, fragmentShader: pointFragment, uniforms,
     transparent: true, depthWrite: false, depthTest: false });
   const points = new THREE.Points(geom, material);
@@ -378,10 +387,8 @@ function mount(host: HTMLElement, p: Planets): World | null {
   label(el("span", { class: "u-label" }, "Centre of the Milky Way", el("small", {}, `${lyNum(GC)} light-years`)),
     new THREE.Vector3(GC, 0, 0), 3, (d) => (d > 4000 ? 1 : 0));
   RINGS.forEach((ly, k) => {
-    const left = NOW - ly;
     const r = rings[k].r, a = -0.6;
-    label(el("span", { class: "u-label ring" }, `${int(ly)} light-years`,
-      el("small", {}, left > 0 ? `Light from here left in ${left}` : `Light from here left ${int(ly)} years ago`)),
+    label(el("span", { class: "u-label ring" }, `${int(ly)} light-years`, el("small", {}, `light from here left in ${lightYear(r)}`)),
     new THREE.Vector3(r * Math.cos(a), 0, r * Math.sin(a)), 2, (d) => ringAlpha(r, d, 160));
   });
   sys.filter((s) => s.kind === 2).forEach((s) => {
@@ -402,13 +409,17 @@ function mount(host: HTMLElement, p: Planets): World | null {
 
   // ---- colour and focus
   let focus: Group | null = null;
+  const hottest = (q: System) => {
+    const t = q.rows.map((i) => p.teq[i]).filter((x): x is number => x != null);
+    return t.length ? Math.max(...t) : null;
+  };
   function paint() {
-    const rgb = Object.fromEntries(GROUPS.map((g) => [g.key, new THREE.Color(css(g.color))])) as Record<Group, THREE.Color>;
     order.forEach((s, i) => {
-      const q = sys[s], c = rgb[q.group];
+      const q = sys[s];
+      const c = q.kind === 2 ? new THREE.Color(TESSA) : q.kind === 1 ? new THREE.Color(WAITING) : heat(hottest(q));
       col.set([c.r, c.g, c.b], i * 3);
-      const base = q.kind === 1 ? 0.55 : 1;
-      alpha[i] = focus && q.group !== focus ? base * 0.07 : base;
+      const base = q.kind === 1 ? 0.5 : 1;
+      alpha[i] = focus && q.group !== focus ? base * 0.06 : base;
     });
     geom.attributes.color.needsUpdate = true;
     geom.attributes.alpha.needsUpdate = true;
@@ -416,12 +427,28 @@ function mount(host: HTMLElement, p: Planets): World | null {
   paint();
 
   // ---- the card: intro, overview, or one system
-  const counts = Object.fromEntries(GROUPS.map((g) => [g.key, 0])) as Record<Group, number>;
-  sys.forEach((s) => (counts[s.group] += s.rows.length));
-  const legendButtons: HTMLButtonElement[] = [];
-
-  function bar(left: Node | string, right?: Node) {
-    return el("div", { class: "u-bar" }, el("span", { class: "u-bar-title" }, left), right ?? null);
+  const toggles: [Group, HTMLButtonElement][] = [];
+  function toggle(key: Group, kids: (Node | string)[], title?: string) {
+    const b = el("button", { type: "button", "aria-pressed": String(focus === key), title }, ...kids);
+    b.addEventListener("click", () => {
+      focus = focus === key ? null : key;
+      for (const [k, x] of toggles) x.setAttribute("aria-pressed", String(k === focus));
+      paint();
+    });
+    toggles.push([key, b]);
+    return b;
+  }
+  function bar(left: (Node | string)[], right?: Node | null) {
+    return el("div", { class: "u-bar" }, el("span", { class: "u-bar-title" }, ...left), right ?? null);
+  }
+  function heatKey() {
+    const lo = Math.log(HEAT[0][0]), hi = Math.log(HEAT[HEAT.length - 1][0]);
+    const at = (t: number) => ((Math.log(t) - lo) / (hi - lo)) * 100;
+    const grad = HEAT.map(([t, c]) => `${c} ${at(t).toFixed(1)}%`).join(", ");
+    return el("div", { class: "u-heat" },
+      el("span", { class: "u-heat-bar", style: `background: linear-gradient(90deg, ${grad})` }),
+      el("span", { class: "u-heat-labels" }, el("span", {}, "colder"),
+        el("span", { class: "mid", style: `left: ${at(255).toFixed(1)}%` }, "Earth"), el("span", {}, "hotter")));
   }
 
   // ?at=51 Peg (a star or a planet) opens straight onto that system; the address always says what is open
@@ -441,39 +468,26 @@ function mount(host: HTMLElement, p: Planets): World | null {
     selPoint.visible = false;
     selected = null;
     centred.textContent = "Centred on the Sun";
-    const legend = el("ul", { class: "u-legend", "aria-label": "How each planet was found; choose one to show only those" });
-    legendButtons.length = 0;
-    for (const g of GROUPS) {
-      const b = el("button", { type: "button", "aria-pressed": String(focus === g.key) }, swatch(g),
-        el("span", { class: "what" }, g.label), el("span", { class: "n" }, int(counts[g.key])));
-      b.addEventListener("click", () => {
-        focus = focus === g.key ? null : g.key;
-        legendButtons.forEach((x, k) => x.setAttribute("aria-pressed", String(GROUPS[k].key === focus)));
-        paint();
-      });
-      legendButtons.push(b);
-      legend.append(el("li", {}, b));
-    }
-    const ours = sys.filter((s) => s.kind === 2).map((s) => {
-      const b = el("button", { type: "button", class: "u-link" }, s.host);
-      b.addEventListener("click", () => select(s));
-      return b;
-    });
-    const replay = el("button", { type: "button", class: "u-bar-btn" }, "Replay 1992 to today");
+    toggles.length = 0;
+    const replay = el("button", { type: "button", class: "u-bar-btn" }, "Replay");
     replay.addEventListener("click", () => startIntro());
     const c = p.counts;
     card.replaceChildren(
-      bar("NASA Exoplanet Archive", replay),
+      bar([dot("var(--ok)"), "Every known planet"], replay),
       el("div", { class: "u-body" },
-        el("h1", {}, `${int(c.confirmed)} planets found around other stars`),
-        el("p", { class: "u-lede" }, `${int(c.waiting)} more TESS candidates are waiting to be confirmed, and Tessa has found ${words(c.tessa)} of its own.`),
-        legend,
-        ours.length ? el("p", { class: "u-ours" }, "Tessa's: ", ...ours) : null,
-        el("p", { class: "u-hint" }, "Drag to turn. Scroll or pinch to zoom. Click any point to fly there."),
-        el("p", { class: "u-small" },
-          `Not shown: ${int(c.unplaced.confirmed)} planets and ${int(c.unplaced.waiting)} candidates with no measured distance. `
-          + "Every point is where the archive puts it; the Milky Way behind them is a sketch at the same scale. ",
-          el("a", { href: "/survey", "data-link": true }, "Tessa's survey, in full"), ".")));
+        el("p", { class: "u-big" }, int(c.confirmed)),
+        el("p", { class: "u-sub" }, "planets found around other stars"),
+        el("div", { class: "u-stats" },
+          toggle("waiting", [el("b", {}, int(c.waiting)), el("span", {}, "waiting to be confirmed")]),
+          toggle("tessa", [el("b", {}, int(c.tessa)), el("span", {}, "found by Tessa")])),
+        el("div", { class: "u-key" }, el("span", { class: "u-k" }, "Colour"), heatKey()),
+        el("div", { class: "u-key" }, el("span", { class: "u-k" }, "Found by"),
+          el("div", { class: "u-chips" }, ...FILTERS.map((f) => toggle(f.key, [f.label], f.title)))),
+        el("details", { class: "u-about" }, el("summary", {}, "About this map"),
+          el("p", {}, `Every point sits at its measured distance, from the NASA Exoplanet Archive. ${int(c.unplaced.confirmed)} planets `
+            + `and ${int(c.unplaced.waiting)} candidates have no distance yet and aren't shown. Colour is each planet's estimated `
+            + "temperature. The Milky Way is a sketch at the same scale."),
+          el("p", {}, el("a", { href: "/survey", "data-link": true }, "Tessa's survey, in full")))));
   }
 
   const introYear = el("p", { class: "u-year" });
@@ -482,7 +496,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
   function introCard() {
     const skip = el("button", { type: "button", class: "u-bar-btn" }, "Skip");
     skip.addEventListener("click", () => endIntro());
-    card.replaceChildren(bar("Every planet, in the order it was found", skip),
+    card.replaceChildren(bar([dot("var(--ok)"), "1992 to today"], skip),
       el("div", { class: "u-body" }, introYear, introCount, introNote));
   }
   // cumulative confirmed planets by year, for the intro's counter
@@ -495,27 +509,35 @@ function mount(host: HTMLElement, p: Planets): World | null {
   function systemCard(s: System) {
     const back = el("button", { type: "button", class: "u-bar-btn" }, "All planets");
     back.addEventListener("click", () => { overview(); flyTo(new THREE.Vector3(), HOME.dist); });
-    const g = GROUPS.find((x) => x.key === s.group)!;
-    const kindWord = s.kind === 2 ? "Found by Tessa" : s.kind === 1 ? "TESS candidate" : `${s.rows.length} planet${s.rows.length > 1 ? "s" : ""}`;
+    const kindWord = s.kind === 2 ? "found by Tessa" : s.kind === 1 ? "TESS candidate" : `${s.rows.length} planet${s.rows.length > 1 ? "s" : ""}`;
     const rows = [...s.rows].sort((a, b) => (p.period[a] ?? 1e9) - (p.period[b] ?? 1e9));
-    const list = el("ol", { class: "u-planets" }, ...rows.map((i) => {
-      const how = s.kind === 2 ? `Found by Tessa in ${p.year[i]} in NASA TESS data. Not confirmed yet.`
-        : s.kind === 1 ? `A TESS candidate since ${p.year[i]}, waiting to be confirmed.`
-          : `Found in ${p.year[i]}: ${HOW[p.methods[p.method[i]]] ?? p.methods[p.method[i]]}.`;
-      return el("li", {}, el("h3", {}, p.name[i]), el("p", {}, how, " ", facts(p, i)));
-    }));
+    const short = (name: string) => (name === s.host ? "candidate" : name.startsWith(`${s.host} `) ? name.slice(s.host.length + 1) : name);
+    const who = (i: number) => (s.kind === 2 ? "Tessa" : s.kind === 1 ? "TESS" : HOW[p.methods[p.method[i]]] ?? "");
+    const table = el("table", { class: "u-table" },
+      el("thead", {}, el("tr", {}, ...["", "Size", "Year", "Temp", "Found"].map((h) => el("th", { scope: "col" }, h)))),
+      el("tbody", {}, ...rows.map((i) => {
+        const r = p.radius[i], per = p.period[i], t = p.teq[i];
+        return el("tr", {},
+          el("th", { scope: "row", title: p.name[i] }, dot(planetHex(p, i)), short(p.name[i])),
+          el("td", {}, r == null ? "–" : `${r < 10 ? fix(r, 1) : int(r)} Earths`),
+          el("td", {}, per == null ? "–" : orbitText(per)),
+          el("td", {}, t == null ? "–" : tempText(t)),
+          el("td", {}, String(p.year[i]), el("small", {}, who(i))));
+      })));
     const tic = s.host.match(/^TIC (\d+)$/)?.[1];
-    card.replaceChildren(bar(back, el("span", { class: "u-bar-tag" }, swatch(g), kindWord)),
+    const stat = (big: string, small: string) => el("div", {}, el("b", {}, big), el("span", {}, small));
+    card.replaceChildren(bar([back], el("span", { class: "u-bar-tag" }, kindWord)),
       el("div", { class: "u-body" },
         el("h2", {}, s.host),
-        el("p", { class: "u-lede" }, `${lyNum(s.dist)} light-years away. ${lightLeft(s.dist)}`),
-        orrery(p, rows, css(g.color)),
-        list,
-        s.kind === 2 && tic ? el("p", {}, el("a", { href: `/star/${tic}`, "data-link": true, class: "u-cta" }, "Open its case file")) : null,
+        el("div", { class: "u-pair" }, stat(lyNum(s.dist), "light-years away"), stat(lightYear(s.dist), "when its light left")),
+        orrery(p, rows, short),
+        table,
+        el("p", { class: "u-legendnote" }, "Size is width, Earth = 1. Year is one orbit. Temp is an estimate."),
+        s.kind === 2 && tic ? el("a", { href: `/star/${tic}`, "data-link": true, class: "u-btn" }, "Open the case file") : null,
         share()));
   }
   function share() {
-    const b = el("button", { type: "button", class: "u-bar-btn u-share" }, "Copy a link to this system");
+    const b = el("button", { type: "button", class: "u-bar-btn u-share" }, "Copy link");
     b.addEventListener("click", async () => {
       try {
         await navigator.clipboard.writeText(location.href);
@@ -533,6 +555,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
     (selGeom.attributes.position.array as Float32Array).set([s.at.x, s.at.y, s.at.z]);
     selGeom.attributes.position.needsUpdate = true;
     selPoint.visible = true;
+    hint.hidden = true;
     setAt(s.host);
     centred.textContent = `Centred on ${s.host}`;
     systemCard(s);
@@ -582,6 +605,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
 
   // ---- input
   controls.addEventListener("start", () => {
+    hint.hidden = true;
     if (intro) endIntro();
     tween = null;
     controls.autoRotate = false;
@@ -646,6 +670,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
   });
 
   // ---- frame
+  let keepOut: number[][] = [];
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
     if (!w || !h) return;
@@ -658,16 +683,21 @@ function mount(host: HTMLElement, p: Planets): World | null {
     const shift = w > 900 ? Math.min(card.offsetWidth, w * 0.4) / 2 : 0;
     camera.setViewOffset(w, h, -shift, w > 900 ? 0 : h * 0.16, w, h);
     camera.updateProjectionMatrix();
+    // labels keep clear of the header, the card and the readout
+    const top = document.querySelector<HTMLElement>(".bar")?.offsetHeight ?? 64;
+    keepOut = [[0, 0, w, top], ...[card, readout].map((e) => [e.offsetLeft, e.offsetTop, e.offsetLeft + e.offsetWidth, e.offsetTop + e.offsetHeight])];
   }
   const ro = new ResizeObserver(resize);
   ro.observe(canvas);
   ro.observe(card);
+  ro.observe(readout);
 
   const v = new THREE.Vector3();
   let raf = 0;
   let lastScale = "";
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
+    if (!still) uniforms.uTime.value = now / 1000;
     if (intro) {
       const sec = (now - intro.t0) / 1000;
       const y = clockYear(sec);
@@ -680,7 +710,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
       introYear.textContent = y < firstYear ? "" : String(shown);
       introCount.textContent = y > 2027 ? `+ ${int(p.counts.waiting)} TESS candidates waiting${y > 2028 ? `, and Tessa's ${words(p.counts.tessa)}` : ""}`
         : y < firstYear ? "" : `${int(cumulative(shown))} planet${cumulative(shown) === 1 ? "" : "s"} known`;
-      introNote.textContent = y > 2027 ? "Rings are candidates waiting for a second look. The amber diamonds are Tessa's."
+      introNote.textContent = y > 2027 ? "Faint dust: candidates waiting for a second look. Teal: Tessa's."
         : [...MILESTONES].reverse().find(([yr]) => yr <= shown)?.[1] ?? "";
       if (sec > 12.5) endIntro();
     } else if (tween) {
@@ -700,7 +730,7 @@ function mount(host: HTMLElement, p: Planets): World | null {
     renderer.render(scene, camera);
 
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    const taken: number[][] = [];
+    const taken = [...keepOut];
     for (const l of labels) {
       v.copy(l.at).project(camera);
       const a = l.show ? l.show(fromSun) : 1;
