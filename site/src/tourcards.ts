@@ -30,7 +30,7 @@ const GLOSSARY: Record<string, string> = {
   orbit: "One trip of a planet around its star. Here, one orbit is also the planet's year.",
   "ground window": "A night when the star is up, the sky is dark, and a dip is due, at one observatory.",
 };
-function rich(text: string): Node[] {
+export function rich(text: string): Node[] {
   const out: Node[] = [];
   const re = /\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g;
   let at = 0;
@@ -277,16 +277,17 @@ function predict(ctx: Ctx): Show {
 }
 
 // ---- 7. your turn
-function end(ctx: Ctx): Show {
+function end(ctx: Ctx, onSearch: () => void): Show {
   const f = facts(ctx);
   const share = `${location.origin}/?at=${encodeURIComponent(ctx.host)}`;
   const text = `Tessa searched ${int(f.searched)} nearby stars in public NASA TESS data and found a possible new world: ${ctx.host}.`;
   const actions = later(el("div", { class: "u-actions" },
+    el("button", { type: "button", class: "u-btn", onclick: () => onSearch() }, "Search a star"),
     el("button", { type: "button", class: "u-btn", onclick: () => openAsk() }, "Ask Tessa"),
     el("a", { class: "u-btn", href: `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(share)}`, target: "_blank", rel: "noopener" }, "Share this world")), 1);
   return show(el("div", { class: "m-show" }, actions), [
     { at: 0, text: `That's Tessa so far: ${int(f.searched)} stars searched, ${f.found === 1 ? "one possible new world" : `${int(f.found)} possible new worlds`}, every step in the open.` },
-    { at: 3.5, text: "Ask Tessa about any star or planet here, or share this world." },
+    { at: 3.5, text: "Now search a star yourself: your computer runs the same search on a star nobody has searched. Or ask Tessa about any star or planet here." },
   ]);
 }
 
@@ -295,7 +296,7 @@ const METHODS: [Method, string, Group][] = [["dip", "The dip", "transit"], ["wob
 
 export interface CardOpts {
   kind: CardKind; ctx: Ctx; index: number; total: number;
-  onNext(): void; onBack(): void; onLeave(): void; onFocus(g: Group | null): void;
+  onNext(): void; onBack(): void; onLeave(): void; onFocus(g: Group | null): void; onSearch(): void;
 }
 // One stop of the tour: a bar, the stop's progress, a headline, the picture and the sentence, with back and next.
 // The sentences play on their own clock; tapping the picture or the arrows moves a step, past the ends moves a stop.
@@ -381,7 +382,7 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
       case "odds": return odds(o.ctx);
       case "casefile": return casefile(o.ctx);
       case "predict": return predict(o.ctx);
-      default: return end(o.ctx);
+      default: return end(o.ctx, o.onSearch);
     }
   };
   if (chips) {

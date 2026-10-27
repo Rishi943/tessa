@@ -65,7 +65,7 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     (OUT / "parity").mkdir(exist_ok=True)
     held = [int(t) for t in (ROOT / "survey" / "holdout.txt").read_text(encoding="utf-8").split()]
-    info = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "rad", "mass", "ra", "dec", "distance", "tmag", "teff"]
+    info = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "rad", "mass", "ra", "dec", "parallax", "tmag", "teff"]
                            ).set_index("tic")
     stars, size = [], 0
     for tic in held:
@@ -80,7 +80,7 @@ def main() -> None:
         (OUT / f"{tic}.bin").write_bytes(blob)
         size += len(blob)
         r = info.loc[tic]
-        stars.append({"tic": tic, "ra": round(float(r.ra), 4), "dec": round(float(r.dec), 4), "dist": round(float(r.distance), 2),
+        stars.append({"tic": tic, "ra": round(float(r.ra), 4), "dec": round(float(r.dec), 4), "dist": round(1000 / float(r.parallax), 2),  # Gaia, as on the map
                       "tmag": round(float(r.tmag), 2), "teff": None if pd.isna(r.teff) else int(r.teff),
                       "rad": None if pd.isna(r.rad) else round(float(r.rad), 4), "mass": None if pd.isna(r.mass) else round(float(r.mass), 4)})
     (OUT / "stars.json").write_text(json.dumps(stars, separators=(",", ":")), encoding="utf-8")

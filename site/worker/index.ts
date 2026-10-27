@@ -1,9 +1,12 @@
 // tessa.braveai.solutions: the static site comes straight from the assets; this Worker only answers
-// /api/ask, where Muse Spark answers questions about the survey with tools over the exported files.
+// /api/ask, where Muse Spark answers questions about the survey with tools over the exported files, and
+// /api/search/*, which hands visitors a star to search in their browser and records what they found.
+import { search } from "./search";
+import type { SearchEnv } from "./search";
 import { SYSTEM, TOOLS, runTool, stepText } from "./tools";
 
 interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
-export interface Env {
+export interface Env extends SearchEnv {
   ASSETS: Fetcher;
   META_API_KEY: string;
   ASK_LIMIT: RateLimit;  // per visitor
@@ -22,6 +25,7 @@ export default {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(request.url);
     if (url.pathname === "/api/ask" && request.method === "POST") return ask(request, env, ctx);
+    if (url.pathname.startsWith("/api/search/")) return search(request, env);
     if (url.pathname.startsWith("/api/")) return new Response("not found", { status: 404 });
     return env.ASSETS.fetch(request);
   },

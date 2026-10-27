@@ -416,7 +416,7 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .t-pause:hover, .t-pause[aria-pressed="true"] { color: var(--ink); }
 
 /* the picture: a barely-there frame */
-.t-stage { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 1rem 1.1rem; border: 1px solid rgba(236, 235, 230, 0.07); background: rgba(7, 9, 18, 0.78); }
+.t-stage { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 1rem 1.1rem; border: 1px solid rgba(236, 235, 230, 0.07); background: rgba(7, 9, 18, 0.92); }
 .t-show { cursor: pointer; }
 /* jargon: a dotted underline, and the definition on hover or tap */
 .term { position: relative; text-decoration: underline dotted rgba(236, 235, 230, 0.55); text-underline-offset: 0.22em; cursor: help; outline: none; }
@@ -458,8 +458,6 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
   .m-graph { height: 92px; }
   .m-plot { height: 180px; }
 }
-}
-}
 .u-label.stop { color: var(--ink); }
 .u-label.patch { color: var(--tessa); }
 
@@ -481,3 +479,8 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .t-stat .t-chips { justify-content: flex-end; margin-top: 0.7rem; max-width: 16rem; }
 .t-stat .t-chips .u-k { flex-basis: 100%; text-align: right; margin: 0 0 0.2rem; }
 @media (max-width: 900px) { .t-stat .t-chips { justify-content: flex-start; } .t-stat .t-chips .u-k { text-align: left; } }
+/* the home card's two ways in, and the search's name field */
+.u-start { margin: 0 0 1.1rem; }
+.u-start .u-tour { margin: 0; }
+.s-handle { font: 400 1rem var(--sans); color: var(--ink); background: rgba(7, 9, 18, 0.6); border: 1px solid rgba(236, 235, 230, 0.2); padding: 0.55rem 0.8rem; width: min(22rem, 100%); }
+.s-handle:focus { outline: 2px solid var(--focus); outline-offset: 1px; }

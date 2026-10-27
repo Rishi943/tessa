@@ -9,6 +9,7 @@ import type { Planets, StarPage, Summary } from "./data";
 import { STOPS } from "./tour";
 import type { Group } from "./tour";
 import { tourCard } from "./tourcards";
+import { searchCard } from "./search/card";
 import { css, el, fix, int } from "./util";
 
 const D2R = Math.PI / 180;
@@ -72,17 +73,23 @@ interface System {
   host: string; kind: number; group: Group; rows: number[]; at: THREE.Vector3; dist: number; year: number;
 }
 
+// A star's place in the scene from RA, Dec (degrees) and distance (parsecs). Scene axes: x to the galactic centre,
+// y to the north galactic pole, z = -galactic y (still right-handed).
+function place(ra: number, dec: number, d: number): THREE.Vector3 {
+  const a = ra * D2R, b = dec * D2R;
+  const e0 = Math.cos(b) * Math.cos(a), e1 = Math.cos(b) * Math.sin(a), e2 = Math.sin(b);
+  const gx = T[0] * e0 + T[1] * e1 + T[2] * e2, gy = T[3] * e0 + T[4] * e1 + T[5] * e2, gz = T[6] * e0 + T[7] * e1 + T[8] * e2;
+  return new THREE.Vector3(d * gx, d * gz, -d * gy);
+}
+
 function systems(p: Planets): System[] {
   const by = new Map<string, System>();
   p.kind.forEach((kind, i) => {
     const key = `${kind}|${p.host[i]}`;
     let s = by.get(key);
     if (!s) {
-      const a = p.ra[i] * D2R, b = p.dec[i] * D2R, d = p.dist[i];
-      const e0 = Math.cos(b) * Math.cos(a), e1 = Math.cos(b) * Math.sin(a), e2 = Math.sin(b);
-      const gx = T[0] * e0 + T[1] * e1 + T[2] * e2, gy = T[3] * e0 + T[4] * e1 + T[5] * e2, gz = T[6] * e0 + T[7] * e1 + T[8] * e2;
-      // scene axes: x to the galactic centre, y to the north galactic pole, z = -galactic y (still right-handed)
-      s = { host: p.host[i], kind, group: "other", rows: [], at: new THREE.Vector3(d * gx, d * gz, -d * gy), dist: d, year: Infinity };
+      const d = p.dist[i];
+      s = { host: p.host[i], kind, group: "other", rows: [], at: place(p.ra[i], p.dec[i], d), dist: d, year: Infinity };
       by.set(key, s);
     }
     s.rows.push(i);
@@ -410,6 +417,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     b.addEventListener("click", () => select(s));
     label(b, s.at, 1, (d) => (uniforms.uYear.value > 2028 && d < 8000 ? 1 : 0));
   });
+  // the star a visitor is searching
+  const searchTag = label(el("span", { class: "u-label tessa" }), new THREE.Vector3(), 1, () => (searching ? 1 : 0));
   label(el("span", { class: "u-label patch" }, "Tessa's patch", el("small", {}, "within 326 light-years")),
     new THREE.Vector3(100 * Math.cos(2.3), 0, 100 * Math.sin(2.3)), 1, () => (tour[stopAt]?.patch ? 1 : 0));
 
@@ -496,7 +505,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       el("div", { class: "u-body" },
         el("p", { class: "u-big" }, int(c.confirmed)),
         el("p", { class: "u-sub" }, "planets found around other stars"),
-        tour.length ? tourButton() : null,
+        el("div", { class: "u-actions u-start" }, tour.length ? tourButton() : null, sum ? searchButton() : null),
         el("div", { class: "u-stats" },
           toggle("waiting", [el("b", {}, int(c.waiting)), el("span", {}, "waiting to be confirmed")]),
           toggle("tessa", [el("b", {}, int(c.tessa)), el("span", {}, "found by Tessa")])),
@@ -569,7 +578,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     return b;
   }
 
-  function ring(s: System | null) {
+  function ring(s: { at: THREE.Vector3 } | null) {
     selPoint.visible = !!s;
     if (!s) return;
     (selGeom.attributes.position.array as Float32Array).set([s.at.x, s.at.y, s.at.z]);
@@ -578,6 +587,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   function select(s: System) {
     endIntro(false);
     leaveTour(false);
+    leaveSearch(false);
     selected = s;
     ring(s);
     hint.hidden = true;
@@ -681,7 +691,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     card.hidden = true;
     section.classList.add("touring");  // the scale readout gives way to the tour's words
     tourEl?.dispose();
-    tourEl = tourCard({ kind: s.card, ctx, index: k, total: tour.length,
+    tourEl = tourCard({ kind: s.card, ctx, index: k, total: tour.length, onSearch: () => searchMode(),
       onNext: () => (k < tour.length - 1 ? tourStop(k + 1) : leaveTour()),
       onBack: () => { if (k > 0) tourStop(k - 1); },
       onLeave: () => leaveTour(),
@@ -700,6 +710,62 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       flyTo(new THREE.Vector3(), s.dist ?? HOME.dist, HOME.dir, 2400);
     }
     setAt(null, k + 1);
+  }
+  // ---- "Search a star": the visitor's own search of a held-back star, in the tour's layout
+  let searching = false;
+  const g1 = (sum?.survey_gate1 ?? { floor: 14.3 }) as { floor: number };
+  const odds = sum && sum.by_status.candidate ? `1 in ${int(Number((Number(sum.searched_total ?? sum.survey_searched) / sum.by_status.candidate).toPrecision(2)))}` : "1 in 5,000";
+  function searchButton() {
+    const b = el("button", { type: "button", class: "u-btn u-tour" }, "Search a star");
+    b.addEventListener("click", () => searchMode());
+    return b;
+  }
+  // start: begin searching at once (/search?go=1 and "Search another star")
+  function searchMode(start = false) {
+    endIntro(false);
+    leaveTour(false);
+    tourEl?.dispose();
+    searching = true;
+    selected = null;
+    hint.hidden = true;
+    focus = null;
+    paint();
+    runClock(3000, 1200);
+    ring(null);
+    dim.classList.remove("on");
+    card.hidden = true;
+    section.classList.add("touring");
+    history.replaceState(history.state, "", "/search");
+    tourEl = searchCard({ floor: g1.floor, odds, start, onLeave: () => leaveSearch(), onAgain: () => searchMode(true),
+      onStar: (st) => {
+        const at = place(st.ra, st.dec, st.dist);
+        ring({ at });
+        searchTag.at.copy(at);
+        searchTag.node.replaceChildren(`TIC ${st.tic}`, el("small", {}, "your star"));
+        searchTag.w = searchTag.h = undefined;
+        centred.textContent = `The Sun and TIC ${st.tic}`;
+        withSun(at);
+      } });
+    section.append(tourEl.node);
+    ro.observe(tourEl.node.firstElementChild as HTMLElement);
+    resize();
+    centred.textContent = "Centred on the Sun";
+    flyTo(new THREE.Vector3(), 260, HOME.dir, 2400);
+  }
+  function leaveSearch(toOverview = true) {
+    if (!searching) return;
+    searching = false;
+    tourEl?.dispose();
+    tourEl = null;
+    ring(null);
+    card.hidden = false;
+    section.classList.remove("touring");
+    history.replaceState(history.state, "", "/");
+    resize();
+    if (toOverview) {
+      overview();
+      flyTo(new THREE.Vector3(), HOME.dist, HOME.dir, 2400);
+    }
   }
   function leaveTour(toOverview = true) {
     if (stopAt < 0) return;
@@ -900,13 +966,14 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   const params = new URLSearchParams(location.search);
   const at = params.get("at"), stop = Number(params.get("tour")) - 1;
   const start = at ? find(at) : undefined;
-  const onTour = stop >= 0 && stop < tour.length;
-  if (introDone || still || start || onTour) {
+  const onTour = stop >= 0 && stop < tour.length, onSearch = /^\/search\/?$/.test(location.pathname) && !!sum;
+  if (introDone || still || start || onTour || onSearch) {
     introDone = true;
     uniforms.uYear.value = 3000;
     camera.position.copy(HOME.dir).multiplyScalar(HOME.dist);
     if (start) select(start);
     else if (onTour) tourStop(stop);
+    else if (onSearch) searchMode(params.get("go") === "1");
     else overview();
   } else startIntro();
   resize();
