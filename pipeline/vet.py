@@ -10,8 +10,10 @@ Prints the checks as JSON. --blind skips the known-object match, for scoring the
 stars whose answer is already known.
 """
 import argparse
+import contextlib
 import csv
 import json
+import sys
 from pathlib import Path
 
 import numpy as np
@@ -34,6 +36,14 @@ SECONDARY_OVER_BUMP = 1.5
 ODD_EVEN_SIGMA = 4.0
 MAX_DURATION_RATIO = 3.0  # observed / central duration for this star
 
+# Shape and neighbours (reported, never rejected on: the agent weighs them)
+INGRESS_FRACTIONS = np.round(np.arange(0.05, 0.51, 0.05), 2)  # 0.5 is a V
+FLAT_MAX = 0.25  # fits with ingress fraction up to this count as flat-bottomed
+MAX_ECLIPSE_DEPTH = 0.5  # deepest eclipse a neighbouring binary is assumed to make
+PLAUSIBLE_ECLIPSE = 0.25  # eclipses this shallow are common, so such a neighbour is a real worry
+TESS_PIXEL_ARCSEC = 21.0
+GAIA_EPOCH, TIC_EPOCH = 2016.0, 2000.0
+
 
 def load_lc(tic: int, lc_dir: Path) -> dict[str, np.ndarray]:
     manifest = lc_dir / "manifest.csv"
@@ -47,7 +57,7 @@ def load_lc(tic: int, lc_dir: Path) -> dict[str, np.ndarray]:
 
 def star_info(tic: int) -> dict:
     """From the target table, or straight from the TIC for stars outside the survey pool."""
-    cols = ["tic", "tmag", "teff", "rad", "mass", "distance", "contratio", "ruwe",
+    cols = ["tic", "source_id", "tmag", "teff", "rad", "mass", "distance", "contratio", "ruwe",
             "phot_variable_flag", "non_single_star", "ra", "dec", "upcoming_sectors"]
     rows = pd.read_parquet(DATA / "targets.parquet", columns=cols).query("tic == @tic")
     if len(rows):
@@ -148,6 +158,88 @@ def duration(sig: dict, star: dict) -> dict:
     return {"observed_h": sig["dur"] * 24, "central_h": expected * 24, "ratio": sig["dur"] / expected}
 
 
+def trapezoid(x: np.ndarray, total: float, ingress: float) -> np.ndarray:
+    """1 at full depth, 0 out of transit; ingress is a fraction of the total duration."""
+    tau = ingress * total
+    return np.clip((total / 2 - np.abs(x)) / tau, 0, 1)
+
+
+def shape(lc: dict, sig: dict) -> dict:
+    """Flat-bottomed (planet-like) or V-shaped (grazing, often a binary)?
+
+    Trapezoids are fitted to the folded transit over a grid of total durations, ingress
+    fractions and small mid-time shifts, with depth and baseline solved linearly. v_sigma
+    compares the best V with the best flat-bottomed fit, in red-noise-scaled sigma: positive
+    favours the V. At low SNR, or with 30-minute cadence on a short transit, it stays near 0."""
+    dur = sig["dur"]
+    x = phase_offset(lc["t"], sig["period"], sig["t0"])
+    near = np.abs(x) < 1.5 * dur
+    x, y, w = x[near], lc["y"][near], lc["w"][near]
+    s1, sy = w.sum(), np.sum(w * y)
+    gain = {}
+    for total in dur * np.linspace(0.6, 1.8, 13):
+        for ingress in INGRESS_FRACTIONS:
+            for shift in dur * np.linspace(-0.2, 0.2, 5):
+                m = trapezoid(x - shift, total, ingress)
+                sm, smm, smy = np.sum(w * m), np.sum(w * m * m), np.sum(w * m * y)
+                cov, var = smy - sm * sy / s1, smm - sm * sm / s1
+                if var > 0 and cov < 0:  # a dip
+                    g = cov * cov / var
+                    if g > gain.get(ingress, (0,))[0]:
+                        gain[ingress] = (g, total)
+    if not gain:
+        return {"best_ingress_fraction": None, "v_sigma": 0.0, "t14_h": None}
+    best = max(gain, key=lambda k: gain[k][0])
+    flat = max((gain[k][0] for k in gain if k <= FLAT_MAX), default=0.0)
+    v = gain.get(0.5, (0.0,))[0]
+    beta = red_noise(lc, sig, np.ones(len(lc["t"]), bool))
+    return {"best_ingress_fraction": float(best), "t14_h": float(gain[best][1] * 24),
+            "v_sigma": float(np.sign(v - flat) * np.sqrt(abs(v - flat)) / beta)}
+
+
+def neighbours(tic: int, star: dict, sig: dict) -> dict:
+    """Gaia DR3 stars near the target bright enough to make this dip if they were binaries.
+
+    A neighbour could be the source if the eclipse it would need, the observed depth scaled
+    up by the brightness ratio, is at most MAX_ECLIPSE_DEPTH. Only centroid or difference
+    imaging can then tell; this just says whether such a star exists and how close it is."""
+    path = CACHE / "gaia_neighbours" / f"{tic}.csv"
+    if path.exists():
+        df = pd.read_csv(path)
+    else:
+        with contextlib.redirect_stdout(sys.stderr):  # the module prints a release banner on import
+            from astroquery.gaia import Gaia
+        query = ("SELECT source_id, ra, dec, pmra, pmdec, phot_g_mean_mag AS g, phot_rp_mean_mag AS rp "
+                 "FROM gaiadr3.gaia_source WHERE 1 = CONTAINS(POINT(ra, dec), "
+                 f"CIRCLE({star['ra']}, {star['dec']}, {NEIGHBOUR_ARCSEC / 3600}))")
+        df = Gaia.launch_job(query, verbose=False).get_results().to_pandas()
+        path.parent.mkdir(exist_ok=True)
+        df.to_csv(path, index=False)
+    # TIC positions are at epoch 2000, Gaia DR3 at 2016: move Gaia stars back before comparing.
+    if "pmra" not in df:
+        df["pmra"] = df["pmdec"] = np.nan
+    years = GAIA_EPOCH - TIC_EPOCH
+    dec = df["dec"] - df["pmdec"].fillna(0) * years / 3.6e6
+    ra = df["ra"] - df["pmra"].fillna(0) * years / 3.6e6 / np.cos(np.radians(df["dec"]))
+    df["sep"] = 3600 * np.hypot((ra - star["ra"]) * np.cos(np.radians(star["dec"])), dec - star["dec"])
+    df["mag"] = df["rp"].fillna(df["g"])  # RP is closest to the TESS band
+    df = df.dropna(subset=["mag"]).sort_values("sep")
+    mine = df[df["source_id"] == star.get("source_id")]
+    close = mine if len(mine) else df[df["sep"] < 5]
+    if close.empty:
+        return {"target_found": False}
+    me = close.loc[close["mag"].idxmin()]
+    others = df.drop(index=me.name)
+    need = sig["depth_ppm"] * 1e-6 * 10 ** (0.4 * (others["mag"] - me["mag"]))
+    able = others[need <= MAX_ECLIPSE_DEPTH].assign(need=need[need <= MAX_ECLIPSE_DEPTH])
+    return {"target_found": True, "gaia_stars_within": len(others), "radius_arcsec": NEIGHBOUR_ARCSEC,
+            "could_cause": int(len(able)),
+            "could_cause_within_1px": int((able["sep"] < TESS_PIXEL_ARCSEC).sum()),
+            "plausible_within_1px": int(((able["sep"] < TESS_PIXEL_ARCSEC) & (able["need"] <= PLAUSIBLE_ECLIPSE)).sum()),
+            "closest_that_could": [{"sep_arcsec": round(float(r.sep), 1), "delta_mag": round(float(r.mag - me["mag"]), 2),
+                                    "eclipse_needed": round(float(r.need), 4)} for r in able.head(3).itertuples()]}
+
+
 def harmonic(p_cat: float, p_sig: float) -> float | None:
     if not np.isfinite(p_cat) or p_cat <= 0:
         return None
@@ -200,7 +292,8 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False) -> dict:
         "refit": check_peak(lc, sig["period"], sig["t0"], sig["dur"], -1),
         "odd_even": odd_even(lc, sig), "secondary": secondary(lc, sig),
         "sectors": sector_depths(lc, sig), "size": size(sig, star),
-        "duration": duration(sig, star), "known": [] if blind else known(tic, star, sig),
+        "duration": duration(sig, star), "shape": shape(lc, sig), "neighbours": neighbours(tic, star, sig),
+        "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)
     return checks
