@@ -22,7 +22,7 @@ export async function starPage(main: HTMLElement, tic: number) {
     main.append(el("div", { class: "star" }, el("div", { class: "inner" },
       el("h1", {}, `No case file for TIC ${tic}`),
       el("p", {}, "Tessa keeps a case file for every star whose light curve showed a repeating dip. This star either had none or hasn't been searched yet. ",
-        el("a", { href: "/#dips", "data-link": true }, "See every dip"), "."))));
+        el("a", { href: "/survey#dips", "data-link": true }, "See every dip"), "."))));
     return;
   }
   document.title = `TIC ${tic}, ${p.status === "candidate" ? "a planet candidate" : "case file"}: Tessa`;
@@ -30,7 +30,7 @@ export async function starPage(main: HTMLElement, tic: number) {
   const inner = el("div", { class: "inner" });
   inner.append(
     el("p", { class: "crumbs" }, el("a", { href: "/", "data-link": true }, "Tessa"), " / ",
-      el("a", { href: "/#dips", "data-link": true }, "Every dip"), ` / TIC ${tic}`),
+      el("a", { href: "/survey#dips", "data-link": true }, "Every dip"), ` / TIC ${tic}`),
     el("div", { class: "star-head" },
       el("div", {}, el("h1", {}, `TIC ${tic}`),
         el("p", { class: "about" }, `A ${spectral(s.teff)} of ${int(s.teff)} K, ${fix(s.distance, 1)} parsecs away, TESS magnitude ${fix(s.tmag, 1)}. `

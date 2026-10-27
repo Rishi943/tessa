@@ -2,6 +2,7 @@ import "./style.css";
 import { openAsk, setupAsk } from "./ask";
 import { home, leaveHome } from "./home";
 import { starPage } from "./star";
+import { leaveUniverse, universe } from "./universe";
 import { el, navigate } from "./util";
 
 const main = document.getElementById("main")!;
@@ -9,14 +10,19 @@ const TITLE = document.title;
 
 async function route() {
   leaveHome();
-  main.replaceChildren(el("p", { class: "loading" }, "Loading the survey"));
+  leaveUniverse();
   const star = location.pathname.match(/^\/star\/(\d+)\/?$/);
+  const survey = /^\/survey\/?$/.test(location.pathname);
+  // The universe is the window; the survey and the case files are the layer for scientists
+  const world = !star && !survey;
+  document.body.classList.toggle("world", world);
+  main.replaceChildren(el("p", { class: "loading" }, world ? "" : "Loading the survey"));
   const view = el("div");
   try {
     if (star) await starPage(view, Number(star[1]));
     else {
       document.title = TITLE;
-      await home(view);
+      await (survey ? home(view) : universe(view));
     }
   } catch (e) {
     view.replaceChildren(el("p", { class: "loading" }, `Could not load the survey data (${(e as Error).message}). Reload to try again.`));

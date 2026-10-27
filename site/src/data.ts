@@ -62,6 +62,16 @@ export interface StarPage {
   audit?: Dossier;
 }
 
+// planets.json: kind 0 confirmed, 1 TESS candidate still waiting, 2 Tessa's candidate; method and facility index the lists
+export interface Planets {
+  methods: string[]; facilities: string[];
+  counts: { confirmed: number; waiting: number; tessa: number; unplaced: { confirmed: number; waiting: number };
+    by_method: Record<string, { planets: number; first: number }> };
+  kind: number[]; name: string[]; host: string[]; ra: number[]; dec: number[]; dist: number[]; method: number[];
+  year: number[]; facility: number[]; period: (number | null)[]; radius: (number | null)[]; mass: (number | null)[];
+  teq: (number | null)[]; teff: (number | null)[];
+}
+
 const cache = new Map<string, Promise<unknown>>();
 
 function load<T>(path: string): Promise<T> {
@@ -78,6 +88,7 @@ function load<T>(path: string): Promise<T> {
 }
 
 export const getSky = () => load<Sky>("/data/sky.json");
+export const getPlanets = () => load<Planets>("/data/planets.json");
 export const getSummary = () => load<Summary>("/data/summary.json");
 export const getDips = () => load<Dip[]>("/data/dips.json");
 export const getStar = (tic: number) => load<StarPage>(`/data/stars/${tic}.json`);

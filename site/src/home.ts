@@ -11,13 +11,13 @@ let sky: SkyView | null = null;
 let visit = 0;  // the sky loads slowly; a late load must not mount onto a page already left
 let pendingFly: number | null = null;
 
-// Ask Tessa's "show it on the map": go home if needed, then turn the map once it exists
+// Ask Tessa's "show it on the map" for a star only the survey has: go to the survey, then turn its map
 export function flyTo(tic: number) {
   window.scrollTo({ top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
-  if (sky && location.pathname === "/") sky.flyTo(tic);
+  if (sky && location.pathname === "/survey") sky.flyTo(tic);
   else {
     pendingFly = tic;
-    if (location.pathname !== "/") navigate("/");
+    if (location.pathname !== "/survey") navigate("/survey");
   }
 }
 export function leaveHome() {

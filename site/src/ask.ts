@@ -3,6 +3,7 @@
 import { foldChart, lightCurve, sectorDepths, snrBars } from "./charts";
 import { getStar } from "./data";
 import { flyTo } from "./home";
+import { flyToTic } from "./universe";
 import { el, navigate } from "./util";
 
 type Turn = { role: "user" | "assistant"; content: string };
@@ -84,7 +85,7 @@ function render(text: string): HTMLElement {
 // A chart from the star's own exported data, drawn by the same code as its page
 async function picture(tic: number, view: string): Promise<HTMLElement | null> {
   if (view === "map") {
-    flyTo(tic);
+    if (!flyToTic(tic)) flyTo(tic);
     return null;
   }
   try {

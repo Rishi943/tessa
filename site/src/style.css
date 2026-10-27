@@ -18,8 +18,17 @@
   --rejected: #e05a70;
   --focus: #ffd28a;
   --shade: rgba(0, 0, 0, 0.45);
-  --serif: "Newsreader", "Iowan Old Style", Georgia, serif;
-  --sans: "Public Sans", "Segoe UI", system-ui, sans-serif;
+  /* how each planet was found: three hues that pass the validator on --page with --candidate (all pairs) */
+  --m-transit: #3987e5;
+  --m-rv: #d55181;
+  --m-lens: #008300;
+  --m-other: #9a9ca8;
+  --waiting: #ECEBE6;
+  --line: rgba(236, 235, 230, 0.26);
+  /* braveai.solutions' type: Archivo, with Courier Prime for readouts */
+  --serif: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "Courier Prime", "Courier New", monospace;
   --wide: 76rem;
   --read: 42rem;
   --gutter: clamp(1rem, 4vw, 2.5rem);
@@ -269,4 +278,68 @@ footer.foot p { margin: 0; max-width: var(--read); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
+/* ---- The universe: one window, no page scroll. Panels are braveai.solutions' windows, lit for the night. */
+body.world { overflow: hidden; }
+body.world .bar { position: fixed; inset: 0 0 auto; background: none; border: 0; pointer-events: none; }
+body.world .bar > * { pointer-events: auto; }
+body.world .bar nav { display: none; }
+body.world .brand { font-stretch: 112%; font-weight: 600; }
+body.world main { position: fixed; inset: 0; }
+.world-view { position: absolute; inset: 0; overflow: hidden; background: var(--page); }
+.universe { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; touch-action: none; outline: none; }
+.universe:focus-visible { box-shadow: inset 0 0 0 2px var(--focus); }
+
+.u-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.u-label { position: absolute; left: 0; top: 0; padding: 0.45rem 0 0 0.6rem; font: 400 0.78rem/1.25 var(--mono); color: var(--ink-2); white-space: nowrap; transition: opacity 0.4s; }
+.u-label small { display: block; color: var(--muted); font-size: 0.72rem; }
+.u-label.flip { padding: 0.45rem 0.6rem 0 0; text-align: right; }
+.u-label.sun { color: var(--ink); }
+.u-label.ring { color: var(--muted); }
+button.u-label.tessa { pointer-events: auto; background: none; border: 0; margin: 0; padding: 0.7rem 0 0 0.9rem; color: var(--candidate); text-align: left; cursor: pointer; }
+.u-tip { position: absolute; z-index: 3; transform: translate(14px, 14px); max-width: 18rem; padding: 0.45rem 0.6rem; background: var(--surface); border: 1px solid var(--line); font-size: 0.85rem; line-height: 1.4; pointer-events: none; }
+
+.u-card {
+  position: absolute; left: var(--gutter); bottom: var(--gutter); z-index: 2;
+  width: min(26rem, calc(100% - 2 * var(--gutter))); max-height: calc(100% - 6.5rem);
+  display: flex; flex-direction: column;
+  background: rgba(7, 9, 18, 0.8); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border: 1px solid var(--line); box-shadow: 5px 5px 0 rgba(236, 235, 230, 0.09);
+}
+.u-bar { display: flex; justify-content: space-between; align-items: center; gap: 1rem; padding: 0.4rem 0.8rem; border-bottom: 1px solid var(--line); font: 400 0.8rem/1.4 var(--mono); color: var(--muted); }
+.u-bar-btn { font: inherit; color: var(--ink-2); background: none; border: 0; padding: 0.15rem 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
+.u-bar-btn:hover { color: var(--ink); }
+.u-bar-tag { display: inline-flex; gap: 0.4rem; align-items: center; }
+.u-body { padding: 1rem 1.1rem 1.1rem; overflow-y: auto; overscroll-behavior: contain; }
+.u-body h1 { font: 600 clamp(1.45rem, 2.3vw, 1.85rem)/1.1 var(--sans); font-stretch: 112%; letter-spacing: -0.01em; margin: 0 0 0.5rem; }
+.u-body h2 { font: 600 1.6rem/1.1 var(--sans); font-stretch: 112%; margin: 0 0 0.35rem; }
+.u-lede { color: var(--ink-2); margin: 0 0 0.9rem; }
+.u-legend { list-style: none; margin: 0 0 0.7rem; padding: 0; }
+.u-legend button { width: 100%; display: grid; grid-template-columns: 0.9rem 1fr auto; gap: 0.6rem; align-items: center; padding: 0.28rem 0.4rem; background: none; border: 0; color: var(--ink-2); font: inherit; font-size: 0.92rem; line-height: 1.3; text-align: left; cursor: pointer; }
+.u-legend button:hover { background: rgba(236, 235, 230, 0.06); color: var(--ink); }
+.u-legend button[aria-pressed="true"] { background: rgba(236, 235, 230, 0.11); color: var(--ink); }
+.u-legend .n { font: 400 0.85rem var(--mono); color: var(--muted); }
+.sw { width: 14px; height: 14px; }
+.u-ours { font-size: 0.92rem; margin: 0 0 0.5rem; color: var(--ink-2); }
+.u-link { font: inherit; background: none; border: 0; padding: 0; margin-right: 0.7rem; color: var(--candidate); text-decoration: underline; text-underline-offset: 0.2em; cursor: pointer; }
+.u-hint, .u-small { font-size: 0.82rem; line-height: 1.45; color: var(--muted); margin: 0.45rem 0 0; }
+.u-year { font: 600 clamp(3rem, 7vw, 4.5rem)/1 var(--sans); font-stretch: 125%; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; margin: 0; min-height: 1em; }
+.u-count { font: 400 1rem/1.4 var(--mono); color: var(--ink-2); margin: 0.5rem 0 0.6rem; min-height: 1.4em; }
+.u-note { margin: 0; min-height: 2.8em; }
+.u-planets { list-style: none; margin: 0.3rem 0 0; padding: 0; }
+.u-planets li { padding: 0.6rem 0; border-top: 1px solid var(--line); }
+.u-planets h3 { font: 600 1rem/1.25 var(--sans); margin: 0 0 0.2rem; }
+.u-planets p { margin: 0; font-size: 0.9rem; line-height: 1.45; color: var(--ink-2); }
+.orrery-box { margin: 0.2rem 0 0.4rem; }
+.orrery { width: 100%; height: 132px; }
+.orrery-box figcaption { font-size: 0.75rem; color: var(--muted); }
+.u-cta { color: var(--candidate); font-weight: 600; }
+.u-share { display: block; margin-top: 0.8rem; font: 400 0.8rem var(--mono); }
+.u-readout { position: absolute; right: var(--gutter); bottom: var(--gutter); font: 400 0.78rem/1.6 var(--mono); color: var(--muted); text-align: right; pointer-events: none; }
+.u-readout div { display: flex; gap: 0.5rem; align-items: center; justify-content: flex-end; }
+.u-scale-bar { display: inline-block; height: 6px; border: 1px solid var(--muted); border-top: 0; }
+@media (max-width: 900px) {
+  .u-card { left: 0.75rem; right: 0.75rem; bottom: 0.75rem; width: auto; max-height: 48svh; }
+  .u-readout { top: 3.7rem; bottom: auto; right: 1rem; }
 }
