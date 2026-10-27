@@ -33,6 +33,13 @@ LOST_FRACTION = 0.25  # past this timing error, as a fraction of the period, the
 BASELINE_D = 0.5 / 24  # out-of-transit time wanted on each side from the ground
 DARK_SUN_ALT = -12.0
 MIN_ALT = 30.0
+# Rough ground-photometry model for "how big a telescope?": photons and scintillation only, then
+# a factor for the correlated noise real light curves carry. Tmag stands in for the I band.
+PHOTONS_MAG0 = 1.5e9  # e-/s per m^2 of aperture at I = 0, after ~30% throughput
+SCINT_CORRECTION = 1.5  # Young's scintillation formula underestimates it about this much (Osborn et al. 2015)
+GROUND_RED_NOISE = 2.0
+GROUND_AIRMASS, GROUND_HEIGHT_M = 1.3, 2000.0
+APERTURES_M = (0.4, 1.0, 2.0)
 SITES = {  # Las Cumbres Observatory: lat, lon (deg), height (m)
     "Siding Spring, Australia": (-31.273, 149.071, 1116),
     "SAAO, South Africa": (-32.380, 20.810, 1460),
@@ -175,6 +182,18 @@ def ground_windows(star: dict, eph: dict, now: float, days: float, sites: dict =
     return sorted(out, key=lambda r: r["mid_utc"])
 
 
+def ground_snr(tmag: float, depth_ppm: float, t14_h: float, aperture_m: float) -> float:
+    """Expected SNR of one full transit from the ground, with as much time out of transit as in."""
+    area = np.pi * (aperture_m / 2) ** 2 * 0.8  # less the secondary mirror
+    rate = PHOTONS_MAG0 * 10 ** (-0.4 * tmag) * area  # e-/s
+    scint = (SCINT_CORRECTION * 0.09 * (aperture_m * 100) ** (-2 / 3) * GROUND_AIRMASS ** 1.75
+             * np.exp(-GROUND_HEIGHT_M / 8000) / np.sqrt(2.0))  # fractional, for 1 s
+    per_second = np.hypot(1 / np.sqrt(rate), scint)
+    t_in = t14_h * 3600
+    depth_err = per_second * np.sqrt(1 / t_in + 1 / t_in) * GROUND_RED_NOISE
+    return float(depth_ppm * 1e-6 / depth_err)
+
+
 def when(tic: int, sig: dict, lc_dir: Path, days: float = 90, now: Time | None = None) -> dict:
     raw = load_lc(tic, lc_dir)
     lc = detrend(raw["time"], raw["flux"], raw["sector"])
@@ -192,7 +211,9 @@ def when(tic: int, sig: dict, lc_dir: Path, days: float = 90, now: Time | None =
             "timing_err_now_min": round(float(err_now[0]) * 1440, 1),
             "testable": bool(not lost and (next_tess or ground)),
             "next_tess": next_tess, "tess_sectors": tess,
-            "ground_nights": len(ground), "ground": ground[:20]}
+            "ground_nights": len(ground), "ground": ground[:20],
+            "ground_snr_per_transit": {f"{a:g} m": round(ground_snr(star["tmag"], sig["depth_ppm"], eph["t14_h"], a), 1)
+                                       for a in APERTURES_M}}
 
 
 def main() -> None:
