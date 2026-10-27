@@ -15,7 +15,7 @@ export interface Stop {
 }
 
 export const STOPS: Stop[] = [
-  { card: "hook", at: "ours", year: 3000 },
+  { card: "hook", at: "ours", year: 3000, focus: "tessa" },
   { card: "dip", year: 2026.9, focus: "transit", dim: true },
   { card: "fold", dist: 230, year: 3000, patch: true, dim: true },
   { card: "odds", dist: 230, year: 3000, patch: true, dim: true },

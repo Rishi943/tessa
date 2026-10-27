@@ -312,32 +312,66 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
     end: ["Your turn", "", false],
   };
   const [big, sub, spark] = head[o.kind];
+  // what each stop is about, named in the header so the reader always knows where they are
+  const NAME: Record<CardKind, string> = { hook: "Tessa's find", dip: "How a planet shows itself", fold: "The fold",
+    odds: "The odds", casefile: "The case file", predict: "What comes next", end: "Your turn" };
+
   const leave = el("button", { type: "button", class: "u-bar-btn" }, "Leave");
   leave.addEventListener("click", () => o.onLeave());
   const back = el("button", { type: "button", class: "t-arrow", "aria-label": "Back" }, "‹");
   const fwd = el("button", { type: "button", class: "t-arrow", "aria-label": "Next" }, "›");
-  const count = el("span", { class: "t-count" });
+  // a thin ring around › fills while the tour waits to move on to the next stop by itself
+  const ringEl = el("span", { class: "t-ring", "aria-hidden": "true" });
+  ringEl.innerHTML = '<svg viewBox="0 0 44 40"><rect x="1" y="1" width="42" height="38" pathLength="100"/></svg>';
+  const ringRect = ringEl.querySelector("rect")!;
+  const fwdBox = el("span", { class: "t-fwd" }, fwd, ringEl);
+  // one pip per step; the current one fills as the step plays, so it is clear the tour moves on by itself
+  const pips = el("span", { class: "t-pips", role: "img" });
+  const pause = el("button", { type: "button", class: "t-pause", "aria-pressed": "false" }, "Pause");
   const text = el("p", { class: "t-text", "aria-live": "polite" });
   const box = el("div", { class: "t-show" });
   const chips = o.kind === "dip" ? el("div", { class: "u-chips t-chips" }, el("span", { class: "u-k" }, "Other ways planets are found:")) : null;
+  // reading order: where you are (the header), the sentence (the one thing to read), then the stop's number for
+  // context, then the controls
   const node = el("section", { class: "t-card", "aria-label": "Tour" },
     el("div", { class: "t-side" },
-      el("div", { class: "t-top" }, el("span", { class: "u-bar-title" }, el("span", { class: "u-dot", style: "background: var(--ok)" }), "Tour",
-        el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`)), leave),
-      el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" }))),
-      spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null,
-      el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null,
-      text, el("div", { class: "t-nav" }, back, count, fwd), chips),
+      el("div", { class: "t-head" },
+        el("div", { class: "t-top" }, el("span", { class: "t-where" }, el("span", { class: "u-dot", style: "background: var(--ok)" }),
+          el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`), el("b", {}, NAME[o.kind])), leave),
+        el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" })))),
+      el("div", { class: "t-say" }, spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null, text),
+      el("div", { class: "t-stat" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null),
+      el("div", { class: "t-ctrl" }, el("div", { class: "t-nav" }, back, pips, fwdBox), pause, chips)),
     el("div", { class: "t-stage" }, box));
 
-  let cur: Show, t0 = 0, k = -1, raf = 0;
-  const load = (s: Show) => {
+  // Pacing. Each step stays up long enough to read (about 180 words a minute, plus a beat to look at the picture),
+  // and never shorter than its animation needs. The picture's clock is stretched to match, so words and pictures
+  // stay in step. After the last step the ring fills and the tour moves on, unless it is paused.
+  const RING = 6;
+  const readTime = (b: Beat) => 2.5 + b.text.replace(/\[\[|\]\]|\|[^\]]*/g, "").split(/\s+/).length / 3;
+  let cur: Show, starts: number[] = [], dwell: number[] = [];
+  let r0 = 0, k = -1, raf = 0, paused = still, last = 0, moved = false;
+  const plan = (beats: Beat[]) => {
+    dwell = beats.map((b, i) => (i < beats.length - 1 ? Math.max((beats[i + 1].at - b.at) * 1.25, readTime(b)) : readTime(b) + 1));
+    starts = dwell.reduce<number[]>((acc, d, i) => [...acc, i ? acc[i - 1] + dwell[i - 1] : 0], []);
+  };
+  const showTime = (rt: number) => {  // real seconds into the stop -> the picture's own clock
+    const b = cur.beats;
+    let i = 0;
+    while (i < b.length - 1 && rt >= starts[i + 1]) i++;
+    const gap = i < b.length - 1 ? b[i + 1].at - b[i].at : dwell[i];
+    return { i, t: b[i].at + (rt - starts[i]) * (gap / dwell[i]) };
+  };
+  const load = (sh: Show) => {
     cur?.dispose();
-    cur = s;
-    box.replaceChildren(s.node);
-    node.classList.toggle("bare", !s.node.childElementCount);  // no picture: the universe fills the right
+    cur = sh;
+    box.replaceChildren(sh.node);
+    node.classList.toggle("bare", !sh.node.childElementCount);  // no picture: the universe fills the screen
+    plan(sh.beats);
+    pips.replaceChildren(...sh.beats.map(() => el("span", {}, el("i", {}))));
     k = -1;
-    t0 = performance.now() - (still ? (s.beats[s.beats.length - 1].at + 30) * 1000 : 0);
+    moved = false;
+    r0 = performance.now() - (still ? (starts[starts.length - 1] + 30) * 1000 : 0);
   };
   const make = (m?: Method) => {
     switch (o.kind) {
@@ -365,33 +399,53 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
   const go = (n: number) => {
     if (n < 0) { o.onBack(); return; }
     if (n >= cur.beats.length) { o.onNext(); return; }
-    t0 = performance.now() - cur.beats[n].at * 1000;
+    r0 = performance.now() - starts[n] * 1000;
     k = -1;
   };
+  const setPaused = (v: boolean) => { paused = v; pause.setAttribute("aria-pressed", String(v)); pause.textContent = v ? "Play" : "Pause"; };
+  setPaused(paused);
   back.addEventListener("click", () => go(k - 1));
   fwd.addEventListener("click", () => go(k + 1));
+  pause.addEventListener("click", () => setPaused(!paused));
   box.addEventListener("click", (ev) => { if (!(ev.target as HTMLElement).closest("a,button,.term")) go(k + 1); });
   const key = (ev: KeyboardEvent) => {
     if ((ev.target as HTMLElement).closest("input,textarea,canvas.universe")) return;
     if (ev.key === "ArrowRight") go(k + 1);
     else if (ev.key === "ArrowLeft") go(k - 1);
+    else if (ev.key === " " && !(ev.target as HTMLElement).closest("button,a")) { ev.preventDefault(); setPaused(!paused); }
   };
   addEventListener("keydown", key);
+  // hovering the words or the controls holds the tour still, so nobody is hurried mid-sentence
+  let hover = false;
+  for (const part of node.querySelectorAll(".t-say,.t-ctrl")) {
+    part.addEventListener("pointerenter", () => { hover = true; });
+    part.addEventListener("pointerleave", () => { hover = false; });
+  }
 
   function frame(now: number) {
     raf = requestAnimationFrame(frame);
-    const t = (now - t0) / 1000;
-    // the first frame can land a hair before the clock starts
-    const kk = Math.max(cur.beats.filter((b) => t >= b.at).length - 1, 0);
+    if (paused || hover) r0 += now - (last || now);  // a held clock: real time passes, the stop's clock does not
+    last = now;
+    const rt = (now - r0) / 1000;
+    const { i: kk, t } = showTime(Math.max(rt, 0));
     if (kk !== k) {
       k = kk;
       text.replaceChildren(...rich(cur.beats[k].text));
-      count.textContent = `${k + 1}/${cur.beats.length}`;
+      pips.setAttribute("aria-label", `Step ${k + 1} of ${cur.beats.length}`);
       back.disabled = k === 0 && o.index === 0;
       fwd.classList.toggle("end", k === cur.beats.length - 1);
       fwd.setAttribute("aria-label", k === cur.beats.length - 1 ? (o.index === o.total - 1 ? "Finish the tour" : "Next stop") : "Next");
       box.querySelectorAll<HTMLElement>(".later").forEach((e) => e.classList.toggle("show", k >= Number(e.dataset.from)));
     }
+    [...pips.children].forEach((pip, i) => {
+      const f = i < k ? 1 : i > k ? 0 : Math.min((rt - starts[i]) / dwell[i], 1);
+      (pip.firstElementChild as HTMLElement).style.transform = `scaleX(${f})`;
+    });
+    // after the last step, the ring fills and the tour moves on (the last stop stays put)
+    const wait = k === cur.beats.length - 1 && o.index < o.total - 1 ? (rt - starts[k] - dwell[k]) / RING : -1;
+    ringEl.classList.toggle("on", wait > 0);
+    ringRect.style.strokeDashoffset = String(100 - Math.min(Math.max(wait, 0), 1) * 100);
+    if (wait >= 1 && !moved) { moved = true; o.onNext(); }
     cur.draw(t, k);
   }
   raf = requestAnimationFrame(frame);

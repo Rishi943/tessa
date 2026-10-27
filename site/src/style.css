@@ -363,49 +363,77 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .u-of { color: var(--muted); margin-left: 0.4rem; }
 .t-dim { position: absolute; inset: 0; background: rgba(7, 9, 18, 0.62); opacity: 0; transition: opacity 0.8s; pointer-events: none; }
 .t-dim.on { opacity: 1; }
-.t-card {
-  position: absolute; inset: 4.6rem var(--gutter) var(--gutter); z-index: 3; pointer-events: none;
-  display: grid; grid-template-columns: minmax(17rem, 25rem) minmax(0, 1fr); gap: clamp(1.5rem, 4vw, 4rem); align-items: center;
-}
-.t-card > * { pointer-events: auto; }
-.t-card.bare { grid-template-columns: minmax(17rem, 25rem); }
+/* The tour. Hierarchy, loudest first: the sentence (the one thing to read), the picture, the stop's number for
+   context, then where you are and the controls. Sizes sit on one scale: 12, 14, 16, 20, 30, 36 px. */
+.t-card { position: absolute; inset: 4.6rem var(--gutter) var(--gutter); z-index: 3; pointer-events: none; display: grid; }
+.t-card > *, .t-side > * { pointer-events: auto; }
 .t-card.bare .t-stage { display: none; }
-/* the words sit on the universe with only a soft shadow of dark behind them, no box */
-.t-side { display: flex; flex-direction: column; gap: 0.7rem; padding: 1.2rem 1.2rem 1.2rem 0; text-shadow: 0 0 18px var(--page), 0 0 4px var(--page); }
-.t-top { display: flex; justify-content: space-between; align-items: center; font: 400 0.85rem var(--mono); color: var(--muted); }
-.t-prog { display: flex; gap: 3px; }
+.t-side { text-shadow: 0 0 18px var(--page), 0 0 4px var(--page); }
+.t-top { display: flex; justify-content: space-between; align-items: center; gap: 1rem; font: 400 0.875rem var(--mono); color: var(--muted); }
+.t-where { display: inline-flex; align-items: center; gap: 0.6rem; }
+.t-where b { font-weight: 400; color: var(--ink); }
+.t-prog { display: flex; gap: 3px; margin-top: 0.6rem; }
 .t-prog span { flex: 1; height: 2px; background: rgba(236, 235, 230, 0.14); }
 .t-prog span.on { background: var(--ink-2); }
-.t-big { font: 250 clamp(2.4rem, 4.6vw, 4rem)/1 var(--sans); font-stretch: 118%; letter-spacing: -0.03em; margin: 0.6rem 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-.t-sub { margin: -0.3rem 0 0; color: var(--ink-2); font-size: 1.05rem; }
-.t-tag { align-self: flex-start; font: 400 0.78rem var(--mono); color: var(--ok); border: 1px solid currentColor; padding: 0.05rem 0.45rem; text-shadow: none; }
-.t-text { margin: 0.4rem 0 0; font-size: clamp(1.1rem, 1.6vw, 1.3rem); line-height: 1.45; min-height: 4.4em; }
-.t-nav { display: inline-flex; align-items: center; gap: 2px; font: 400 0.8rem var(--mono); color: var(--muted); }
+.t-say { display: flex; flex-direction: column; align-items: flex-start; gap: 0.6rem; }
+.t-text { margin: 0; font: 400 1.875rem/1.3 var(--sans); font-stretch: 104%; letter-spacing: -0.01em; color: var(--ink);
+  max-width: 34ch; text-wrap: pretty; min-height: 2.6em; transition: opacity 0.3s cubic-bezier(0.22, 1, 0.36, 1); }
+.t-tag { font: 400 0.75rem var(--mono); color: var(--ok); border: 1px solid currentColor; padding: 0.05rem 0.45rem; text-shadow: none; }
+.t-stat { display: flex; align-items: baseline; gap: 0.6rem; flex-wrap: wrap; }
+.t-big { margin: 0; font: 250 2.25rem/1 var(--sans); font-stretch: 118%; letter-spacing: -0.02em; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.t-sub { margin: 0; font-size: 1rem; color: var(--muted); }
+.t-ctrl { display: flex; align-items: center; gap: 1rem 1.5rem; flex-wrap: wrap; }
+.t-nav { display: inline-flex; align-items: center; gap: 2px; font: 400 0.875rem var(--mono); color: var(--muted); }
 .t-count { padding: 0 0.5rem; min-width: 2.8em; text-align: center; }
-.t-arrow { font: 400 1.1rem/1 var(--mono); color: var(--ink-2); background: rgba(7, 9, 18, 0.6); border: 1px solid rgba(236, 235, 230, 0.2); width: 2.4rem; height: 2.1rem; cursor: pointer; padding: 0; }
+.t-arrow { font: 400 1.1rem/1 var(--mono); color: var(--ink-2); background: rgba(7, 9, 18, 0.6); border: 1px solid rgba(236, 235, 230, 0.2); width: 2.6rem; height: 2.3rem; cursor: pointer; padding: 0; transition: background 0.3s, color 0.3s, border-color 0.3s; }
 .t-arrow:hover:not(:disabled) { border-color: var(--ink-2); color: var(--ink); }
 .t-arrow:disabled { opacity: 0.3; cursor: default; }
-.t-arrow.end { border-color: var(--ink); color: var(--ink); }
+.t-arrow:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.t-arrow.end { background: var(--ink); border-color: var(--ink); color: var(--page); }   /* the one primary action: next stop */
+.t-chips { margin: 0; align-items: center; }
+
+/* the header across the top, the picture in the middle, the sentence under it, the stop's number to the right */
+.t-card { grid-template-columns: minmax(0, 1fr) minmax(9rem, 14rem); grid-template-rows: auto minmax(0, 1fr) auto auto;
+  grid-template-areas: "head head" "stage stage" "say stat" "ctrl ctrl"; gap: 1.1rem 2rem; }
+.t-side { display: contents; }
+.t-head { grid-area: head; width: min(100%, 46rem); }
+.t-stage { grid-area: stage; }
+.t-say { grid-area: say; }
+.t-say .t-text { max-width: 60ch; }
+.t-stat { grid-area: stat; flex-direction: column; align-items: flex-end; text-align: right; gap: 0.2rem; align-self: end; }
+.t-ctrl { grid-area: ctrl; }
+.t-card.bare { grid-template-areas: "head head" "gap gap" "say stat" "ctrl ctrl"; }
+/* steps: one pip each, the current one filling as it plays; the ring round › fills before the next stop */
+.t-pips { display: inline-flex; gap: 4px; margin: 0 0.7rem; }
+.t-pips span { width: 1.6rem; height: 3px; background: rgba(236, 235, 230, 0.16); overflow: hidden; }
+.t-pips i { display: block; height: 100%; background: var(--ink-2); transform-origin: left; transform: scaleX(0); }
+.t-fwd { position: relative; display: inline-flex; }
+.t-ring { position: absolute; inset: -4px; pointer-events: none; opacity: 0; transition: opacity 0.3s; }
+.t-ring.on { opacity: 1; }
+.t-ring svg { width: 100%; height: 100%; overflow: visible; }
+.t-ring rect { fill: none; stroke: var(--ok); stroke-width: 1.5; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.t-pause { font: 400 0.875rem var(--mono); color: var(--muted); background: none; border: 0; padding: 0.2rem 0; cursor: pointer; text-decoration: underline; text-underline-offset: 0.2em; }
+.t-pause:hover, .t-pause[aria-pressed="true"] { color: var(--ink); }
+
 /* the picture: a barely-there frame */
 .t-stage { max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 1rem 1.1rem; border: 1px solid rgba(236, 235, 230, 0.07); background: rgba(7, 9, 18, 0.78); }
 .t-show { cursor: pointer; }
 /* jargon: a dotted underline, and the definition on hover or tap */
 .term { position: relative; text-decoration: underline dotted rgba(236, 235, 230, 0.55); text-underline-offset: 0.22em; cursor: help; outline: none; }
 .term:hover::after, .term:focus::after {
-  content: attr(data-def); position: absolute; left: 0; top: calc(100% + 0.45rem); z-index: 5; width: min(18rem, 70vw);
+  content: attr(data-def); position: absolute; left: 0; bottom: calc(100% + 0.45rem); z-index: 5; width: min(18rem, 70vw);
   padding: 0.55rem 0.7rem; background: var(--surface); border: 1px solid var(--line); color: var(--ink-2);
-  font: 400 0.85rem/1.45 var(--sans); text-shadow: none; white-space: normal;
+  font: 400 0.85rem/1.45 var(--sans); text-shadow: none; white-space: normal; letter-spacing: 0;
 }
 .term:focus-visible { box-shadow: 0 0 0 2px var(--focus); }
-.t-chips { margin-top: 0.7rem; align-items: center; }
 .t-chips .u-k { margin-right: 0.3rem; }
 .m-show { position: relative; }
 .m-wrap { position: relative; }
-.m-stage { display: block; width: 100%; height: clamp(220px, 38vh, 340px); }
+.m-stage { display: block; width: 100%; height: clamp(200px, 34vh, 340px); }
 .m-over { position: absolute; inset: 0; pointer-events: none; }
 .m-strip { display: block; width: 100%; height: 40px; margin-top: 4px; }
 .m-graph { display: block; width: 100%; height: clamp(110px, 17vh, 150px); margin-top: 6px; }
-.m-plot { display: block; width: 100%; height: clamp(240px, 52vh, 460px); }
+.m-plot { display: block; width: 100%; height: clamp(220px, 44vh, 440px); }
 .m-plot.short { height: clamp(200px, 36vh, 320px); }
 .later { opacity: 0; transition: opacity 0.8s; }
 .later.show { opacity: 1; }
@@ -413,7 +441,6 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .t-checks.later:not(.show) { display: none; }
 .t-check { display: grid; grid-template-columns: 1.2rem 1fr; column-gap: 0.4rem; opacity: 0; transform: translateY(4px); transition: opacity 0.4s, transform 0.4s; }
 .t-check.on { opacity: 1; transform: none; }
-.t-check small { grid-column: 2; color: var(--muted); font-size: 0.82rem; }
 .t-tick { color: var(--ok); font-weight: 600; }
 .t-check b { font-weight: 500; }
 .t-quote { margin: 0.8rem 0 0; padding: 0.2rem 0 0.2rem 0.8rem; border-left: 2px solid var(--ok); color: var(--ink-2); font-size: 0.95rem; line-height: 1.5; }
@@ -421,14 +448,16 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
 .m-show .u-actions { gap: 0.6rem; }
 .t-countdown { font: 400 0.9rem var(--mono); color: var(--tessa); margin: 0.5rem 0 0; }
 @media (max-width: 900px) {
-  .t-card { inset: auto 0.75rem 0.75rem; grid-template-columns: 1fr; gap: 0.6rem; max-height: calc(100% - 4.5rem); align-content: end; }
-  .t-card.bare { grid-template-columns: 1fr; }
-  .t-stage { order: -1; max-height: 46svh; padding: 0.7rem; }
-  .t-side { padding: 0; gap: 0.5rem; }
-  .t-text { min-height: 0; }
-  .m-stage { height: 180px; }
-  .m-graph { height: 96px; }
-  .m-plot { height: 190px; }
+  .t-card { inset: 4rem 0.75rem 0.75rem; grid-template-columns: 1fr; grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "head" "stage" "say" "stat" "ctrl"; gap: 0.6rem; }
+  .t-stat { align-items: flex-start; text-align: left; flex-direction: row; }
+  .t-text { font-size: 1.25rem; min-height: 0; }
+  .t-big { font-size: 1.875rem; }
+  .t-stage { padding: 0.7rem; }
+  .m-stage { height: 170px; }
+  .m-graph { height: 92px; }
+  .m-plot { height: 180px; }
+}
 }
 }
 .u-label.stop { color: var(--ink); }
@@ -444,3 +473,7 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
   .u-readout .u-hint { display: none; }
 }
 .u-card[hidden] { display: none; }
+.touring .u-readout { display: none; }
+.t-stage { display: flex; flex-direction: column; justify-content: center; }
+/* the case file starts on the waiting candidates behind it: no frame until its checks appear */
+.t-stage:has(.t-checks:not(.show)) { background: none; border-color: transparent; }

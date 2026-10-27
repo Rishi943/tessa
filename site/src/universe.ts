@@ -613,6 +613,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     tourEl?.dispose();
     tourEl = null;
     card.hidden = false;
+    section.classList.remove("touring");
     dim.classList.remove("on");
     controls.target.set(0, 0, 0);
     intro = { t0: performance.now() };
@@ -678,6 +679,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     ring(tourSys);
     dim.classList.toggle("on", !!s.dim);
     card.hidden = true;
+    section.classList.add("touring");  // the scale readout gives way to the tour's words
     tourEl?.dispose();
     tourEl = tourCard({ kind: s.card, ctx, index: k, total: tour.length,
       onNext: () => (k < tour.length - 1 ? tourStop(k + 1) : leaveTour()),
@@ -707,6 +709,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     tourEl = null;
     dim.classList.remove("on");
     card.hidden = false;
+    section.classList.remove("touring");
     runClock(3000, 1200);
     focus = null;
     paint();
@@ -795,14 +798,15 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     uniforms.dpr.value = dpr;
     camera.aspect = w / h;
     // on wide screens the card (or the tour's words) covers the left, so centre the view in the space right of it
-    const side = tourEl ? (tourEl.node.firstElementChild as HTMLElement) : card;
-    const shift = w > 900 ? Math.min(side.getBoundingClientRect().right - section.getBoundingClientRect().left, w * 0.45) / 2 : 0;
+    // (the tour's words run along the bottom instead, so then nothing shifts sideways)
+    const side = tourEl ? null : card;
+    const shift = side && w > 900 ? Math.min(side.getBoundingClientRect().right - section.getBoundingClientRect().left, w * 0.45) / 2 : 0;
     camera.setViewOffset(w, h, -shift, w > 900 ? 0 : h * 0.16, w, h);
     camera.updateProjectionMatrix();
     // labels keep clear of the header, the card and the readout
     const top = document.querySelector<HTMLElement>(".bar")?.offsetHeight ?? 64;
     const base = section.getBoundingClientRect();
-    keepOut = [[0, 0, w, top], ...[card, readout, ...(tourEl ? [...tourEl.node.children] as HTMLElement[] : [])]
+    keepOut = [[0, 0, w, top], ...[card, readout, ...(tourEl ? [...tourEl.node.querySelectorAll<HTMLElement>(".t-head,.t-say,.t-stat,.t-ctrl,.t-stage")] : [])]
       .filter((e) => e.offsetWidth > 0).map((e) => {
       const b = e.getBoundingClientRect();
       return [b.left - base.left, b.top - base.top, b.right - base.left, b.bottom - base.top];
