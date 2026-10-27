@@ -1,6 +1,6 @@
 // Write dossiers for every code-vetted star in a folder that reached the agent, a few at a time,
 // and summarise them. Existing dossiers are kept, so a rerun only fills gaps.
-// Run: node agent/batch.js VET_DIR [--prompt v4] [--model muse-spark-1.3-contributor] [--jobs 6]
+// Run: node agent/batch.js VET_DIR [--prompt v5] [--model muse-spark-1.3-contributor] [--jobs 6]
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { inventedNumbers, parseDossier, systemPrompt, writeDossier } from "./dossier.js";
@@ -10,7 +10,7 @@ const opt = (name, fallback) => {
   const at = args.indexOf(name);
   return at >= 0 ? args.splice(at, 2)[1] : fallback;
 };
-const version = opt("--prompt", "v4");
+const version = opt("--prompt", "v5");
 const model = opt("--model", "muse-spark-1.3-contributor");
 const jobs = Number(opt("--jobs", "6"));
 const [dir] = args;
