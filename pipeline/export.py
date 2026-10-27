@@ -28,6 +28,9 @@ RUNS = [("survey", DATA / "survey_results.csv", DATA / "vet" / "survey", CACHE /
 STATUS = {"pool": 0, "held back": 1, "searched": 2, "rejected": 3, "flagged": 4, "awaiting agent": 7,
           "candidate": 5, "known": 6}
 TESS = "Transiting Exoplanet Survey Satellite (TESS)"  # the archive's name for it
+# Candidates found before the hackathon (the tess-hunt research). Tessa re-finds them blind, which tests the
+# pipeline, but they are not its finds: they export as "known" and stay out of the universe and the counts.
+KNOWN_BEFORE = {458191673: "found before the hackathon; Tessa re-found it blind"}
 BIN_D = 0.5 / 24  # light-curve bins for the page
 FOLD_HALF = 3.0  # folded view: this many transit durations each side
 FOLD_BINS = 60
@@ -158,6 +161,8 @@ def export(out: Path, model: str, prompt: str) -> dict:
         for _, r in res[res["gate1"] == "pass"].iterrows():
             tic = int(r["tic"])
             st = final.get(tic, {"status": "awaiting agent", "reasons": ""})
+            if tic in KNOWN_BEFORE and st["status"] == "candidate":
+                st = {**st, "status": "known", "reasons": KNOWN_BEFORE[tic]}
             status[tic] = STATUS[st["status"]]
             counts[st["status"]] = counts.get(st["status"], 0) + 1
             checks = json.loads((vet_dir / f"{tic}.json").read_text(encoding="utf-8"))
@@ -214,7 +219,10 @@ def export(out: Path, model: str, prompt: str) -> dict:
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
                "costs_usd": {k: round(v, 4) for k, v in costs.items()}, "invented": invented,
                "dossiers": sum(d["dossier"] for d in dips), "investigated": sum(d["tools"] > 0 for d in dips),
-               "universe": universe(out, ours), **counts}
+               "universe": universe(out, ours), **counts,
+               # every batch together, for the tour's numbers
+               "searched_total": sum(v for k, v in counts.items() if k.endswith("_searched")),
+               "gate1_total": {k: sum(v[k] for n, v in counts.items() if n.endswith("_gate1")) for k in ("pass", "flipped_pass")}}
     (out / "summary.json").write_text(json.dumps(summary, indent=1, default=float), encoding="utf-8")
     return summary
 
