@@ -8,12 +8,15 @@ rejected by them, so anything borderline goes to the agent instead.
 Run: python -m pipeline.vet TIC --results results.csv [--lc data/cache/lc] [--blind] [--no-centroid]
 Prints the checks as JSON. --blind skips the known-object match, for scoring the vetting on
 stars whose answer is already known; --no-centroid skips the TESScut download.
+     python -m pipeline.vet --all VET_DIR --results results.csv [--lc ...]
+vets every gate 1 pass into VET_DIR/TIC.json (stars already there are kept) plus summary.csv.
 """
 import argparse
 import contextlib
 import csv
 import json
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -354,14 +357,48 @@ def signal_from_results(tic: int, results: Path) -> dict:
             "depth_ppm": float(r["dip_depth_ppm"]), "snr": float(r["dip_snr"])}
 
 
+def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool) -> None:
+    """Vet every gate 1 pass in results; one JSON per star and a summary table."""
+    out.mkdir(parents=True, exist_ok=True)
+    with results.open(newline="") as f:
+        passes = [int(r["tic"]) for r in csv.DictReader(f) if r["gate1"] == "pass"]
+    rows, start = [], time.time()
+    for n, tic in enumerate(passes, 1):
+        path = out / f"{tic}.json"
+        try:
+            d = json.loads(path.read_text(encoding="utf-8")) if path.exists()                 else vet(tic, signal_from_results(tic, results), lc_dir, centroid=centroid)
+            path.write_text(json.dumps(d, indent=1, default=float), encoding="utf-8")
+            rows.append({"tic": tic, "verdict": d["code_verdict"], "reasons": "; ".join(d["reasons"]),
+                         "period": d["signal"]["period"], "depth_ppm": round(d["signal"]["depth_ppm"]),
+                         "snr": round(d["signal"]["snr"], 1), "rp_rearth": round(d["size"]["rp_rearth"], 2),
+                         "v_sigma": round(d["shape"]["v_sigma"], 1),
+                         "plausible_blends": d["neighbours"].get("plausible_within_1px"), "known": len(d["known"])})
+        except Exception as e:  # one bad star must not stop the batch; it shows up in the summary
+            rows.append({"tic": tic, "verdict": "error", "reasons": f"{e.__class__.__name__}: {e}"[:200]})
+        if n % 10 == 0:
+            print(f"{n}/{len(passes)} in {time.time() - start:.0f} s", flush=True)
+    with (out / "summary.csv").open("w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, ["tic", "verdict", "reasons", "period", "depth_ppm", "snr", "rp_rearth", "v_sigma",
+                               "plausible_blends", "known"])
+        w.writeheader()
+        w.writerows(rows)
+    print(f"{len(rows)} vetted: " + ", ".join(f"{v} {sum(r['verdict'] == v for r in rows)}" for v in ("reject", "agent", "error")))
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("tic", type=int)
+    ap.add_argument("tic", type=int, nargs="?")
+    ap.add_argument("--all", metavar="VET_DIR", help="vet every gate 1 pass in --results into this folder")
     ap.add_argument("--results", required=True, help="search results.csv with this star's signal")
     ap.add_argument("--lc", default=str(CACHE / "lc"), help="folder with the lc_NNN.npz shards")
     ap.add_argument("--blind", action="store_true", help="skip the known-object match")
     ap.add_argument("--no-centroid", action="store_true", help="skip difference imaging (downloads cutouts)")
     args = ap.parse_args()
+    if args.all:
+        vet_all(Path(args.results), Path(args.all), Path(args.lc), not args.no_centroid)
+        return
+    if args.tic is None:
+        ap.error("give a TIC or --all VET_DIR")
     out = vet(args.tic, signal_from_results(args.tic, Path(args.results)), Path(args.lc), args.blind,
               not args.no_centroid)
     print(json.dumps(out, indent=1, default=float))
