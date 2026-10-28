@@ -42,7 +42,7 @@ def main() -> None:
     weights = np.array([full_gain.get(n, 0.0) for n in names])
     weights = weights / weights.sum()
 
-    rows = load(multis="other_tois_on_star" in names)
+    rows = load(multis="other_tois_on_star" in names, groups=tuple(results.get("clues", ())))
     train = [r for r in rows if r["label"]["split"] == "train" and r["label"]["target"] in ("gate2", "reject", "flag")]
     tx = matrix(train, names)
     R_train = ranks(tx, tx)

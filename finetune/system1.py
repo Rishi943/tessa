@@ -13,6 +13,7 @@ Run: python -m finetune.system1 [--name NAME] [--multis] [--no-star] [--search N
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 
 import numpy as np
@@ -79,14 +80,65 @@ def other_tois() -> dict[int, int]:
     return counts
 
 
-def load(multis: bool = False):
+CLUE_GROUPS = ("centroid", "fit", "gaia", "eb")
+
+
+def log10(v):
+    return math.log10(v) if v is not None and v > 0 else None
+
+
+def clue_features(d: dict, clue: dict, gaia: dict, ebs: dict, groups) -> dict:
+    """The clue job's extras (finetune/clues.py) as numbers, by group."""
+    c, x = d["checks"], {}
+    if "centroid" in groups and not c.get("centroid") and clue.get("centroid"):
+        cen = clue["centroid"]  # the centroid the rules skipped: the same three features as before
+        x.update(centroid_offset_sigma=cen.get("offset_sigma"), centroid_offset_arcsec=cen.get("offset_arcsec"),
+                 centroid_off_target={"off_target": 1, "on_target": 0}.get(cen.get("verdict")))
+    if "fit" in groups:
+        f = clue.get("fit") or {}
+        ok = f.get("status") == "ok"
+        dchi = f.get("delta_chi2") if ok else None
+        pen = f.get("star_density_penalty") if ok else None
+        x.update(fit_b=f.get("b") if ok else None, fit_k=f.get("k") if ok else None,
+                 fit_log_density_ratio=log10(f.get("rho_ratio")) if ok else None,
+                 fit_chi2_red=f.get("chi2_red") if ok else None,
+                 star_density_penalty=pen, star_density_penalty_share=pen / dchi if pen is not None and dchi else None)
+    if "gaia" in groups:
+        g = gaia.get(str(c["star"].get("source_id"))) or {}
+        x.update(rv_log_p=log10(g.get("rv_chisq_pvalue")), rv_gof=g.get("rv_renormalised_gof"),
+                 rv_amplitude=g.get("rv_amplitude_robust"), rv_error=g.get("radial_velocity_error"),
+                 ipd_multi_peak=g.get("ipd_frac_multi_peak"), ipd_harmonic=g.get("ipd_gof_harmonic_amplitude"),
+                 excess_noise_sig=g.get("astrometric_excess_noise_sig"),
+                 radius_tic_over_flame=c["star"]["rad"] / g["radius_flame"] if g.get("radius_flame") and c["star"].get("rad") else None)
+    if "eb" in groups:
+        from finetune.clues import eb_match
+        period = c["refit"]["period"]
+        target = str(c["star"].get("source_id"))
+        near = {str(n.get("source_id")) for n in (c["neighbours"].get("closest_that_could") or [])}
+        near |= {str(n.get("source_id")) for n in ((c.get("centroid") or clue.get("centroid") or {}).get("suspects") or [])}
+        on = eb_match(period, ebs.get(target))
+        off = [m for m in (eb_match(period, ebs.get(s)) for s in near - {target}) if m is not None]
+        x.update(gaia_eb_target_match=on, gaia_eb_neighbour_match=min(off) if off else None)
+    return x
+
+
+def load(multis: bool = False, groups=()):
     counts = other_tois() if multis else {}
+    clues, gaia, ebs = {}, {}, {}
+    if groups:
+        clues = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in (FOLDER / "clues").glob("*.json")}
+        for p in FOLDER.glob("gaia_clues_*.json"):
+            g = json.loads(p.read_text(encoding="utf-8"))
+            gaia.update(g["extra"])
+            ebs.update(g["eb"])
     rows = []
     for path in sorted((FOLDER / "vet").glob("*.json")):
         d = json.loads(path.read_text(encoding="utf-8"))
         x = features(d["checks"])
         if multis:
             x["other_tois_on_star"] = counts.get(int(d["tic"]), 1) - 1
+        if groups:
+            x.update(clue_features(d, clues.get(d["toi"], {}), gaia, ebs, groups))
         rows.append({"toi": d["toi"], "tic": d["tic"], "label": d["label"], "code": d["checks"]["code_verdict"], "x": x})
     return rows
 
@@ -202,9 +254,11 @@ def main() -> None:
     ap.add_argument("--laya", type=Path, help="score Laya's predictions (laya_preds.json) instead of training")
     ap.add_argument("--search", type=int, default=0, help="random-search N parameter sets (saved to params.json)")
     ap.add_argument("--multis", action="store_true", help="add multiplicity: other TOIs on the same star")
+    ap.add_argument("--clues", default="", help=f"comma-separated clue groups from finetune/clues.py: {','.join(CLUE_GROUPS)} or all")
     ap.add_argument("--name", help="version name for the outputs (default: base, no-star or multis)")
     args = ap.parse_args()
-    rows = load(args.multis)
+    groups = CLUE_GROUPS if args.clues == "all" else tuple(g for g in args.clues.split(",") if g)
+    rows = load(args.multis, groups)
     split = {s: [r for r in rows if r["label"]["split"] == s] for s in ("train", "val", "test")}
     if args.laya:
         return score_laya(args.laya, split)
@@ -232,7 +286,7 @@ def main() -> None:
 
     raw = lambda rs: model.predict(xgb.DMatrix(matrix(rs, names), feature_names=names), output_margin=True)  # noqa: E731
     cal, results = scorecard(raw, split)
-    results.update({"features": names, "trees": rounds, "params": params, "name": name})
+    results.update({"features": names, "trees": rounds, "params": params, "name": name, "clues": list(groups)})
     # CV+-style cut: val planets plus out-of-fold train planets as the calibration set (860 instead of 110)
     calib = cal.predict_proba(np.concatenate([oof[Y == 1], raw([r for r in binary(split["val"]) if r["label"]["target"] == "gate2"])]).reshape(-1, 1))[:, 1]
     test = binary(split["test"])
