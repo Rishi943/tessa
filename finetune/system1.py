@@ -13,7 +13,6 @@ Run: python -m finetune.system1 [--name NAME] [--multis] [--no-star] [--search N
 import argparse
 import csv
 import json
-import math
 from pathlib import Path
 
 import numpy as np
@@ -24,50 +23,11 @@ from sklearn.model_selection import GroupKFold
 from scipy.stats import beta
 
 from pipeline.paths import DATA
+from pipeline.system1 import CLUE_GROUPS, clue_features, features  # noqa: F401  (moved there; ebm.py imports CLUE_GROUPS)
 
 FOLDER = DATA / "finetune"
 OUT = FOLDER / "system1"
 STAR_SHORTCUTS = ("tmag", "distance")
-
-
-def ratio(a, b):
-    return a / b if a is not None and b not in (None, 0) else None
-
-
-def features(c: dict) -> dict:
-    """The checks as numbers. None stays missing (XGBoost learns where missing goes)."""
-    st, r, oe, s = c["star"], c["refit"], c["odd_even"], c["secondary"]
-    size, dur, pc, sh = c["size"], c["duration"], c["phase_curve"], c["shape"]
-    nb, gaps, sec = c["neighbours"], c["gaps"], c["sectors"]
-    cen = c.get("centroid") or {}
-    a, b = oe["depth_odd_ppm"], oe["depth_even_ppm"]
-    closest = (nb.get("closest_that_could") or [{}])[0]
-    return {
-        "tmag": st.get("tmag"), "teff": st.get("teff"), "star_radius": st.get("rad"), "star_mass": st.get("mass"),
-        "distance": st.get("distance"), "contamination": st.get("contratio"), "ruwe": st.get("ruwe"),
-        "gaia_variable": {"VARIABLE": 1, "NOT_AVAILABLE": 0}.get(st.get("phot_variable_flag")),
-        "non_single_star": st.get("non_single_star"),
-        "snr": r["snr"], "period": r["period"], "duration_h": r["dur_h"], "depth_ppm": r["depth_ppm"],
-        "transits": r["transits"],
-        "odd_even_sigma": oe["diff_sigma"],
-        "odd_even_fraction": abs(a - b) / max(abs(a), abs(b)) if a is not None and b is not None and max(abs(a), abs(b)) else None,
-        "red_noise": oe["red_noise"],
-        "secondary_snr": s["snr"], "secondary_over_depth": ratio(s["depth_ppm"], r["depth_ppm"]),
-        "secondary_phase_offset": abs(s["phase"] - 0.5) if s.get("phase") is not None else None,
-        "secondary_over_bump": ratio(s["snr"], s["best_brightening_snr"]),
-        "sector_p_constant": sec.get("p_constant"), "sector_chi2_dof": ratio(sec.get("chi2"), sec.get("dof")),
-        "sectors": len(sec.get("per_sector") or []),
-        "planet_radius": size["rp_rearth"], "radius_ratio": size["rp_over_rstar"],
-        "duration_ratio": dur["ratio"],
-        "variability_over_depth": pc["ratio_to_depth"], "variability_chi2_dof": ratio(pc["chi2"], pc["dof"]),
-        "ingress_fraction": sh["best_ingress_fraction"], "v_shape_sigma": sh["v_sigma"],
-        "gaia_neighbours": nb.get("gaia_stars_within"), "neighbours_could_cause": nb.get("could_cause"),
-        "could_cause_within_1px": nb.get("could_cause_within_1px"), "plausible_within_1px": nb.get("plausible_within_1px"),
-        "closest_could_sep": closest.get("sep_arcsec"), "closest_could_dmag": closest.get("delta_mag"),
-        "near_gap_share": ratio(gaps.get("near_gap"), gaps.get("transits")), "gap_p_chance": gaps.get("p_chance"),
-        "centroid_offset_sigma": cen.get("offset_sigma"), "centroid_offset_arcsec": cen.get("offset_arcsec"),
-        "centroid_off_target": {"off_target": 1, "on_target": 0}.get(cen.get("verdict")),
-    }
 
 
 def other_tois() -> dict[int, int]:
@@ -78,48 +38,6 @@ def other_tois() -> dict[int, int]:
         for row in csv.DictReader(f):
             counts[int(row["TIC ID"])] = counts.get(int(row["TIC ID"]), 0) + 1
     return counts
-
-
-CLUE_GROUPS = ("centroid", "fit", "gaia", "eb")
-
-
-def log10(v):
-    return math.log10(v) if v is not None and v > 0 else None
-
-
-def clue_features(d: dict, clue: dict, gaia: dict, ebs: dict, groups) -> dict:
-    """The clue job's extras (finetune/clues.py) as numbers, by group."""
-    c, x = d["checks"], {}
-    if "centroid" in groups and not c.get("centroid") and clue.get("centroid"):
-        cen = clue["centroid"]  # the centroid the rules skipped: the same three features as before
-        x.update(centroid_offset_sigma=cen.get("offset_sigma"), centroid_offset_arcsec=cen.get("offset_arcsec"),
-                 centroid_off_target={"off_target": 1, "on_target": 0}.get(cen.get("verdict")))
-    if "fit" in groups:
-        f = clue.get("fit") or {}
-        ok = f.get("status") == "ok"
-        dchi = f.get("delta_chi2") if ok else None
-        pen = f.get("star_density_penalty") if ok else None
-        x.update(fit_b=f.get("b") if ok else None, fit_k=f.get("k") if ok else None,
-                 fit_log_density_ratio=log10(f.get("rho_ratio")) if ok else None,
-                 fit_chi2_red=f.get("chi2_red") if ok else None,
-                 star_density_penalty=pen, star_density_penalty_share=pen / dchi if pen is not None and dchi else None)
-    if "gaia" in groups:
-        g = gaia.get(str(c["star"].get("source_id"))) or {}
-        x.update(rv_log_p=log10(g.get("rv_chisq_pvalue")), rv_gof=g.get("rv_renormalised_gof"),
-                 rv_amplitude=g.get("rv_amplitude_robust"), rv_error=g.get("radial_velocity_error"),
-                 ipd_multi_peak=g.get("ipd_frac_multi_peak"), ipd_harmonic=g.get("ipd_gof_harmonic_amplitude"),
-                 excess_noise_sig=g.get("astrometric_excess_noise_sig"),
-                 radius_tic_over_flame=c["star"]["rad"] / g["radius_flame"] if g.get("radius_flame") and c["star"].get("rad") else None)
-    if "eb" in groups:
-        from finetune.clues import eb_match
-        period = c["refit"]["period"]
-        target = str(c["star"].get("source_id"))
-        near = {str(n.get("source_id")) for n in (c["neighbours"].get("closest_that_could") or [])}
-        near |= {str(n.get("source_id")) for n in ((c.get("centroid") or clue.get("centroid") or {}).get("suspects") or [])}
-        on = eb_match(period, ebs.get(target))
-        off = [m for m in (eb_match(period, ebs.get(s)) for s in near - {target}) if m is not None]
-        x.update(gaia_eb_target_match=on, gaia_eb_neighbour_match=min(off) if off else None)
-    return x
 
 
 def load(multis: bool = False, groups=()):
@@ -267,8 +185,8 @@ def main() -> None:
     name = args.name or ("no-star" if args.no_star else "multis" if args.multis else "base")
     OUT.mkdir(parents=True, exist_ok=True)
 
-    X, Y, groups = matrix(train, names), y(train), [r["tic"] for r in train]
-    folds = list(GroupKFold(5).split(X, Y, groups))
+    X, Y, hosts = matrix(train, names), y(train), [r["tic"] for r in train]
+    folds = list(GroupKFold(5).split(X, Y, hosts))
     params_path = OUT / "params.json"  # tuned once on the base features; every version reuses them
     if args.search:
         params_path.write_text(json.dumps(search(X, Y, folds, names, args.search), indent=1), encoding="utf-8")

@@ -90,7 +90,8 @@ def one(job: tuple[dict, dict, str]) -> dict:
         if peak["depth_ppm"] <= 0 or peak["transits"] < 3:
             row["status"] = "no dip"  # out of reach of the survey's gate 1 anyway
             return row
-        checks = vet(toi["tic"], sig, Path(shard).parent, blind=True, centroid=True, star=star, raw=raw)
+        checks = vet(toi["tic"], sig, Path(shard).parent, blind=True, centroid=True, star=star, raw=raw,
+                     with_system1=False)  # System 1 learns from these checks: the rules as they were
         out = {"toi": toi["toi"], "tic": toi["tic"], "label": {k: toi[k] for k in toi}, "checks": finite(checks)}
         Path(os.environ["FT_OUT"], "vet", f"{toi['toi']}.json").write_text(json.dumps(out, default=float),
                                                                            encoding="utf-8")

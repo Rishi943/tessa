@@ -40,7 +40,7 @@ def test_gate2_rules_follow_the_agents_table():
               "sectors": {"p_constant": 0.4}, "size": {"rp_rearth": 2.2}, "duration": {"ratio": 0.8}, "known": [],
               "shape": {"v_sigma": -3.0}, "neighbours": {"target_found": True, "plausible_within_1px": 1},
               "centroid": {"verdict": "on_target"}, "phase_curve": {"ratio_to_depth": 0.2, "chi2": 80.0},
-              "refit": {"transits": 40}}
+              "refit": {"transits": 40}, "signal": {"period": 2.5}}
     assert outside_planet_range(checks) == []  # the blend is cleared by the centroid
     checks["centroid"]["verdict"] = "inconclusive"
     assert [r.split(":")[0] for r in outside_planet_range(checks)] == ["neighbours"]

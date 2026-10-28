@@ -1,11 +1,13 @@
 """Code vetting for a flagged signal: the checks that need no model.
 
-Each check returns plain numbers, and fixed rules turn them into a verdict. Clear eclipsing
-binaries and known objects are closed here, so the agent (and its model calls) only sees
-what survives. The rules are deliberately conservative: a real planet should never be
-rejected by them, so anything borderline goes to the agent instead.
+Each check returns plain numbers, and fixed rules turn them into a verdict. Junk (known objects, a
+star that varies at the period, an impossible duration) and dips on a neighbouring star are closed
+here. Everything else goes to System 1 (pipeline/system1.py), which reads all the checks plus the
+transit fit and Gaia's binarity signs: odd/even, a secondary eclipse and size are its inputs, not
+vetoes (as vetoes they rejected 19% of confirmed planets in the labelled set; System 1's cut loses 2%).
+Without a System 1 score (system1=False) they are vetoes again, as before.
 
-Run: python -m pipeline.vet TIC --results results.csv [--lc data/cache/lc] [--blind] [--no-centroid]
+Run: python -m pipeline.vet TIC --results results.csv [--lc data/cache/lc] [--blind] [--no-centroid] [--no-system1]
 Prints the checks as JSON. --blind skips the known-object match, for scoring the vetting on
 stars whose answer is already known; --no-centroid skips the TESScut download.
      python -m pipeline.vet --all VET_DIR --results results.csv [--lc ...]
@@ -23,7 +25,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from . import catalogs
+from . import catalogs, system1
 from .paths import CACHE, DATA
 from .search import central_duration, check_peak, detrend
 
@@ -317,26 +319,52 @@ def known(tic: int, star: dict, sig: dict) -> list[dict]:
     return hits
 
 
-def verdict(checks: dict) -> tuple[str, list[str]]:
-    """'reject' with the failed checks, or 'agent' when nothing clearly rules it out."""
+def above(v, x) -> bool:
+    """v > x for a number; False when v couldn't be measured (NaN, or null in a stored vet file)."""
+    return v is not None and v > x
+
+
+def at_least(v, x) -> bool:
+    return v is not None and v >= x
+
+
+def junk(checks: dict) -> list[str]:
+    """The rules that stay hard with System 1: not a new transit at all."""
     why = []
     for k in checks["known"]:
         if k["harmonic"] is not None:
             where = "this star" if k["tic"] == checks["tic"] else f"TIC {k['tic']}, {k['separation_arcsec']:.0f}\" away"
             why.append(f"known: {k['list']} {k['id']} ({where}) at {k['harmonic']:g}x this period")
-    s = checks["secondary"]
-    if s["snr"] >= SECONDARY_SNR and s["snr"] >= SECONDARY_OVER_BUMP * s["best_brightening_snr"]:
-        why.append(f"secondary eclipse: SNR {s['snr']:.1f} at phase {s['phase']:.2f}")
-    if checks["odd_even"]["diff_sigma"] >= ODD_EVEN_SIGMA:
-        why.append(f"odd and even transits differ by {checks['odd_even']['diff_sigma']:.1f} sigma")
-    if checks["size"]["rp_rearth"] > MAX_PLANET_REARTH:
-        why.append(f"too large for a planet: {checks['size']['rp_rearth']:.0f} Earth radii")
     pc = checks["phase_curve"]
-    if pc["ratio_to_depth"] >= VARIABILITY_RATIO and pc["chi2"] >= VARIABILITY_CHI2:
+    if at_least(pc["ratio_to_depth"], VARIABILITY_RATIO) and at_least(pc["chi2"], VARIABILITY_CHI2):
         why.append(f"the star varies by {pc['amplitude_ppm']:.0f} ppm at this period outside the dip "
                    f"({pc['ratio_to_depth']:.1f}x the dip): rotation or a contact binary")
-    if checks["duration"]["ratio"] > MAX_DURATION_RATIO:
+    if above(checks["duration"]["ratio"], MAX_DURATION_RATIO):
         why.append(f"transit {checks['duration']['ratio']:.1f}x longer than this star allows")
+    return why
+
+
+def binary_signs(checks: dict) -> list[str]:
+    """Odd/even, secondary eclipse and size: vetoes only when System 1 hasn't scored the signal."""
+    why = []
+    s = checks["secondary"]
+    if at_least(s["snr"], SECONDARY_SNR) and s["snr"] >= SECONDARY_OVER_BUMP * (s["best_brightening_snr"] or 0):
+        why.append(f"secondary eclipse: SNR {s['snr']:.1f} at phase {s['phase']:.2f}")
+    if at_least(checks["odd_even"]["diff_sigma"], ODD_EVEN_SIGMA):
+        why.append(f"odd and even transits differ by {checks['odd_even']['diff_sigma']:.1f} sigma")
+    if above(checks["size"]["rp_rearth"], MAX_PLANET_REARTH):
+        why.append(f"too large for a planet: {checks['size']['rp_rearth']:.0f} Earth radii")
+    return why
+
+
+def verdict(checks: dict) -> tuple[str, list[str]]:
+    """'reject' with the failed checks, or 'agent' when nothing clearly rules it out."""
+    hard = junk(checks)
+    known_hits = [r for r in hard if r.startswith("known:")]
+    s1 = checks.get("system1")
+    why = known_hits + (binary_signs(checks) if s1 is None else []) + [r for r in hard if r not in known_hits]
+    if s1 is not None and not s1["passes"]:
+        why.append(system1.reason(s1))
     c = checks.get("centroid") or {}
     if c.get("on_star") and c["offset_sigma"] >= CENTROID_REJECT_SIGMA:
         s = c["on_star"]
@@ -346,10 +374,10 @@ def verdict(checks: dict) -> tuple[str, list[str]]:
 
 
 def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool = True,
-        star: dict | None = None, raw: dict | None = None) -> dict:
+        star: dict | None = None, raw: dict | None = None, with_system1: bool = True) -> dict:
     """sig: period, t0, dur (days), depth_ppm, snr, from the search. The centroid check downloads
-    cutouts, so it runs only on signals that pass every other rule. star and raw (the light curve)
-    can be passed for stars outside the survey's tables."""
+    cutouts, so it runs only on signals that pass the junk rules (with System 1) or every rule (without).
+    star and raw (the light curve) can be passed for stars outside the survey's tables."""
     outside = star is not None
     raw = raw if raw is not None else load_lc(tic, lc_dir)
     lc = detrend(raw["time"], raw["flux"], raw["sector"])
@@ -364,11 +392,15 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
         "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)
-    if centroid and checks["code_verdict"] == "agent":
+    s1 = with_system1 and not junk(checks)  # odd/even, secondary and size are System 1's inputs, not vetoes
+    if centroid and (s1 or checks["code_verdict"] == "agent"):
         from .centroid import where  # centroid imports this module
         checks["centroid"] = where(tic, sig, star=star if outside else None,
                                    sectors=sorted({int(s) for s in raw["sector"]}) if outside else None)
-        checks["code_verdict"], checks["reasons"] = verdict(checks)
+    if s1:
+        checks["clues"] = finite(system1.clues(lc, sig, star, checks))
+        checks["system1"] = system1.score(checks)
+    checks["code_verdict"], checks["reasons"] = verdict(checks)
     return checks
 
 
@@ -391,7 +423,7 @@ def finite(x):
     return x
 
 
-def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool) -> None:
+def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool, with_system1: bool = True) -> None:
     """Vet every gate 1 pass in results; one JSON per star and a summary table."""
     out.mkdir(parents=True, exist_ok=True)
     with results.open(newline="") as f:
@@ -400,7 +432,7 @@ def vet_all(results: Path, out: Path, lc_dir: Path, centroid: bool) -> None:
     for n, tic in enumerate(passes, 1):
         path = out / f"{tic}.json"
         try:
-            d = json.loads(path.read_text(encoding="utf-8")) if path.exists()                 else vet(tic, signal_from_results(tic, results), lc_dir, centroid=centroid)
+            d = json.loads(path.read_text(encoding="utf-8")) if path.exists()                 else vet(tic, signal_from_results(tic, results), lc_dir, centroid=centroid, with_system1=with_system1)
             path.write_text(json.dumps(finite(d), indent=1, default=float), encoding="utf-8")
             rows.append({"tic": tic, "verdict": d["code_verdict"], "reasons": "; ".join(d["reasons"]),
                          "period": d["signal"]["period"], "depth_ppm": round(d["signal"]["depth_ppm"]),
@@ -427,15 +459,16 @@ def main() -> None:
     ap.add_argument("--lc", default=str(CACHE / "lc"), help="folder with the lc_NNN.npz shards")
     ap.add_argument("--blind", action="store_true", help="skip the known-object match")
     ap.add_argument("--no-centroid", action="store_true", help="skip difference imaging (downloads cutouts)")
+    ap.add_argument("--no-system1", action="store_true", help="odd/even, secondary and size as vetoes, no System 1")
     args = ap.parse_args()
     if args.all:
-        vet_all(Path(args.results), Path(args.all), Path(args.lc), not args.no_centroid)
+        vet_all(Path(args.results), Path(args.all), Path(args.lc), not args.no_centroid, not args.no_system1)
         return
     if args.tic is None:
         ap.error("give a TIC or --all VET_DIR")
     out = vet(args.tic, signal_from_results(args.tic, Path(args.results)), Path(args.lc), args.blind,
-              not args.no_centroid)
-    print(json.dumps(out, indent=1, default=float))
+              not args.no_centroid, with_system1=not args.no_system1)
+    print(json.dumps(finite(out), indent=1, default=float))
 
 
 if __name__ == "__main__":
