@@ -11,24 +11,42 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | | |
 |---|---|
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
-| Searched | 4,997 (the first batch, ranked by how small a planet each could show) |
-| Repeating dips found | 149, with a gate calibrated so about 1 star in 100 passes on noise |
-| Explained away | 119, each with a written reason |
-| Still unexplained | 28 |
-| Candidates | 2 |
-| Model cost | $0.23 for the whole batch |
+| Searched | 22,978, ranked by how small a planet each could show |
+| Repeating dips found | 785, with a gate calibrated on upside-down light curves so about 1 star in 100 passes on noise |
+| Explained away | 528, each with a written reason |
+| Still unexplained | 247, flagged with what is left to check |
+| Known planets and candidates found again | 3 |
+| New candidates | 7: TIC 240488148, 50099421, 316447391, 166321785, 32206438, 358533152, 61220826 |
+| Model cost | $1.40 for every dossier, investigation, note and audit |
 
-The two candidates:
-
-- **TIC 458191673**: a 2.2 Earth-radius body every 2.570685 ± 0.000003 days around a K dwarf 66 pc away.
-  63 transits, depth steady over 7 sectors, difference imaging puts the dip on the target and at least 15 sigma
-  from every neighbour bright enough to fake it. TESS sector 111 catches 11 more transits; the data are public
-  from 1 January 2027. Ground nights from 26 December 2026; one transit needs a 2 m telescope.
-- **TIC 240488148**: a 1.4 Earth-radius body every 1.51251 days around a K dwarf 59 pc away. Depth steady over
-  6 sectors. A Gaia star 5.4" away is not yet excluded. Next TESS look: sector 121, August 2027.
+Each candidate has a case file on the site with its checks, its weak spots and when the next transits can be
+seen. For example, **TIC 240488148**: a 1.4 Earth-radius body every 1.51251 days around a K dwarf 59 pc away,
+depth steady over 6 sectors; a Gaia star 5.4" away is not yet excluded; next TESS look: sector 121, August 2027.
 
 A candidate is not a planet. It is a dip no check could explain, that no catalogue lists, and that predicts its
 own next transit closely enough to test.
+
+## Built before and during the hackathon
+
+**Before:** hand-written research scripts, a separate project run one step at a time, found one planet
+candidate, TIC 458191673.01 (2.57-day orbit around a K dwarf 66 pc away). A preprint and a TESS observing request
+followed.
+
+**During:** Tessa, built from scratch in this repo (first commit 26 October 2026, after the kickoff). It is a new
+pipeline, not those scripts: agentic, and built to handle far more data. Everything here is new work:
+
+- a target pool of 99,461 nearby K and M dwarfs from Gaia DR3 and the TIC, and light curves fetched in compact
+  shards on Kaggle
+- a GPU box search over tens of thousands of stars, with a noise floor measured on upside-down light curves
+- the vetting checks, difference-image centroids, gate 2 and the predictions of the next transits
+- Meta's models writing a dossier for every dip and investigating flags with tools, with invented numbers caught
+- the website, its 3D map and case files, Ask Tessa, and searches that run in visitors' browsers
+
+No code was carried over. A line-by-line comparison with the old scripts finds 19 of Tessa's 6,282 lines in
+common, all generic one-liners such as creating a folder or a 3D scene; no function was copied.
+
+As a test, Tessa re-found TIC 458191673 blind, in normal survey order, at the same period. It counts as a
+rediscovery that shows the new pipeline works, not as one of Tessa's candidates.
 
 ## How it works
 
