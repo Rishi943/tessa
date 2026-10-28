@@ -4,7 +4,8 @@
 //   CHECKS.json comes from `python -m pipeline.vet TIC --results results.csv > CHECKS.json`.
 import { readFileSync, mkdirSync, writeFileSync } from "node:fs";
 import { complete } from "@earendil-works/pi-ai";
-import { MODELS, apiKey } from "./models.js";
+import { MODELS, apiKey, glimmerPrompt } from "./models.js";
+import { logUsage } from "./usage.js";
 
 // System prompts live in agent/prompts/vetting.<version>.md so versions can be compared.
 export function systemPrompt(version) {
@@ -43,15 +44,18 @@ export function parseDossier(text) {
 }
 
 // effort sets Muse Spark's reasoning_effort ("low" ... "xhigh"); without it the model picks its own level.
-export async function writeDossier(checks, id, version, effort) {
-  const model = effort ? { ...MODELS[id], reasoning: true, compat: { ...MODELS[id].compat, supportsReasoningEffort: true } } : MODELS[id];
+// Glimmer takes the same levels as a line in its system prompt.
+export async function writeDossier(checks, id, version, effort, purpose = "dossier") {
+  const glimmer = MODELS[id].provider === "glimmer";
+  const model = effort && !glimmer ? { ...MODELS[id], reasoning: true, compat: { ...MODELS[id].compat, supportsReasoningEffort: true } } : MODELS[id];
   const context = {
-    systemPrompt: systemPrompt(version),
+    systemPrompt: glimmer ? glimmerPrompt(systemPrompt(version), effort) : systemPrompt(version),
     messages: [{ role: "user", content: userMessage(checks), timestamp: Date.now() }],
     tools: [],
   };
   const t0 = Date.now();
-  const msg = await complete(model, context, { apiKey: apiKey(), ...(effort && { reasoningEffort: effort }) });
+  const msg = await complete(model, context, { apiKey: apiKey(id), ...(effort && !glimmer && { reasoningEffort: effort }) });
+  logUsage(id, purpose, msg.usage, Date.now() - t0);
   if (msg.stopReason === "error") throw new Error(msg.errorMessage);
   const text = msg.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   return {

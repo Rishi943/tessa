@@ -24,7 +24,7 @@ async function smoke(id) {
   const t0 = Date.now();
   let cost = 0, input = 0, output = 0;
   for (let turn = 0; turn < 4; turn++) {
-    const msg = await complete(model, context, { apiKey: apiKey() });
+    const msg = await complete(model, context, { apiKey: apiKey(id) });
     context.messages.push(msg);
     cost += msg.usage.cost.total; input += msg.usage.input; output += msg.usage.output;
     if (msg.stopReason === "error") return console.log(`${id}: ERROR ${msg.errorMessage}`);
