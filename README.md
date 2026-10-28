@@ -42,8 +42,9 @@ pipeline, not those scripts: agentic, and built to handle far more data. Everyth
 - Meta's models writing a dossier for every dip and investigating flags with tools, with invented numbers caught
 - the website, its 3D map and case files, Ask Tessa, and searches that run in visitors' browsers
 
-No code was carried over. A line-by-line comparison with the old scripts finds 19 of Tessa's 6,282 lines in
-common, all generic one-liners such as creating a folder or a 3D scene; no function was copied.
+No code was carried over. A line-by-line comparison with the old scripts finds 23 of Tessa's 6,850 lines in
+common (0.3%), all generic one-liners such as creating a folder or seeding a random generator; no function
+was copied (`tools/similarity.py`).
 
 As a test, Tessa re-found TIC 458191673 blind, in normal survey order, at the same period. It counts as a
 rediscovery that shows the new pipeline works, not as one of Tessa's candidates.
