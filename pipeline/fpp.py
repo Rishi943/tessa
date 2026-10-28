@@ -86,22 +86,32 @@ def export(tic: int, out: Path) -> Path:
 
 # --- run (Kaggle) ------------------------------------------------------------------------------
 
+SPOC_FRAMES: dict[int, object] = {}  # sector -> the TESS-SPOC aperture header (celestial WCS + CCD origin)
+
+
 def pixel_origin(collection) -> None:
     """TRICERATOPS 1.1 reads a cutout's first CCD column and row from the FLUX column's physical-WCS keys,
-    1CRV4P and 2CRV4P. Current TESScut cutouts carry the same values under another column number or only
-    as the image extension's CRVAL1P/CRVAL2P; copy them to the names it reads."""
-    import re as _re
+    1CRV4P and 2CRV4P, and adds them to each star's 0-based cutout pixel. TESScut cutouts since astrocut 1.x
+    carry no CCD origin at all, so it is rebuilt from the sector's TESS-SPOC aperture (whose CRVAL1P/2P and
+    WCS put any sky position on the CCD): origin = SPOC CCD pixel - cutout pixel, at the cutout's own
+    reference point. Checked on TIC 50099421 sector 34: 1389.000, 1385.010. Sectors with no TESS-SPOC file
+    (circular apertures) get origin 0: their apertures are drawn around the target in the same frame."""
+    from astropy.wcs import WCS
     for tpf in collection:
         h1, h2 = tpf.hdu[1].header, tpf.hdu[2].header
-        for axis in ("1", "2"):
-            key = f"{axis}CRV4P"
-            if key in h1:
-                continue
-            other = next((k for k in h1 if _re.fullmatch(rf"{axis}CRV\d+P", k)), None)
-            value = h1[other] if other else h2.get(f"CRVAL{axis}P")
-            if value is None:
-                raise KeyError(f"cutout has no CCD origin for axis {axis}")
-            h1[key] = value
+        if "1CRV4P" in h1 and "2CRV4P" in h1:
+            continue
+        spoc = SPOC_FRAMES.get(int(tpf.hdu[0].header["SECTOR"]))
+        if spoc is None:
+            h1["1CRV4P"], h1["2CRV4P"] = 0, 0
+            continue
+        ra, dec = h2["CRVAL1"], h2["CRVAL2"]
+        xs, ys = WCS(spoc).all_world2pix(ra, dec, 0)
+        xc, yc = WCS(h2).all_world2pix(ra, dec, 0)
+        col0, row0 = spoc["CRVAL1P"] + float(xs) - float(xc), spoc["CRVAL2P"] + float(ys) - float(yc)
+        if max(abs(col0 - round(col0)), abs(row0 - round(row0))) > 0.1:
+            log(f"warning: cutout origin {col0:.3f}, {row0:.3f} is not a whole pixel")
+        h1["1CRV4P"], h1["2CRV4P"] = round(col0), round(row0)
 
 
 def retrying_downloads():
@@ -130,6 +140,7 @@ def apertures(tic: int, sectors: list[int], folder: Path) -> dict[int, list[list
     """Optimal-aperture pixels [column, row] from the TESS-SPOC light-curve files (bit 2 of APERTURE)."""
     from astropy.io import fits
     from astroquery.mast import Observations
+    SPOC_FRAMES.clear()  # one candidate at a time: another star's frame for the same sector would be wrong
     obs = Observations.query_criteria(target_name=str(tic), provenance_name="TESS-SPOC", sequence_number=sectors)
     prods = Observations.filter_products(Observations.get_product_list(obs), extension="_lc.fits")
     out = {}
@@ -148,6 +159,7 @@ def apertures(tic: int, sectors: list[int], folder: Path) -> dict[int, list[list
         with fits.open(path) as h:
             sector = int(h[0].header["SECTOR"])
             ap = h["APERTURE"]
+            SPOC_FRAMES[sector] = ap.header.copy()
             rows, cols = np.where((ap.data & 2) > 0)
             out[sector] = [[int(ap.header["CRVAL1P"] + c), int(ap.header["CRVAL2P"] + r)] for r, c in zip(rows, cols)]
     return out
@@ -171,6 +183,14 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path) -> dict:
             cols, rows = np.meshgrid(np.arange(round(x) - 3, round(x) + 4), np.arange(round(y) - 3, round(y) + 4))
             m = (cols - x) ** 2 + (rows - y) ** 2 <= CIRCLE_PX ** 2
             aps[s] = np.column_stack([cols[m], rows[m]]).tolist()
+    if len(target.pix_coords) != len(sectors):
+        raise RuntimeError(f"TRICERATOPS placed the stars in {len(target.pix_coords)} of {len(sectors)} sectors")
+    for j, s in enumerate(sectors):  # the target must sit on its own aperture, or the frames disagree
+        miss = np.min(np.hypot(*(np.array(aps[s]) - target.pix_coords[j][0]).T))
+        log(f"TIC {tic} sector {s}: target at CCD {target.pix_coords[j][0].round(2).tolist()}, "
+            f"{miss:.2f} px from the nearest aperture pixel")
+        if miss > 1.0:
+            raise RuntimeError(f"sector {s}: the target is {miss:.1f} px from its aperture")
     target.calc_depths(tdepth=d["depth"], all_ap_pixels=[np.array(aps[s]) for s in sectors])
     t, f = np.array(d["time"]), np.array(d["flux"])
     results = []
@@ -220,13 +240,19 @@ def main() -> None:
     log(f"{len(inputs)} candidates")
     for path in inputs:
         d = json.loads(path.read_text(encoding="utf-8"))
-        try:
-            r = run_one(d, args.runs, deadline, outdir)
-            log(f"TIC {d['tic']}: FPP {r.get('FPP_mean')}, NFPP {r.get('NFPP_mean')}, validated {r.get('validated')}")
-        except Exception as e:  # one candidate's failure must not stop the others
-            import traceback
-            traceback.print_exc()
-            (outdir / f"fpp_{d['tic']}.json").write_text(json.dumps({"tic": d["tic"], "error": f"{e.__class__.__name__}: {e}"}))
+        for attempt in range(3):  # MAST and the TIC service drop connections now and then
+            try:
+                r = run_one(d, args.runs, deadline, outdir)
+                log(f"TIC {d['tic']}: FPP {r.get('FPP_mean')}, NFPP {r.get('NFPP_mean')}, validated {r.get('validated')}")
+                break
+            except Exception as e:  # one candidate's failure must not stop the others
+                import traceback
+                traceback.print_exc()
+                (outdir / f"fpp_{d['tic']}.json").write_text(json.dumps({"tic": d["tic"], "error": f"{e.__class__.__name__}: {e}"}))
+                if "Connection" not in e.__class__.__name__ + str(e):
+                    break
+                log(f"TIC {d['tic']}: connection lost, trying again in a minute")
+                time.sleep(60)
 
 
 if __name__ == "__main__":

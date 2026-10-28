@@ -36,6 +36,19 @@ AFFIL = "Brave AI Solutions, Nashik, India &middot; rushi@braveai.solutions"
 REPO = "https://github.com/Rishi943/tessa"
 SITE = "https://tessa.braveai.solutions"
 R_EARTH_PER_R_SUN = 109.08
+# TRICERATOPS scenarios (Giacalone et al. 2021, Table 1); FPP = 1 - (TP + PTP + DTP)
+SCENARIOS = {
+    "TP": "a planet on the target", "EB": "the target an eclipsing binary", "EBx2P": "the same at twice the period",
+    "PTP": "a planet on the target with an unresolved bound companion",
+    "PEB": "the target an eclipsing binary with an unresolved bound companion", "PEBx2P": "the same at twice the period",
+    "STP": "a planet on an unresolved bound companion", "SEB": "an unresolved bound companion that is an eclipsing binary",
+    "SEBx2P": "the same at twice the period",
+    "DTP": "a planet on the target, diluted by an unresolved background star",
+    "DEB": "the target an eclipsing binary, diluted by an unresolved background star", "DEBx2P": "the same at twice the period",
+    "BTP": "a planet on an unresolved background star", "BEB": "an unresolved background eclipsing binary",
+    "BEBx2P": "the same at twice the period", "NTP": "a planet on a resolved neighbour",
+    "NEB": "a resolved neighbour that is an eclipsing binary", "NEBx2P": "the same at twice the period",
+}
 
 
 def kind(teff: float) -> str:
@@ -199,7 +212,7 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     per_transit = sig["snr"] / math.sqrt(max(n_tr, 1))
     expect = per_transit * math.sqrt(nxt.get("transits", 0)) if nxt else None
 
-    title = (f"TIC {tic}.01: a {rp['median']:.1f} R<sub>&oplus;</sub> planet candidate on a {eph['period']:.2f}-day orbit<br>"
+    title = (f"TIC {tic}.01: a {rp['median']:.1f} R<sub>&oplus;</sub> planet candidate on a {eph['period']:.2f}-day orbit "
              f"around a nearby {sp} dwarf, found in <i>TESS</i> full-frame images")
     tests = [
         f"odd and even transits agree ({oe['diff_sigma']:.1f}&sigma;) and there is no significant secondary eclipse (SNR {k['secondary']['snr']:.1f});",
@@ -215,8 +228,10 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         tests.append(f"in a leave-one-season-out test, each of {len(seasons)} seasons is predicted from the others and shows the dip at the predicted times;")
     if flip.get("flipped_snr"):
         tests.append(f"the identical search on this star's upside-down light curve finds nothing stronger than SNR {flip['flipped_snr']:.1f}, against {flip['dip_snr']:.1f} for the dip;")
-    if f:
-        tests.append(f"TRICERATOPS gives FPP = {f['FPP_mean']:.3f} &plusmn; {f['FPP_std']:.3f} and NFPP = {f['NFPP_mean']:.1e}.")
+    if f and f["likely_planet"]:  # a test passed; short of validation, the bullet says so
+        tests.append(f"TRICERATOPS gives FPP = {f['FPP_mean']:.3f} &plusmn; {f['FPP_std']:.3f} and NFPP = {f['NFPP_mean']:.1e}"
+                     + (", below the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)." if f["validated"]
+                        else ": most likely a planet, but short of the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)."))
     abstract = (
         f"We report a transiting planet candidate around TIC&nbsp;{tic} (Gaia DR3 {gaia['source_id']}), a <i>T</i>&nbsp;=&nbsp;{star['tmag']:.1f} "
         f"{sp} dwarf at {star['distance']:.1f}&nbsp;pc, found by Tessa, an open search of <i>TESS</i> full-frame-image light curves of nearby K and M dwarfs "
@@ -271,10 +286,10 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     if f:
         scen = sorted(f["scenarios_mean"].items(), key=lambda kv: -kv[1])[:5]
         fpp_par = (f"<p><b>TRICERATOPS.</b> With TRICERATOPS {e(f['triceratops'])} (Giacalone et al. 2021), {f['n_runs']} independent runs of "
-                   f"{f['n_sim']:,} draws per scenario, " + (f"apertures from the TESS-SPOC sectors ({', '.join(map(str, f['geometry_sectors']))})" if f.get('aperture', 'TESS-SPOC') == 'TESS-SPOC' else f"a circular {2:.0f}-pixel aperture (no TESS-SPOC sector exists for this star)") + " and the folded "
+                   f"{f['n_sim']:,} draws per scenario, " + (f"apertures from the TESS-SPOC sectors ({', '.join(map(str, f['geometry_sectors']))}; current TESScut cutouts no longer record their CCD origin, so it was taken from the same TESS-SPOC files)" if f.get('aperture', 'TESS-SPOC') == 'TESS-SPOC' else f"a circular {2:.0f}-pixel aperture (no TESS-SPOC sector exists for this star)") + " and the folded "
                    f"10-minute light curve of sectors {', '.join(map(str, f['lc_sectors']))}, we find FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f} "
                    f"and NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e}. The most probable scenarios are "
-                   + ", ".join(f"{s} ({p:.3f})" for s, p in scen) + ". "
+                   + "; ".join(f"{s}, {SCENARIOS.get(s, s)} ({p:.3f})" for s, p in scen) + ". "
                    + ("This meets the usual statistical-validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001)." if f["validated"]
                       else "This is below the &ldquo;likely planet&rdquo; line (FPP&nbsp;&lt;&nbsp;0.5) but above the usual validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001), so we do not claim validation." if f["likely_planet"]
                       else "This does not support a planet interpretation on its own.") + "</p>")
@@ -359,9 +374,9 @@ A blend or an eclipsing binary usually needs a very different density.</p>
 This work uses data from the <i>TESS</i> mission, funded by NASA's Science Mission Directorate and obtained from MAST at STScI, and from the ESA <i>Gaia</i> mission, processed by the Gaia DPAC.</p>
 <div class="refs"><h2>References</h2>{''.join(f'<p>{r}</p>' for r in refs)}</div>"""
     page = f"<!doctype html><html lang='en'><head><meta charset='utf-8'><title>TIC {tic}.01</title><style>{CSS}</style></head><body>{body}</body></html>"
-    plain = html.unescape(abstract.replace("<li>", "\n- ").replace("</ul>", "\n").replace("<ul>", "\n"))
     import re
-    plain = re.sub(r"<[^>]+>", "", plain)
+    plain = abstract.replace("<li>", "\n- ").replace("</ul>", "\n").replace("<ul>", "\n")
+    plain = html.unescape(re.sub(r"<[^>]+>", "", plain))  # tags first: "&lt;" in the text must survive as "<"
     return page, plain
 
 
