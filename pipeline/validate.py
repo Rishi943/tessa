@@ -1,0 +1,142 @@
+"""The tests every candidate's preprint reports, beyond gate 2's checks.
+
+1. Transit fit with bootstrap errors (pipeline/fit.py): radius ratio, impact parameter, a/R*, and the star
+   density the transit shape implies against the catalogue star's (a blend or a binary rarely matches).
+   Errors come from refitting transits resampled with replacement.
+2. Gaia DR3 binarity: RUWE, radial-velocity scatter, image doubling, astrometric excess noise, and Gaia's
+   own radius (FLAME) against the TIC's.
+3. Leave-one-season-out: each observing season is hidden, the same blind search runs on the rest, and the
+   period it finds predicts the hidden season's transits; the dip must be there.
+4. The upside-down ceiling: the best "dip" the same search finds in this star's flipped light curve.
+TRICERATOPS runs separately (pipeline/fpp.py, Kaggle).
+
+Run: python -m pipeline.validate TIC [--boot 100]    writes data/validation/TIC.json
+"""
+import argparse
+import json
+import math
+
+import numpy as np
+
+from .fit import G_CGS, gaia_extra, transit_fit
+from .paths import DATA
+
+OUT = DATA / "validation"
+SEASON_GAP_D = 60  # sectors closer than this belong to one season
+R_EARTH_PER_R_SUN = 109.08
+
+
+def exact_source_id(tic: int) -> int | None:
+    """Gaia DR3 source_id from the target table: the vet files' copies went through float and lost digits."""
+    import pandas as pd
+    t = pd.read_parquet(DATA / "targets.parquet", columns=["tic", "source_id"])
+    row = t[t["tic"] == tic]
+    return int(row["source_id"].iloc[0]) if len(row) else None
+
+
+def bootstrap_fit(lc: dict, sig: dict, star: dict, n: int, seed: int = 20261028) -> dict:
+    best = transit_fit(lc, sig, star)
+    if best.get("status") != "ok":
+        return {"best": best}
+    epoch = np.round((lc["t"] - sig["t0"]) / sig["period"])
+    near = np.abs(lc["t"] - sig["t0"] - epoch * sig["period"]) < 2 * sig["dur"]
+    epochs = np.unique(epoch[near])
+    rng = np.random.default_rng(seed)
+    draws = []
+    for _ in range(n):
+        pick = rng.choice(epochs, len(epochs), replace=True)
+        idx = np.concatenate([np.flatnonzero(near & (epoch == e)) for e in pick])
+        sub = {k: lc[k][idx] for k in ("t", "y", "w", "span")}
+        f = transit_fit(sub, sig, star)
+        if f.get("status") == "ok":
+            draws.append(f)
+
+    def spread(key):
+        v = np.array([d[key] for d in draws if d.get(key) is not None])
+        return {"median": float(np.median(v)), "lo": float(np.percentile(v, 16)), "hi": float(np.percentile(v, 84))} if len(v) else None
+
+    out = {"best": best, "n_boot": len(draws)}
+    for key in ("k", "b", "ars", "rho_fit", "rho_ratio", "star_density_penalty", "t14_h"):
+        out[key] = spread(key)
+    if out["k"] and star.get("rad"):
+        out["rp_rearth"] = {q: v * star["rad"] * R_EARTH_PER_R_SUN for q, v in out["k"].items()}
+    return out
+
+
+def seasons(sector: np.ndarray, t: np.ndarray) -> list[list[int]]:
+    mids = sorted((float(np.median(t[sector == s])), int(s)) for s in np.unique(sector))
+    groups = [[mids[0][1]]]
+    for (a, _), (b, s) in zip(mids, mids[1:]):
+        if b - a > SEASON_GAP_D:
+            groups.append([])
+        groups[-1].append(s)
+    return groups
+
+
+def leave_one_season_out(raw: dict, star: dict, sig: dict) -> list[dict]:
+    from .search import bls_numpy, check_peak, detrend, search_star
+    out = []
+    for hidden in seasons(raw["sector"], raw["time"]):
+        rest = ~np.isin(raw["sector"], hidden)
+        row, _ = search_star(raw["time"][rest], raw["flux"][rest], raw["sector"][rest], star["rad"], star["mass"], bls_numpy)
+        r = {"hidden_sectors": hidden, "blind_period": row.get("dip_period") or None, "blind_snr": row.get("dip_snr") or None,
+             "gate1": row.get("gate1")}
+        p = r["blind_period"]
+        r["same_period"] = bool(p and abs(p / sig["period"] - 1) < 2e-3)
+        if r["same_period"]:
+            m = np.isin(raw["sector"], hidden)
+            lc_h = detrend(raw["time"][m], raw["flux"][m], raw["sector"][m])
+            # the blind ephemeris predicts the hidden season; measure the dip at exactly those times
+            peak = check_peak(lc_h, float(p), float(row["dip_t0"]), float(row["dip_dur_h"]) / 24, -1)
+            r.update(predicted_depth_ppm=round(peak["depth_ppm"]), predicted_snr=round(peak["snr"], 1),
+                     predicted_transits=peak["transits"])
+        out.append(r)
+    return out
+
+
+def validate(tic: int, n_boot: int) -> dict:
+    from .fpp import candidate
+    from .search import detrend
+    from .tools import light_curve
+    cand, vet = candidate(tic)
+    checks, raw, lc = light_curve(tic)
+    star = dict(checks["star"])
+    eph = cand["when"]["ephemeris"]
+    sig = {"period": eph["period"], "t0": eph["t0_btjd"], "dur": eph["t14_h"] / 24, "depth_ppm": cand["signal"]["depth_ppm"]}
+    out = {"tic": tic}
+    out["fit"] = bootstrap_fit(lc, sig, star, n_boot)
+    sid = exact_source_id(tic)
+    g = gaia_extra([sid]).get(str(sid), {}) if sid else {}
+    out["gaia"] = {"source_id": str(sid) if sid else None, "ruwe": star.get("ruwe"), "non_single_star": star.get("non_single_star"),
+                   **{k: g.get(k) for k in ("rv_chisq_pvalue", "rv_renormalised_gof", "rv_amplitude_robust", "rv_nb_transits",
+                                            "radial_velocity_error", "ipd_frac_multi_peak", "ipd_gof_harmonic_amplitude",
+                                            "astrometric_excess_noise_sig", "radius_flame", "mass_flame", "radius_gspphot")},
+                   "tic_radius": star.get("rad")}
+    out["seasons"] = leave_one_season_out(raw, star, sig)
+    site = DATA / "site" / "stars" / f"{tic}.json"
+    g1 = json.loads(site.read_text(encoding="utf-8")).get("gate1", {}) if site.exists() else {}
+    out["flipped"] = {"dip_snr": g1.get("dip_snr"), "flipped_snr": g1.get("flipped_snr")}
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / f"{tic}.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
+    return out
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("tic", type=int)
+    ap.add_argument("--boot", type=int, default=100)
+    args = ap.parse_args()
+    v = validate(args.tic, args.boot)
+    f = v["fit"]
+    if f.get("rho_ratio"):
+        print(f"fit: k {f['k']['median']:.4f} [{f['k']['lo']:.4f}, {f['k']['hi']:.4f}], b {f['b']['median']:.2f}, "
+              f"density ratio {f['rho_ratio']['median']:.2f} [{f['rho_ratio']['lo']:.2f}, {f['rho_ratio']['hi']:.2f}], "
+              f"star-density penalty {f['best'].get('star_density_penalty', float('nan')):.1f} (n_boot {f['n_boot']})")
+    print("gaia:", {k: v["gaia"][k] for k in ("ruwe", "rv_chisq_pvalue", "rv_renormalised_gof", "ipd_frac_multi_peak", "radius_flame", "tic_radius")})
+    for s in v["seasons"]:
+        print("season", s)
+    print("flipped:", v["flipped"])
+
+
+if __name__ == "__main__":
+    main()
