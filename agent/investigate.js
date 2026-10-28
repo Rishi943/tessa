@@ -11,6 +11,7 @@ import { Agent } from "@earendil-works/pi-agent-core";
 import { Type } from "@earendil-works/pi-ai";
 import { inventedNumbers, parseDossier, userMessage } from "./dossier.js";
 import { MODELS, apiKey } from "./models.js";
+import { logUsage } from "./usage.js";
 
 const VERSION = "inv1";
 const PROMPT = "investigate.v1.md";
@@ -57,7 +58,7 @@ export async function investigate(checks, flags, modelId) {
   const used = [];
   const agent = new Agent({
     initialState: { systemPrompt: prompt, model: MODELS[modelId], tools, messages: [] },
-    getApiKey: async () => apiKey(),
+    getApiKey: async () => apiKey(modelId),
     toolExecution: "sequential",
     beforeToolCall: async ({ args }) => {
       if (args.tic !== checks.tic) return { block: true, reason: `tools are for TIC ${checks.tic} only` };
@@ -70,6 +71,7 @@ export async function investigate(checks, flags, modelId) {
   const t0 = Date.now();
   await agent.prompt(`Star: TIC ${checks.tic}\nFlags raised by the code:\n- ${flags.join("\n- ")}\n\n${userMessage(checks)}`);
   const assistant = agent.state.messages.filter((m) => m.role === "assistant");
+  for (const m of assistant) logUsage(modelId, "investigation", m.usage);
   const last = assistant.at(-1);
   if (last?.stopReason === "error") throw new Error(last.errorMessage);
   const raw = last.content.filter((b) => b.type === "text").map((b) => b.text).join("");

@@ -76,7 +76,10 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
           await emit("error", "The model is not answering right now. Try again in a minute.");
           return;
         }
-        const data = (await res.json()) as { choices: { message: Msg }[] };
+        const data = (await res.json()) as { choices: { message: Msg }[]; usage?: { prompt_tokens?: number; completion_tokens?: number } };
+        ctx.waitUntil(env.DB.prepare("INSERT INTO model_calls VALUES (?, ?, 'ask tessa', ?, ?)")
+          .bind(new Date().toISOString(), MODEL, data.usage?.prompt_tokens ?? 0, data.usage?.completion_tokens ?? 0)
+          .run().catch(() => undefined));  // a lost usage row must never break an answer
         const msg = data.choices?.[0]?.message;
         if (!msg) throw new Error("empty reply");
         if (msg.tool_calls?.length) {

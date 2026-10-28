@@ -5,6 +5,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { complete } from "@earendil-works/pi-ai";
 import { MODELS, apiKey } from "./models.js";
+import { logUsage } from "./usage.js";
 
 const PER_CALL = 20;
 const args = process.argv.slice(2);
@@ -30,8 +31,9 @@ for (let i = 0; i < todo.length; i += PER_CALL) {
   const batch = todo.slice(i, i + PER_CALL);
   const content = batch.map((r) => `TIC ${r.tic}: ${r.reasons}`).join("\n");
   const msg = await complete(MODELS[model], { systemPrompt: prompt, messages: [{ role: "user", content, timestamp: Date.now() }], tools: [] },
-    { apiKey: apiKey() });
+    { apiKey: apiKey(model) });
   cost += msg.usage.cost.total;
+  logUsage(model, "case-closed note", msg.usage);
   if (msg.stopReason === "error") {
     console.log(`batch ${i / PER_CALL}: ${msg.errorMessage}`);
     continue;

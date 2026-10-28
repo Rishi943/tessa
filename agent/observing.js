@@ -6,6 +6,7 @@ import { join } from "node:path";
 import { complete } from "@earendil-works/pi-ai";
 import { inventedNumbers } from "./dossier.js";
 import { MODELS, apiKey } from "./models.js";
+import { logUsage } from "./usage.js";
 
 const args = process.argv.slice(2);
 const at = args.indexOf("--model");
@@ -28,7 +29,8 @@ for (const file of readdirSync(join(dir, "candidates")).filter((f) => f.endsWith
     ground_nights_in_90_days: w.ground_nights, ground_snr_per_transit: w.ground_snr_per_transit,
   };
   const msg = await complete(MODELS[model], { systemPrompt: prompt, tools: [],
-    messages: [{ role: "user", content: JSON.stringify(input), timestamp: Date.now() }] }, { apiKey: apiKey() });
+    messages: [{ role: "user", content: JSON.stringify(input), timestamp: Date.now() }] }, { apiKey: apiKey(model) });
+  logUsage(model, "observing note", msg.usage);
   if (msg.stopReason === "error") {
     console.log(`TIC ${c.tic}: ${msg.errorMessage}`);
     continue;
