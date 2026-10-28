@@ -14,7 +14,12 @@ import argparse
 import contextlib
 import csv
 import json
+import os
+import shutil
 import sys
+import tempfile
+import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -30,6 +35,7 @@ CUTOUT_PX = 11
 FIT_HALF = 3  # fit a 7x7 window
 BOOTSTRAPS = 100
 MAX_SECTORS = 6
+SECTOR_JOBS = 3  # cutouts fetched at once: TESScut takes about 10 s to cut each one
 IN_CORE = 0.4  # in-transit frames: within this fraction of the duration from mid-transit
 OUT_GAP, OUT_MIN_D = 0.75, 0.125  # out-of-transit frames: from 0.75 durations out, for at least 3 h
 ON_TARGET_SIGMA = 3.0
@@ -45,20 +51,38 @@ def cutout(ra: float, dec: float, sector: int) -> Path:
     if out.exists():
         return out
     hits = list(folder.glob(f"tess-s{sector:04d}-*_{ra:.6f}_{dec:.6f}_{CUTOUT_PX}x{CUTOUT_PX}_astrocut.fits"))
-    if not hits:
-        from astroquery.mast import Tesscut
-        folder.mkdir(parents=True, exist_ok=True)
-        with contextlib.redirect_stdout(sys.stderr):
-            got = Tesscut.download_cutouts(coordinates=SkyCoord(ra, dec, unit="deg"), size=CUTOUT_PX,
-                                           sector=sector, path=str(folder))
-        hits = [Path(got["Local Path"][0])]
-    with fits.open(hits[0], memmap=False) as h:
+    if hits:  # left by an older run
+        save(hits[0], out)
+        hits[0].unlink()
+        return out
+    from astroquery.mast import Tesscut
+    folder.mkdir(parents=True, exist_ok=True)
+    # astroquery names its zip after the current second, so downloads running at once each get a folder
+    tmp = Path(tempfile.mkdtemp(dir=folder))
+    try:
+        for attempt in range(3):
+            try:
+                got = Tesscut.download_cutouts(coordinates=SkyCoord(ra, dec, unit="deg"), size=CUTOUT_PX,
+                                               sector=sector, path=str(tmp))
+                save(Path(got["Local Path"][0]), out)
+                return out
+            except Exception:
+                if attempt == 2:
+                    raise
+                time.sleep(10 * (attempt + 1))
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def save(fits_path: Path, out: Path) -> None:
+    """Written beside the cache and renamed into place, so a crash never leaves half a file there."""
+    part = out.with_suffix(".part")
+    with fits.open(fits_path, memmap=False) as h, open(part, "wb") as f:
         d = h[1].data
-        np.savez_compressed(out, time=np.asarray(d["TIME"], float), flux=np.asarray(d["FLUX"], np.float32),
+        np.savez_compressed(f, time=np.asarray(d["TIME"], float), flux=np.asarray(d["FLUX"], np.float32),
                             quality=np.asarray(d["QUALITY"], np.int32), wcs=h[2].header.tostring(),
                             sector=int(h[0].header["SECTOR"]))
-    hits[0].unlink()
-    return out
+    os.replace(part, out)
 
 
 def gaussian(params, x, y):
@@ -138,30 +162,45 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
             "mid_btjd": float(np.median(t))}
 
 
-def where(tic: int, sig: dict, max_sectors: int = MAX_SECTORS) -> dict:
-    star = star_info(tic)
-    row = None
+def survey_sectors(tic: int, star: dict) -> list[int]:
+    """The sectors of the star's light curves in the fetch manifests, or whatever TESScut has."""
     for manifest in [DATA / "fetch_manifest.csv", *sorted(CACHE.glob("lc*/manifest.csv"))]:
         with open(manifest, newline="", encoding="utf-8") as f:
             row = next((r for r in csv.DictReader(f) if int(r["tic"]) == tic), None)
         if row:
-            break
-    if row is None:  # stars outside the survey: whatever TESScut has
-        from astroquery.mast import Tesscut
-        got = Tesscut.get_sectors(coordinates=SkyCoord(star["ra"], star["dec"], unit="deg"))["sector"]
-        sectors = [int(s) for s in got if int(s) < 1000]  # 1000+ are not survey sectors
-    else:
-        sectors = [int(s) for s in row["sectors"].split()]
+            return [int(s) for s in row["sectors"].split()]
+    from astroquery.mast import Tesscut
+    got = Tesscut.get_sectors(coordinates=SkyCoord(star["ra"], star["dec"], unit="deg"))["sector"]
+    return [int(s) for s in got if int(s) < 1000]  # 1000+ are not survey sectors
+
+
+def where(tic: int, sig: dict, max_sectors: int = MAX_SECTORS, star: dict | None = None,
+          sectors: list[int] | None = None) -> dict:
+    """star and sectors (those with light curves) default to the survey's tables, for stars outside
+    them (the fine-tuning TOIs) the caller passes both."""
+    star = star or star_info(tic)
+    sectors = sectors or survey_sectors(tic, star)
     sectors = sorted(sectors)[-max_sectors:]  # the latest have the shortest cadence
     field = gaia_field(tic, star)
     if field is None:
         return {"verdict": "inconclusive", "why": "target not found in Gaia"}
     df, me = field
 
-    per = []
-    for s in sectors:
+    def fetch(s):
         try:
-            r = sector_offset(cutout(star["ra"], star["dec"], s), sig)
+            return cutout(star["ra"], star["dec"], s)
+        except Exception as e:
+            return e
+    # astroquery prints each download; one redirect here, as redirecting inside each thread can leave
+    # stdout pointing at stderr
+    with contextlib.redirect_stdout(sys.stderr), ThreadPoolExecutor(SECTOR_JOBS) as pool:
+        files = list(pool.map(fetch, sectors))
+    per = []
+    for s, path in zip(sectors, files):
+        try:
+            if isinstance(path, Exception):
+                raise path
+            r = sector_offset(path, sig)
         except Exception as e:
             r = {"sector": s, "used": False, "error": f"{e.__class__.__name__}: {e}"[:120]}
         if r:

@@ -345,12 +345,15 @@ def verdict(checks: dict) -> tuple[str, list[str]]:
     return ("reject" if why else "agent"), why
 
 
-def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool = True) -> dict:
+def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool = True,
+        star: dict | None = None, raw: dict | None = None) -> dict:
     """sig: period, t0, dur (days), depth_ppm, snr, from the search. The centroid check downloads
-    cutouts, so it runs only on signals that pass every other rule."""
-    raw = load_lc(tic, lc_dir)
+    cutouts, so it runs only on signals that pass every other rule. star and raw (the light curve)
+    can be passed for stars outside the survey's tables."""
+    outside = star is not None
+    raw = raw if raw is not None else load_lc(tic, lc_dir)
     lc = detrend(raw["time"], raw["flux"], raw["sector"])
-    star = star_info(tic)
+    star = star or star_info(tic)
     checks = {
         "tic": tic, "star": star, "signal": {**sig, "dur_h": sig["dur"] * 24},
         "refit": check_peak(lc, sig["period"], sig["t0"], sig["dur"], -1),
@@ -363,7 +366,8 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
     checks["code_verdict"], checks["reasons"] = verdict(checks)
     if centroid and checks["code_verdict"] == "agent":
         from .centroid import where  # centroid imports this module
-        checks["centroid"] = where(tic, sig)
+        checks["centroid"] = where(tic, sig, star=star if outside else None,
+                                   sectors=sorted({int(s) for s in raw["sector"]}) if outside else None)
         checks["code_verdict"], checks["reasons"] = verdict(checks)
     return checks
 

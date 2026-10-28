@@ -39,13 +39,13 @@ def is_light_curve(name: str) -> bool:
     return (name.endswith("_lc.fits") and "fast" not in name) or name.endswith("_llc.fits")
 
 
-def best_products(tics: list[int]) -> dict[int, dict[int, tuple[str, str]]]:
+def best_products(tics: list[int], sources: list[str]) -> dict[int, dict[int, tuple[str, str]]]:
     """For each star: {sector: (source, dataURI)}, keeping the preferred source per sector."""
     from astroquery.mast import Observations
 
     obs = Observations.query_criteria(
         target_name=[str(t) for t in tics], obs_collection=["HLSP", "TESS"],
-        dataproduct_type="timeseries", provenance_name=list(SOURCES),
+        dataproduct_type="timeseries", provenance_name=sources,
     )
     if len(obs) == 0:
         return {}
@@ -94,8 +94,8 @@ def read_sector(data: bytes, source: str) -> tuple[np.ndarray, np.ndarray, np.nd
     return t, f / med, e / med
 
 
-def fetch_chunk(tics: list[int], workers: int) -> tuple[dict[str, np.ndarray], list[dict]]:
-    products = best_products(tics)
+def fetch_chunk(tics: list[int], workers: int, sources: list[str]) -> tuple[dict[str, np.ndarray], list[dict]]:
+    products = best_products(tics, sources)
     jobs = [(tic, sector, source, uri)
             for tic, sectors in products.items() for sector, (source, uri) in sectors.items()]
 
@@ -144,7 +144,10 @@ def main() -> None:
     ap.add_argument("--chunk", type=int, default=100, help="stars per shard and per MAST query")
     ap.add_argument("--workers", type=int, default=6, help="parallel downloads")
     ap.add_argument("--max-minutes", type=float, default=660, help="stop cleanly after this long")
+    ap.add_argument("--ffi-only", action="store_true",
+                    help="TESS-SPOC and QLP only, like the never-2-minute survey stars (fine-tuning inputs)")
     args = ap.parse_args()
+    sources = [s for s in SOURCES if not (args.ffi_only and s == "SPOC")]
 
     tics = [int(line) for line in Path(args.targets).read_text().split() if line.strip()]
     if args.limit:
@@ -168,7 +171,7 @@ def main() -> None:
             break
         for attempt in range(3):
             try:
-                shard, rows = fetch_chunk(chunk, args.workers)
+                shard, rows = fetch_chunk(chunk, args.workers, sources)
                 break
             except Exception as e:  # MAST query failures: wait and retry the whole chunk
                 log(f"shard {n} attempt {attempt + 1} failed: {e.__class__.__name__}: {e}"[:300])
