@@ -3,6 +3,7 @@
 # tokens; a dossier's input alone is ~1,600, so this runs on one H100.
 #   modal run finetune/train.py::download                    # once: the 4-bit base into the weights volume (CPU)
 #   modal run finetune/train.py::train --data data/finetune/sft   # train.jsonl + val.jsonl; adapter into tessa-ft
+#   modal run --detach finetune/train.py::train --data data/finetune/sft_v6 --detach   # the same, laptop-proof
 #   modal volume get tessa-ft glimmer-vetter data/finetune/adapter
 import json
 from pathlib import Path
@@ -95,9 +96,14 @@ def run(train_rows: list[dict], val_rows: list[dict], epochs: float = 2.0, rank:
 
 
 @app.local_entrypoint()
-def train(data: str = "data/finetune/sft", epochs: float = 2.0, rank: int = 16, lr: float = 2e-4, dry: bool = False):
+def train(data: str = "data/finetune/sft", epochs: float = 2.0, rank: int = 16, lr: float = 2e-4, dry: bool = False,
+          detach: bool = False):
     rows = {s: [json.loads(line) for line in Path(data, f"{s}.jsonl").read_text(encoding="utf-8").splitlines()]
             for s in ("train", "val")}
+    if detach:  # with `modal run --detach`: survives the laptop disconnecting; the history lands in the volume
+        call = run.spawn(rows["train"], rows["val"], epochs, rank, lr, dry)
+        print(f"spawned {call.object_id}; history in tessa-ft glimmer-vetter/history.json when it ends")
+        return
     history = run.remote(rows["train"], rows["val"], epochs, rank, lr, dry)
     Path(data, "history.json").write_text(json.dumps(history, indent=1), encoding="utf-8")
     evals = [h for h in history if "eval_loss" in h]
