@@ -112,7 +112,9 @@ def fit(image: np.ndarray, centre: tuple[float, float], sigma: float | None = No
     return r.x
 
 
-def sector_offset(path: Path, sig: dict) -> dict | None:
+def transit_images(path: Path, sig: dict) -> dict | None:
+    """One sector's difference image for each transit (frames around it minus frames in it), the
+    out-of-transit image, times and WCS; None with fewer than 3 usable transits."""
     with np.load(path) as z:
         t, flux, q = z["time"], z["flux"].astype(float), z["quality"]
         wcs = WCS(fits.Header.fromstring(str(z["wcs"])))
@@ -130,8 +132,14 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
             diffs.append(np.nanmean(flux[around], axis=0) - np.nanmean(flux[inside], axis=0))
     if len(diffs) < 3:
         return None
-    diffs = np.array(diffs)
-    direct = np.nanmedian(flux, axis=0)
+    return {"t": t, "diffs": np.array(diffs), "direct": np.nanmedian(flux, axis=0), "wcs": wcs, "sector": sector}
+
+
+def sector_offset(path: Path, sig: dict) -> dict | None:
+    im = transit_images(path, sig)
+    if im is None:
+        return None
+    t, diffs, direct, wcs, sector = im["t"], im["diffs"], im["direct"], im["wcs"], im["sector"]
 
     centre = ((CUTOUT_PX - 1) / 2, (CUTOUT_PX - 1) / 2)
     d_fit = fit(direct, centre)

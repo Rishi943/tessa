@@ -14,6 +14,7 @@ import argparse
 import contextlib
 import json
 import sys
+import time
 from pathlib import Path
 
 import astropy.units as u
@@ -118,12 +119,17 @@ def novelty(tic: int, sig: dict) -> dict:
     matches, notes, errors = [], [], []
     for name, check in [("TOI/CTOI/confirmed/TESS EB", lambda: toi_lists(tic, star, sig)), ("VSX", lambda: vsx(star, sig)),
                         ("Gaia DR3 EB", lambda: gaia_ebs(tic, star, sig)), ("SIMBAD", lambda: simbad(star))]:
-        try:
-            m, n = check()
-            matches += m
-            notes += n
-        except Exception as e:
-            errors.append(f"{name}: {e.__class__.__name__}: {e}"[:200])
+        for attempt in range(3):  # archives drop connections now and then: a timeout isn't an answer
+            try:
+                m, n = check()
+                matches += m
+                notes += n
+                break
+            except Exception as e:
+                if attempt == 2:
+                    errors.append(f"{name}: {e.__class__.__name__}: {e}"[:200])
+                else:
+                    time.sleep(10 * (attempt + 1))
     return {"tic": tic, "new": not matches and not errors, "complete": not errors,
             "matches": matches, "notes": notes, "errors": errors}
 
