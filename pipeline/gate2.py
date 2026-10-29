@@ -2,9 +2,10 @@
 
 Fixed rules the agent cannot change. A candidate needs every code check in the planet-like range
 (the same table the agent reads) or settled by evidence from the agent's tools (pipeline/tools.py,
-measured by code), the agent's own "gate2" verdict, nothing in novelty check B, and a test: a
-future TESS sector or a night on the ground when the transit time is still known. The agent can
-stop a signal by rejecting or flagging it, but never pass one the rules don't.
+measured by code), the agent's own "gate2" verdict, nothing in novelty check B, a test: a
+future TESS sector or a night on the ground when the transit time is still known, and every observing
+season predicted by the others (leave-one-season-out). The agent can stop a signal by rejecting or
+flagging it, but never pass one the rules don't.
 
 Run: python -m pipeline.gate2 VET_DIR --results results.csv [--lc data/cache/lc]
      [--model muse-spark-1.3-contributor] [--prompt v5]
@@ -41,16 +42,28 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
     out = []
     # a check that couldn't be measured is null (vet.finite); comparisons skip it, and odd/even says so
     ge = lambda v, x: v is not None and v >= x  # noqa: E731
-    if c["odd_even"]["diff_sigma"] is None:
+    rank = (c.get("system1") or {}).get("planet_rank") or 0
+    oe = c["odd_even"]
+    a, b = oe.get("depth_odd_ppm"), oe.get("depth_even_ppm")
+    deeper = max(abs(a or 0), abs(b or 0))
+    # bright, deep transits show tiny systematic odd/even differences at high sigma (prompt v6 on)
+    tiny_oe = a is not None and b is not None and deeper > 0 and abs(a - b) / deeper < 0.1 and rank >= 0.5
+    if oe["diff_sigma"] is None:
         out.append("odd_even: no even-numbered transit to compare")
-    elif c["odd_even"]["diff_sigma"] >= 3:
+    elif oe["diff_sigma"] >= 3 and not tiny_oe:
         out.append(f"odd_even: odd and even transits differ by {c['odd_even']['diff_sigma']:.1f} sigma")
     s = c["secondary"]
     if ge(s["snr"], 5) and s["snr"] >= 1.5 * (s["best_brightening_snr"] or 0):
         out.append(f"secondary: a dip at phase {s['phase']:.2f} with SNR {s['snr']:.1f}")
-    if c["sectors"].get("p_constant") is not None and c["sectors"]["p_constant"] < 0.01             and by_source not in ("steady", "differs_by_source"):
+    # a depth that changes between sectors is as common for planets as for false positives (each sector has
+    # its own aperture and neighbours' light), so it counts only when System 1 isn't sure (prompt v7)
+    if c["sectors"].get("p_constant") is not None and c["sectors"]["p_constant"] < 0.01 \
+            and by_source not in ("steady", "differs_by_source") and rank < 0.5:
         out.append(f"sectors: depth changes between sectors (p = {c['sectors']['p_constant']:.1g})")
-    if ge(c["size"]["rp_rearth"], 10):
+    # a giant planet's size is planet-like when System 1 ranks it with planets and nothing else says binary
+    binary = any(o.startswith(("odd_even", "secondary")) for o in out) or ge(c["shape"]["v_sigma"], 3)
+    giant_ok = ge(c["size"]["rp_rearth"], 10) and c["size"]["rp_rearth"] < 22 and rank >= 0.2 and not binary
+    if ge(c["size"]["rp_rearth"], 10) and not giant_ok:
         out.append(f"size: {c['size']['rp_rearth']:.1f} Earth radii")
     if (c["duration"]["ratio"] or 0) > 1.5 and not any(r <= 1.5 for r in gaia_duration):
         out.append(f"duration: {c['duration']['ratio']:.1f}x the central transit")
@@ -79,6 +92,44 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
                    f"where TESS's 13.7-day orbit fakes dips ({g['expected_share']:.0%} would by chance)")
     if (c["refit"]["transits"] or 0) < 3:
         out.append(f"refit: only {c['refit']['transits']} transits")
+    return out
+
+
+SEASON_SNR = 3.0  # the dip at the times the other seasons predict, at least this strong in the hidden one
+
+
+def seasons(checks: dict, sig: dict, test: dict, lc_dir: Path) -> list[dict]:
+    """Leave-one-season-out (pipeline/validate.py) on the refitted ephemeris: each observing season hidden in turn,
+    the same blind search on the rest, and the dip measured at the times it predicts. A CPU search per season, so
+    it runs only on signals that got this far, and is kept in data/validation/TIC.json for validate and preprint."""
+    from .validate import OUT, leave_one_season_out
+    eph = test["ephemeris"]
+    s = {"period": eph["period"], "t0": eph["t0_btjd"], "dur": eph["t14_h"] / 24, "depth_ppm": sig["depth_ppm"]}
+    path = OUT / f"{checks['tic']}.json"
+    v = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {"tic": checks["tic"]}
+    if v.get("seasons") and abs(v.get("seasons_period", s["period"]) / s["period"] - 1) < 1e-4:
+        return v["seasons"]
+    v["seasons"] = leave_one_season_out(load_lc(checks["tic"], lc_dir), checks["star"], s)
+    v["seasons_period"] = s["period"]
+    OUT.mkdir(parents=True, exist_ok=True)
+    path.write_text(json.dumps(v, indent=1, default=float), encoding="utf-8")
+    return v["seasons"]
+
+
+def season_fails(found: list[dict]) -> list[str]:
+    """A signal some season can't predict doesn't become a candidate: every season hidden in turn must be
+    found again by the blind search of the others, at this period, and show the dip when they say it comes."""
+    if len(found) < 2:
+        return ["seasons: one observing season only, so none can be hidden and predicted from the others"]
+    out = []
+    for s in found:
+        name = ("sector " if len(s["hidden_sectors"]) == 1 else "sectors ") + ", ".join(map(str, s["hidden_sectors"]))
+        if not s.get("same_period"):
+            got = f"a dip every {s['blind_period']:.4f} d" if s.get("blind_period") else "no repeating dip"
+            out.append(f"seasons: with {name} hidden, the blind search of the other seasons found {got}, not this period")
+        elif (s.get("predicted_snr") or 0) < SEASON_SNR:
+            out.append(f"seasons: in {name}, the dip at the times the other seasons predict has SNR {s['predicted_snr']:.1f} "
+                       f"({s['predicted_depth_ppm']} ppm), under {SEASON_SNR:g}")
     return out
 
 
@@ -124,7 +175,11 @@ def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple
     if not test["testable"]:
         return "flagged", ["no test: " + test.get("why", "no TESS sector or ground night with the timing still known")], \
             {"novelty": nov, "when": test}
-    return "candidate", [], {"novelty": nov, "when": test, "public_summary": d["public_summary"]}
+    found = seasons(checks, sig, test, lc_dir)
+    bad = season_fails(found)
+    if bad:
+        return "flagged", bad, {"novelty": nov, "when": test, "seasons": found}
+    return "candidate", [], {"novelty": nov, "when": test, "seasons": found, "public_summary": d["public_summary"]}
 
 
 def main() -> None:
