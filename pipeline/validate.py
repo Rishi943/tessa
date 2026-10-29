@@ -11,10 +11,14 @@
 TRICERATOPS runs separately (pipeline/fpp.py, Kaggle).
 
 Run: python -m pipeline.validate TIC [--boot 100]    writes data/validation/TIC.json
+     Off the laptop: python -m pipeline.validate TIC [TIC ...] --export DIR, then on Kaggle (CPU) the pipeline
+     package with those files beside it: python -m pipeline.validate --job; then --import DIR with its output.
 """
 import argparse
 import json
 import math
+import time
+from pathlib import Path
 
 import numpy as np
 
@@ -94,18 +98,30 @@ def leave_one_season_out(raw: dict, star: dict, sig: dict) -> list[dict]:
     return out
 
 
-def validate(tic: int, n_boot: int) -> dict:
+def inputs(tic: int) -> dict:
+    """Everything the tests need for one candidate, from the local survey files: the light curve, the star,
+    the refitted ephemeris, the exact Gaia ID and gate 1's scores. As JSON it is a Kaggle job's input."""
     from .fpp import candidate
-    from .search import detrend
     from .tools import light_curve
-    cand, vet = candidate(tic)
-    checks, raw, lc = light_curve(tic)
-    star = dict(checks["star"])
+    cand, _ = candidate(tic)
+    checks, raw, _ = light_curve(tic)
     eph = cand["when"]["ephemeris"]
-    sig = {"period": eph["period"], "t0": eph["t0_btjd"], "dur": eph["t14_h"] / 24, "depth_ppm": cand["signal"]["depth_ppm"]}
-    out = {"tic": tic}
+    site = DATA / "site" / "stars" / f"{tic}.json"
+    g1 = json.loads(site.read_text(encoding="utf-8")).get("gate1", {}) if site.exists() else {}
+    return {"tic": tic, "star": dict(checks["star"]), "source_id": exact_source_id(tic),
+            "sig": {"period": eph["period"], "t0": eph["t0_btjd"], "dur": eph["t14_h"] / 24, "depth_ppm": cand["signal"]["depth_ppm"]},
+            "flipped": {"dip_snr": g1.get("dip_snr"), "flipped_snr": g1.get("flipped_snr")},
+            "raw": {k: np.asarray(raw[k]).tolist() for k in ("time", "flux", "sector")}}
+
+
+def run(d: dict, n_boot: int) -> dict:
+    """The tests on one candidate's inputs (inputs()); needs only numpy, scipy and astroquery's Gaia."""
+    from .search import detrend
+    raw = {k: np.asarray(v, dtype=int if k == "sector" else float) for k, v in d["raw"].items()}
+    lc = detrend(raw["time"], raw["flux"], raw["sector"])
+    star, sig, sid = d["star"], d["sig"], d["source_id"]
+    out = {"tic": d["tic"]}
     out["fit"] = bootstrap_fit(lc, sig, star, n_boot)
-    sid = exact_source_id(tic)
     g = gaia_extra([sid]).get(str(sid), {}) if sid else {}
     out["gaia"] = {"source_id": str(sid) if sid else None, "ruwe": star.get("ruwe"), "non_single_star": star.get("non_single_star"),
                    **{k: g.get(k) for k in ("rv_chisq_pvalue", "rv_renormalised_gof", "rv_amplitude_robust", "rv_nb_transits",
@@ -113,20 +129,61 @@ def validate(tic: int, n_boot: int) -> dict:
                                             "astrometric_excess_noise_sig", "radius_flame", "mass_flame", "radius_gspphot")},
                    "tic_radius": star.get("rad")}
     out["seasons"] = leave_one_season_out(raw, star, sig)
-    site = DATA / "site" / "stars" / f"{tic}.json"
-    g1 = json.loads(site.read_text(encoding="utf-8")).get("gate1", {}) if site.exists() else {}
-    out["flipped"] = {"dip_snr": g1.get("dip_snr"), "flipped_snr": g1.get("flipped_snr")}
-    OUT.mkdir(parents=True, exist_ok=True)
-    (OUT / f"{tic}.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
+    out["flipped"] = d["flipped"]
     return out
+
+
+def validate(tic: int, n_boot: int) -> dict:
+    out = run(inputs(tic), n_boot)
+    save(out)
+    return out
+
+
+def save(out: dict) -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    (OUT / f"{out['tic']}.json").write_text(json.dumps(out, indent=1, default=float), encoding="utf-8")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("tic", type=int)
+    ap.add_argument("tic", type=int, nargs="*")
     ap.add_argument("--boot", type=int, default=100)
+    ap.add_argument("--export", type=Path, help="write each candidate's inputs (validate_input_TIC.json) to this folder")
+    ap.add_argument("--job", action="store_true", help="run every validate_input_*.json in the working folder (Kaggle)")
+    ap.add_argument("--out", type=Path, default=Path("/kaggle/working"), help="where --job writes validation_TIC.json")
+    ap.add_argument("--import", dest="results", type=Path, help="save a job's validation_*.json into data/validation")
     args = ap.parse_args()
-    v = validate(args.tic, args.boot)
+    if args.export:
+        args.export.mkdir(parents=True, exist_ok=True)
+        for tic in args.tic:
+            (args.export / f"validate_input_{tic}.json").write_text(json.dumps(inputs(tic), default=float), encoding="utf-8")
+            print(f"exported TIC {tic}")
+    elif args.job:
+        args.out.mkdir(parents=True, exist_ok=True)
+        for path in sorted(Path(".").glob("validate_input_*.json")):
+            d = json.loads(path.read_text(encoding="utf-8"))
+            t0 = time.time()
+            try:
+                v = run(d, args.boot)
+            except Exception as e:  # one candidate's failure must not stop the others
+                v = {"tic": d["tic"], "error": f"{e.__class__.__name__}: {e}"}
+            (args.out / f"validation_{d['tic']}.json").write_text(json.dumps(v, indent=1, default=float), encoding="utf-8")
+            print(f"{time.strftime('%H:%M:%S')} TIC {d['tic']}: {v.get('error', 'done')} in {(time.time() - t0) / 60:.1f} min", flush=True)
+    elif args.results:
+        for path in sorted(args.results.glob("validation_*.json")):
+            v = json.loads(path.read_text(encoding="utf-8"))
+            if "error" in v:
+                print(f"TIC {v['tic']}: {v['error']}")
+                continue
+            save(v)
+            report(v)
+    else:
+        for tic in args.tic:
+            report(validate(tic, args.boot))
+
+
+def report(v: dict) -> None:
+    print(f"TIC {v['tic']}")
     f = v["fit"]
     if f.get("rho_ratio"):
         print(f"fit: k {f['k']['median']:.4f} [{f['k']['lo']:.4f}, {f['k']['hi']:.4f}], b {f['b']['median']:.2f}, "
