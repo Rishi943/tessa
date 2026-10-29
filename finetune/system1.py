@@ -23,7 +23,7 @@ from sklearn.model_selection import GroupKFold
 from scipy.stats import beta
 
 from pipeline.paths import DATA
-from pipeline.system1 import CLUE_GROUPS, clue_features, features  # noqa: F401  (moved there; ebm.py imports CLUE_GROUPS)
+from pipeline.system1 import CLUE_GROUPS, DRIVERS, clue_features, features  # noqa: F401  (moved there; ebm.py imports CLUE_GROUPS)
 
 FOLDER = DATA / "finetune"
 OUT = FOLDER / "system1"
@@ -195,11 +195,14 @@ def main() -> None:
     print(f"train {len(train)} (planets {Y.sum()}), CV log loss {loss:.4f} at {rounds} trees")
     model = xgb.train(params, xgb.DMatrix(X, Y, feature_names=names), num_boost_round=rounds)
 
-    # out-of-fold margins for train: every labelled TOI gets a score from a model that never saw its star
-    oof = np.zeros(len(train))
+    # out-of-fold margins and per-check contributions for train: every labelled TOI gets a score, and the
+    # checks that drove it, from a model that never saw its star (the full model's own would leak the label)
+    oof, oof_contrib = np.zeros(len(train)), np.zeros((len(train), len(names)))
     for fit, held in folds:
         m = xgb.train(params, xgb.DMatrix(X[fit], Y[fit], feature_names=names), num_boost_round=rounds)
-        oof[held] = m.predict(xgb.DMatrix(X[held], feature_names=names), output_margin=True)
+        dm = xgb.DMatrix(X[held], feature_names=names)
+        oof[held] = m.predict(dm, output_margin=True)
+        oof_contrib[held] = m.predict(dm, pred_contribs=True)[:, :-1]
     print(f"train out-of-fold AUC {roc_auc_score(Y, oof):.4f}")
 
     raw = lambda rs: model.predict(xgb.DMatrix(matrix(rs, names), feature_names=names), output_margin=True)  # noqa: E731
@@ -229,6 +232,21 @@ def main() -> None:
     (OUT / f"calibration-{name}.json").write_text(json.dumps({"a": float(cal.coef_[0][0]), "b": float(cal.intercept_[0])}))
     (OUT / f"results-{name}.json").write_text(json.dumps(results, indent=1), encoding="utf-8")
     (OUT / f"preds-{name}.json").write_text(json.dumps(preds), encoding="utf-8")  # P(planet): train out-of-fold, val, test
+
+    # what the dossier prompt shows: P(planet) and the checks that moved it most, out-of-fold for train;
+    # train APC (never trained on), val and test from the full model
+    rest = [r for r in split["train"] if r["label"]["target"] == "flag"] + scored
+    Xr = matrix(rest, names)
+    values = np.concatenate([X, Xr])
+    contrib = np.concatenate([oof_contrib, model.predict(xgb.DMatrix(Xr, feature_names=names), pred_contribs=True)[:, :-1]])
+    p = cal.predict_proba(np.concatenate([oof, raw(rest)]).reshape(-1, 1))[:, 1]
+    s1 = {}
+    for i, r in enumerate(train + rest):
+        top = np.argsort(-np.abs(contrib[i]))[:DRIVERS]
+        s1[r["toi"]] = {"p_planet": round(float(p[i]), 4),
+                        "drivers": [[names[j], None if np.isnan(values[i, j]) else round(float(values[i, j]), 3),
+                                     round(float(contrib[i, j]), 2)] for j in top]}
+    (OUT / f"s1-{name}.json").write_text(json.dumps(s1), encoding="utf-8")
 
 
 if __name__ == "__main__":

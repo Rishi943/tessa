@@ -5,6 +5,7 @@
 #   modal run --detach finetune/remote_traces.py --prompts data/finetune/prompts_test.jsonl --name base-v5-test
 #   modal volume get tessa-ft traces_raw/base-v5-test data/finetune/raw   # later, on wifi
 #   node finetune/traces.js --import data/finetune/raw/base-v5-test
+# The tuned vetter: --model glimmer-vetter --url <serve/glimmer.py's vetter endpoint>.
 import json
 from pathlib import Path
 
@@ -17,7 +18,7 @@ image = modal.Image.debian_slim(python_version="3.12").uv_pip_install("httpx==0.
 
 @app.function(image=image, volumes={"/out": out}, secrets=[modal.Secret.from_name("glimmer-key")],
               timeout=6 * 60 * 60)
-def run(packed: bytes, name: str, url: str, jobs: int = 48):
+def run(packed: bytes, name: str, url: str, jobs: int = 48, model: str = "muse-glimmer"):
     import asyncio
     import gzip
     import os
@@ -35,7 +36,7 @@ def run(packed: bytes, name: str, url: str, jobs: int = 48):
 
     async def one(client, p):
         nonlocal done, failed
-        body = {"model": "muse-glimmer", "max_tokens": 16384,
+        body = {"model": model, "max_tokens": 16384,
                 "messages": [{"role": "system", "content": p["system"]}, {"role": "user", "content": p["user"]}]}
         for attempt in range(4):
             try:
@@ -73,9 +74,9 @@ def run(packed: bytes, name: str, url: str, jobs: int = 48):
 
 
 @app.local_entrypoint()
-def main(prompts: str, name: str, jobs: int = 48):
+def main(prompts: str, name: str, jobs: int = 48, model: str = "muse-glimmer", url: str = ""):
     import os
-    url = os.environ.get("GLIMMER_URL") or next(
+    url = url or os.environ.get("GLIMMER_URL") or next(
         line.split("=", 1)[1].strip() for line in Path(".env").read_text(encoding="utf-8").splitlines()
         if line.startswith("GLIMMER_URL="))
     import gzip
@@ -83,5 +84,5 @@ def main(prompts: str, name: str, jobs: int = 48):
     print(f"{len(packed) / 1e6:.2f} MB of prompts")
     # spawn, not remote: the call then belongs to the detached app, and a dropped laptop connection
     # (which stopped the first run at 303/338) can no longer end it
-    call = run.spawn(packed, name, url.rstrip("/"), jobs)
+    call = run.spawn(packed, name, url.rstrip("/"), jobs, model)
     print(f"spawned {call.object_id}; the app keeps running after this exits")

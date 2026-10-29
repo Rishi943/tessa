@@ -1,8 +1,9 @@
 // Base Glimmer's dossiers on the fine-tuning TOIs, from the anonymised checks: several samples per star in
 // train and val (the correct ones become reasoning traces to train on), one per star in test (the base
 // model's score). Only TOIs the code rules pass to the agent, as in the survey. Existing files are kept.
-// Run: node finetune/traces.js [--samples 4] [--jobs 48] [--splits train,val,test] [--limit N] [--hint]
-//   [--export prompts.jsonl | --import FOLDER]   (run the prompts inside Modal: finetune/remote_traces.py)
+// Run: node finetune/traces.js [--version v6] [--samples 4] [--jobs 48] [--splits train,val,test] [--limit N] [--hint]
+//   [--export prompts.jsonl | --import FOLDER [--into FOLDER --model glimmer-vetter]]   (run the prompts inside
+//   Modal: finetune/remote_traces.py; --into keeps another model's replies apart from base Glimmer's)
 //   --hint: one more dossier, at high strength, for each train/val TOI none of whose samples got the outcome
 //   right, with the outcome in the system prompt. The file keeps the plain system prompt, which is what it
 //   trains on; finetune/dataset.py drops hinted traces whose reasoning mentions the hint.
@@ -11,7 +12,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { complete } from "@earendil-works/pi-ai";
 import { anonymize } from "../agent/anonymize.js";
-import { inventedNumbers, parseDossier, systemPrompt, userMessage } from "../agent/dossier.js";
+import { inventedNumbers, parseDossier, systemOneView, systemPrompt, userMessage } from "../agent/dossier.js";
 import { MODELS, apiKey, glimmerPrompt } from "../agent/models.js";
 import { logUsage } from "../agent/usage.js";
 
@@ -25,6 +26,7 @@ const jobs = Number(opt("--jobs", "48"));
 const splits = opt("--splits", "train,val,test").split(",");
 const limit = Number(opt("--limit", "0"));
 const hintMode = args.includes("--hint");
+const VERSION = opt("--version", "v5"); // v6: the TOIs System 1 passes, with its score and the similar cases
 const HINT_SAMPLE = 10;
 const OUTCOME = {
   gate2: "Follow-up observations later confirmed this signal as a planet.",
@@ -33,13 +35,16 @@ const OUTCOME = {
 };
 const hintFor = (target) => `${OUTCOME[target]} Write the dossier you would write from the checks alone: reason only `
   + "from the numbers given, as if you did not know this, and never mention follow-up, outcomes or this note.";
-const VERSION = "v5";
-const MODEL = "muse-glimmer";
+const MODEL = opt("--model", "muse-glimmer"); // glimmer-vetter: the tuned model's replies (with --import --into)
+const into = opt("--into", "");
 
-const vetDir = new URL("../data/finetune/vet/", import.meta.url);
-const outDir = new URL("../data/finetune/traces/", import.meta.url);
+const v5 = VERSION === "v5";
+const vetDir = new URL(v5 ? "../data/finetune/vet/" : "../data/finetune/vet_s1/", import.meta.url);
+const outDir = into ? pathToFileURL(`${resolve(into)}/`)
+  : new URL(v5 ? "../data/finetune/traces/" : `../data/finetune/traces_${VERSION}/`, import.meta.url);
 mkdirSync(outDir, { recursive: true });
 const prompt = systemPrompt(VERSION);
+const view = (checks) => anonymize(v5 ? checks : systemOneView(checks));
 
 // Half low, half high in training, so the tuned model keeps both ways of working; test at low, the dossiers' level.
 const effortsFor = (split) => (split === "test" ? ["low"] : Array.from({ length: samples }, (_, i) => (i < samples / 2 ? "low" : "high")));
@@ -80,7 +85,7 @@ if (exportPath) {
     const plain = glimmerPrompt(prompt, effort);
     return JSON.stringify({ id: `${d.toi}.${i}`, toi: d.toi, sample: i, effort, split: d.label.split,
       target: d.label.target, disp: d.label.disp, plain, ...(hint && { hint }),
-      system: hint ? glimmerPrompt(`${prompt}\n\n${hint}`, effort) : plain, user: userMessage(anonymize(d.checks)) });
+      system: hint ? glimmerPrompt(`${prompt}\n\n${hint}`, effort) : plain, user: userMessage(view(d.checks)) });
   });
   writeFileSync(exportPath, lines.join("\n") + "\n");
   console.log(`exported ${lines.length} prompts to ${exportPath}`);
@@ -92,7 +97,7 @@ if (importDir) {
   for (const f of readdirSync(dir).filter((f) => f.endsWith(".json"))) {
     const r = JSON.parse(readFileSync(new URL(f, dir), "utf8"));
     const d = JSON.parse(readFileSync(new URL(`${r.toi}.json`, vetDir), "utf8"));
-    const checks = anonymize(d.checks);
+    const checks = view(d.checks);
     const run = { toi: r.toi, sample: r.sample, effort: r.effort, split: r.split, target: r.target, disp: r.disp,
       ms: r.ms, tokens: r.tokens, stop: r.finish_reason === "length" ? "length" : "stop",
       system: r.plain, user: r.user, ...(r.hint && { hint: r.hint }), thinking: r.thinking ?? "", text: r.text ?? "" };
@@ -114,7 +119,7 @@ if (importDir) {
 }
 
 async function one({ d, i, effort, path, hint }) {
-  const checks = anonymize(d.checks);
+  const checks = view(d.checks);
   const plain = glimmerPrompt(prompt, effort);
   const context = {
     systemPrompt: hint ? glimmerPrompt(`${prompt}\n\n${hint}`, effort) : plain,

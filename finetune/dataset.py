@@ -6,9 +6,10 @@ exist. Hinted traces (written with the outcome in the prompt, see traces.js --hi
 none, up to HINT_SHARE of the set, and only when their reasoning doesn't mention the hint. The prompt each
 example trains on is the plain one, never the hinted one.
 
-Run: python -m finetune.dataset
+Run: python -m finetune.dataset [--traces traces_v6 --out sft_v6]
 Writes data/finetune/sft/{train,val}.jsonl and prints what was kept.
 """
+import argparse
 import json
 import random
 import re
@@ -34,8 +35,12 @@ def example(t: dict) -> dict:
 
 
 def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
+    ap.add_argument("--traces", default="traces", help="folder in data/finetune with the trace files (v6: traces_v6)")
+    ap.add_argument("--out", default="sft", help="folder in data/finetune for train.jsonl and val.jsonl")
+    args = ap.parse_args()
     by_toi = defaultdict(list)
-    for path in (FOLDER / "traces").glob("*.json"):
+    for path in (FOLDER / args.traces).glob("*.json"):
         t = json.loads(path.read_text(encoding="utf-8"))
         if t["split"] in ("train", "val"):
             by_toi[t["toi"]].append(t)
@@ -64,8 +69,8 @@ def main() -> None:
             drop = {id(r) for r in rng.sample(hinted, len(hinted) - cap)}
             rows[:] = [r for r in rows if id(r) not in drop]
         rng.shuffle(rows)
-        (FOLDER / "sft").mkdir(exist_ok=True)
-        with (FOLDER / "sft" / f"{split}.jsonl").open("w", encoding="utf-8") as f:
+        (FOLDER / args.out).mkdir(exist_ok=True)
+        with (FOLDER / args.out / f"{split}.jsonl").open("w", encoding="utf-8") as f:
             for r in rows:
                 f.write(json.dumps(r) + "\n")
         mix = Counter(r["target"] for r in rows)

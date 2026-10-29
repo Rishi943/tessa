@@ -5,7 +5,7 @@ flag), each model's dossier verdict, and "rules + model" (a candidate needs both
 rejects). Code-rejected TOIs count for every row, as they never reach a model.
 The figure that matters most: planets rejected (lost for good). Then false positives caught or leaked.
 
-Run: python -m finetune.evaluate [--split test] [--models base=data/finetune/traces ...]
+Run: python -m finetune.evaluate [--split test] [--vet vet_s1] [--models base=data/finetune/traces ...]
 """
 import argparse
 import json
@@ -64,10 +64,11 @@ def main() -> None:
     ap.add_argument("--models", nargs="*", default=[f"base={FOLDER / 'traces'}"],
                     help="NAME=FOLDER of dossier files (TOI.SAMPLE.json); sample 0 is scored")
     ap.add_argument("--subset", choices=["all", "km", "recent"], default="all")
+    ap.add_argument("--vet", default="vet", help="folder in data/finetune with the vet files (vet_s1: rules with System 1)")
     args = ap.parse_args()
 
     tois = []
-    for path in (FOLDER / "vet").glob("*.json"):
+    for path in (FOLDER / args.vet).glob("*.json"):
         d = json.loads(path.read_text(encoding="utf-8"))
         lab = d["label"]
         if lab["split"] != args.split:
