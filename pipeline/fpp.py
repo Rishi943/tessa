@@ -4,7 +4,7 @@ TRICERATOPS weighs "a planet transits the target" against eclipsing binaries and
 on unresolved companions, in the background and on every TIC neighbour within 10 pixels, from the transit
 shape and how much of each star's light falls in the photometric aperture. FPP is the probability of any
 false positive, NFPP that the signal is on a resolved neighbour. The usual validation bar is FPP < 0.015
-and NFPP < 0.001; FPP < 0.5 is "likely a planet".
+and NFPP < 0.001; FPP < 0.5 with NFPP < 0.001 is "likely a planet" (classify).
 
 export (local): the folded light curve within 3 durations of mid-transit, 600-s points only (TESS-SPOC
   10-min sectors and QLP 200-s sectors binned to 10 min by search.detrend; 30-min sectors left out, so one
@@ -37,6 +37,18 @@ T0 = time.time()
 
 def log(msg: str) -> None:
     print(f"{time.strftime('%H:%M:%S')} +{(time.time() - T0) / 60:5.1f} min  {msg}", flush=True)
+
+
+def classify(fpp: float | None, nfpp: float | None) -> str:
+    """Giacalone et al. 2021's classes: validated (FPP < 0.015 and NFPP < 0.001), likely planet (FPP < 0.5
+    and NFPP < 0.001), likely nearby false positive (NFPP > 0.1); anything else is unclassified."""
+    if fpp is None or nfpp is None:
+        return "unclassified"
+    if nfpp > 0.1:
+        return "likely nearby false positive"
+    if nfpp < 0.001:
+        return "validated" if fpp < 0.015 else "likely planet" if fpp < 0.5 else "unclassified"
+    return "unclassified"
 
 
 # --- export (local) ----------------------------------------------------------------------------
@@ -210,8 +222,9 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path) -> dict:
            "FPP_mean": float(fpp.mean()) if len(fpp) else None, "FPP_std": float(fpp.std()) if len(fpp) else None,
            "NFPP_mean": float(nfpp.mean()) if len(nfpp) else None, "NFPP_std": float(nfpp.std()) if len(nfpp) else None,
            "scenarios_mean": {k: float(np.mean([r["scenarios"].get(k, 0) for r in results])) for k in (results[0]["scenarios"] if results else {})},
+           "class": classify(*((fpp.mean(), nfpp.mean()) if len(fpp) else (None, None))),
            "validated": bool(len(fpp) and fpp.mean() < 0.015 and nfpp.mean() < 0.001),
-           "likely_planet": bool(len(fpp) and fpp.mean() < 0.5), "runs": results,
+           "likely_planet": bool(len(fpp) and fpp.mean() < 0.5 and nfpp.mean() < 0.001), "runs": results,
            "neighbours_within_10px": int(len(target.stars)) - 1}
     (outdir / f"fpp_{tic}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     return out

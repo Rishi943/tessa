@@ -26,6 +26,7 @@ from pathlib import Path
 
 import numpy as np
 
+from .fpp import classify
 from .paths import DATA, ROOT
 
 OUT = ROOT / "preprints"
@@ -211,6 +212,9 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     rho = fit.get("rho_ratio")
     per_transit = sig["snr"] / math.sqrt(max(n_tr, 1))
     expect = per_transit * math.sqrt(nxt.get("transits", 0)) if nxt else None
+    fclass = classify(f["FPP_mean"], f["NFPP_mean"]) if f else None
+    passed = fclass in ("validated", "likely planet")
+    near_open = bool(f) and not passed and f["FPP_mean"] < 0.5 and f["NFPP_mean"] >= 0.001
 
     title = (f"TIC {tic}.01: a {rp['median']:.1f} R<sub>&oplus;</sub> planet candidate on a {eph['period']:.2f}-day orbit "
              f"around a nearby {sp} dwarf, found in <i>TESS</i> full-frame images")
@@ -228,18 +232,27 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         tests.append(f"in a leave-one-season-out test, each of {len(seasons)} seasons is predicted from the others and shows the dip at the predicted times;")
     if flip.get("flipped_snr"):
         tests.append(f"the identical search on this star's upside-down light curve finds nothing stronger than SNR {flip['flipped_snr']:.1f}, against {flip['dip_snr']:.1f} for the dip;")
-    if f and f["likely_planet"]:  # a test passed; short of validation, the bullet says so
+    if passed:  # a test passed; short of validation, the bullet says so
         tests.append(f"TRICERATOPS gives FPP = {f['FPP_mean']:.3f} &plusmn; {f['FPP_std']:.3f} and NFPP = {f['NFPP_mean']:.1e}"
-                     + (", below the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)." if f["validated"]
-                        else ": most likely a planet, but short of the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)."))
+                     + (", below the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)." if fclass == "validated"
+                        else ": a likely planet (FPP &lt; 0.5 and NFPP &lt; 0.001; Giacalone et al. 2021), short of the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)."))
+    fpp_note = ""
+    if near_open:  # FPP alone looks good, but a nearby star isn't excluded: said outside the list of passed tests
+        fpp_note = (f" TRICERATOPS gives FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f}, but NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e} "
+                    "is above the 0.001 that the &ldquo;likely planet&rdquo; class also requires (Giacalone et al. 2021): by that test a nearby star "
+                    "is not yet excluded as the source.")
+    elif f and not passed:
+        fpp_note = f" TRICERATOPS gives FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f} and NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e} ({fclass})."
     abstract = (
         f"We report a transiting planet candidate around TIC&nbsp;{tic} (Gaia DR3 {gaia['source_id']}), a <i>T</i>&nbsp;=&nbsp;{star['tmag']:.1f} "
         f"{sp} dwarf at {star['distance']:.1f}&nbsp;pc, found by Tessa, an open search of <i>TESS</i> full-frame-image light curves of nearby K and M dwarfs "
         f"that were mostly never observed at 2-minute cadence. Data from {len(sectors)} sectors show {n_tr} transits with period "
         f"<i>P</i>&nbsp;=&nbsp;{eph['period']:.6f}&nbsp;&plusmn;&nbsp;{eph['period_err']:.6f}&nbsp;d, depth {sig['depth_ppm']:.0f}&nbsp;ppm and duration "
-        f"{eph['t14_h']:.2f}&nbsp;h (SNR&nbsp;{sig['snr']:.1f}), implying a planet radius of {rp_txt}&nbsp;R<sub>&oplus;</sub>. The signal passes every test available to us:"
-        "<ul>" + "".join(f"<li>{t[:-1] + '.' if i == len(tests) - 1 else t}</li>" for i, t in enumerate(tests)) + "</ul>"
-        f"The candidate matches no known planet, TOI, CTOI, catalogued eclipsing binary or variable star. We give an ephemeris and predicted transit times "
+        f"{eph['t14_h']:.2f}&nbsp;h (SNR&nbsp;{sig['snr']:.1f}), implying a planet radius of {rp_txt}&nbsp;R<sub>&oplus;</sub>. "
+        + ("The signal passes every test available to us:" if passed or not f else "The signal passes these tests:")
+        + "<ul>" + "".join(f"<li>{t[:-1] + '.' if i == len(tests) - 1 else t}</li>" for i, t in enumerate(tests)) + "</ul>"
+        + fpp_note.strip() + (" " if fpp_note else "")
+        + f"The candidate matches no known planet, TOI, CTOI, catalogued eclipsing binary or variable star. We give an ephemeris and predicted transit times "
         f"(timing uncertainty &asymp;{when['timing_err_now_min']:.0f}&nbsp;min)"
         + (f" for <i>TESS</i> Sector {nxt['sector']}, which observes the star from {nxt['start']} to {nxt['end']}," if nxt else "")
         + " and for ground-based observations, and set out in advance the criterion by which new data will test the prediction.")
@@ -290,8 +303,10 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
                    f"10-minute light curve of sectors {', '.join(map(str, f['lc_sectors']))}, we find FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f} "
                    f"and NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e}. The most probable scenarios are "
                    + "; ".join(f"{s}, {SCENARIOS.get(s, s)} ({p:.3f})" for s, p in scen) + ". "
-                   + ("This meets the usual statistical-validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001)." if f["validated"]
-                      else "This is below the &ldquo;likely planet&rdquo; line (FPP&nbsp;&lt;&nbsp;0.5) but above the usual validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001), so we do not claim validation." if f["likely_planet"]
+                   + ("This meets the usual statistical-validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001)." if fclass == "validated"
+                      else "This puts it in the &ldquo;likely planet&rdquo; class (FPP&nbsp;&lt;&nbsp;0.5 and NFPP&nbsp;&lt;&nbsp;0.001; Giacalone et al. 2021) but short of the validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001), so we do not claim validation." if fclass == "likely planet"
+                      else "The FPP is below 0.5, but the NFPP is above 0.001, so the candidate is not in the &ldquo;likely planet&rdquo; class of Giacalone et al. (2021), which needs both, and we do not claim validation. TRICERATOPS does not use the difference-image centroid, which bears directly on the nearby stars." if near_open
+                      else "The NFPP is above 0.1: TRICERATOPS favours a nearby false positive." if fclass == "likely nearby false positive"
                       else "This does not support a planet interpretation on its own.") + "</p>")
     else:
         fpp_par = "<p><b>TRICERATOPS.</b> Not yet run for this candidate.</p>"
@@ -319,8 +334,10 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         caveats.append(f"{len(open_suspects)} nearby star(s) that could cause the dip lie within 3&sigma; of the measured centroid ("
                        + "; ".join(f"{x['sep_arcsec']:.0f}&Prime; away, would need a {x['eclipse_needed'] * 100:.1f}% eclipse" for x in open_suspects)
                        + "); multi-colour photometry or high-resolution imaging would settle it.")
-    if f and not f["validated"]:
+    if f and fclass != "validated":
         caveats.append("TRICERATOPS does not validate the planet; high-resolution imaging would test the remaining scenarios.")
+    if near_open:
+        caveats.append(f"Its NFPP ({f['NFPP_mean']:.1e}) is above 0.001: ground-based photometry that resolves the nearby stars during a transit would test the nearby-star scenarios directly.")
 
     excluded = ""
     shut = [x for x in plausible if x["sigma_from_centroid"] >= 3]
