@@ -45,6 +45,11 @@ def load(multis: bool = False, groups=()):
     clues, gaia, ebs = {}, {}, {}
     if groups:
         clues = {p.stem: json.loads(p.read_text(encoding="utf-8")) for p in (FOLDER / "clues").glob("*.json")}
+        if "sector" in groups:  # pipeline/sector_checks.py's Kaggle job, packed
+            import gzip
+            packed = json.load(gzip.open(FOLDER / "packed" / "sector_all.json.gz", "rt", encoding="utf-8"))
+            for toi, sec in packed.items():
+                clues.setdefault(toi, {})["sector"] = sec
         for p in FOLDER.glob("gaia_clues_*.json"):
             g = json.loads(p.read_text(encoding="utf-8"))
             gaia.update(g["extra"])

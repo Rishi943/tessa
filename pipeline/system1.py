@@ -27,7 +27,7 @@ from .paths import DATA
 MODEL = DATA / "finetune" / "system1"
 NAME = "clues"
 ALPHA = "0.02"
-CLUE_GROUPS = ("centroid", "fit", "gaia", "eb")
+CLUE_GROUPS = ("centroid", "fit", "gaia", "eb", "sector")
 DRIVERS = 4
 
 LABELS = {
@@ -129,6 +129,10 @@ def clue_features(d: dict, clue: dict, gaia: dict, ebs: dict, groups) -> dict:
                  ipd_multi_peak=g.get("ipd_frac_multi_peak"), ipd_harmonic=g.get("ipd_gof_harmonic_amplitude"),
                  excess_noise_sig=g.get("astrometric_excess_noise_sig"),
                  radius_tic_over_flame=c["star"]["rad"] / g["radius_flame"] if g.get("radius_flame") and c["star"].get("rad") else None)
+    if "sector" in groups:  # odd/even and a half-orbit dip sector by sector (pipeline/sector_checks.py)
+        from .sector_checks import KEYS
+        sec = clue.get("sector") or {}
+        x.update({f"sector_{k}": sec.get(k) for k in KEYS})
     if "eb" in groups:
         period = c["refit"]["period"]
         target = str(c["star"].get("source_id"))
@@ -149,9 +153,11 @@ def suspects(c: dict, clue: dict | None = None) -> set[int]:
 
 def clues(lc: dict, sig: dict, star: dict, checks: dict) -> dict:
     """What System 1 reads beyond the code checks, for one signal: the transit fit (star-density test),
-    Gaia's binarity signs for the target, and Gaia's eclipsing-binary periods for it and its suspects."""
+    Gaia's binarity signs for the target, Gaia's eclipsing-binary periods for it and its suspects, and the
+    odd/even and secondary tests sector by sector."""
     from .fit import gaia_ebs, gaia_extra, transit_fit
-    out = {"fit": transit_fit(lc, sig, star), "gaia": {}, "eb": {}}
+    from .sector_checks import per_sector
+    out = {"fit": transit_fit(lc, sig, star), "gaia": {}, "eb": {}, "sector": per_sector(lc, sig)}
     sid = star.get("source_id")
     if sid:
         with contextlib.redirect_stdout(sys.stderr):  # astroquery's release banner and the lookups' progress lines

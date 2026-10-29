@@ -54,11 +54,12 @@ def centroid_all(tic: int) -> dict:
                                   "on_star", "suspects")}
 
 
-def sector_depths_by_source(tic: int) -> dict:
+def sector_depths_by_source(tic: int, data: tuple | None = None) -> dict:
     """Depth per sector with the light-curve product it came from. QLP and TESS-SPOC correct for
     neighbouring stars' light differently, so a depth that is steady within each product but
-    differs between them is a calibration difference, not a sign of a binary."""
-    checks, raw, lc = light_curve(tic)
+    differs between them is a calibration difference, not a sign of a binary. data: (checks, raw, lc) when
+    the caller has them (vet, before the files exist)."""
+    checks, raw, lc = data or light_curve(tic)
     sig = checks["signal"]
     inside = np.abs(phase_offset(lc["t"], sig["period"], sig["t0"])) < sig["dur"] / 2
     source_of = {int(s): int(np.bincount(raw["source"][raw["sector"] == s].astype(int)).argmax())
@@ -150,12 +151,12 @@ def stellar_radius(tic: int) -> dict:
     return {**out, "options": rows}
 
 
-def rotation(tic: int) -> dict:
+def rotation(tic: int, data: tuple | None = None) -> dict:
     """The star's own brightness cycle (spots rotating into view), from a periodogram of the
     light curve before detrending, sector by sector. A dip at the rotation period or a simple
     multiple of it may be the spots, not a transit."""
     from astropy.timeseries import LombScargle
-    checks, raw, _ = light_curve(tic)
+    checks, raw, _ = data or light_curve(tic)
     p_sig = checks["signal"]["period"]
     found = []
     for s in np.unique(raw["sector"]):
@@ -205,14 +206,35 @@ TOOLS = {f.__name__: f for f in (centroid_all, sector_depths_by_source, transit_
                                  predict, known)}
 
 
-def run(name: str, tic: int) -> dict:
-    result = TOOLS[name](tic)
+def save_evidence(tic: int, results: dict) -> None:
     path = EVIDENCE / f"{tic}.json"
     EVIDENCE.mkdir(exist_ok=True)
     evidence = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
-    evidence[name] = result
+    evidence.update(results)
     path.write_text(json.dumps(evidence, indent=1, default=float), encoding="utf-8")
+
+
+def run(name: str, tic: int) -> dict:
+    result = TOOLS[name](tic)
+    save_evidence(tic, {name: result})
     return result
+
+
+def for_agent(checks: dict, raw: dict, lc: dict) -> dict:
+    """The two tools prompt v8 reads, run by code for every signal that goes to the agent: saved as evidence for
+    gate 2, and returned in the short form the dossier shows (checks.tools)."""
+    data = (checks, raw, lc)
+    full = {}
+    for name, f in (("sector_depths_by_source", sector_depths_by_source), ("rotation", rotation)):
+        try:
+            full[name] = json.loads(json.dumps(f(checks["tic"], data), default=float))
+        except Exception as e:  # e.g. too few points in every sector: the tool's answer is that it couldn't tell
+            full[name] = {"error": f"{e.__class__.__name__}: {e}"[:200]}
+    save_evidence(checks["tic"], full)
+    rot = full["rotation"]
+    return {"sectors_by_source": full["sector_depths_by_source"].get("verdict"),
+            "rotation": {"rotation_d": rot.get("rotation_d"),
+                         "signal_at_rotation_multiple": rot.get("signal_at_rotation_multiple")}}
 
 
 def main() -> None:

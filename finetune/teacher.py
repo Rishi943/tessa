@@ -164,6 +164,36 @@ def job(out: Path, lc_root: Path, plots: bool) -> None:
     print(f"done in {(time.time() - started) / 60:.0f} min", flush=True)
 
 
+def centroid_job(out: Path, lc_root: Path, part: int, parts: int, max_hours: float = 11.0) -> None:
+    """Kaggle: centroid_all (difference imaging on every sector, not the latest six) for the signals the neighbours
+    or centroid rows flag; slow (TESScut cutouts), so in parts, each written as it finishes."""
+    from finetune.inputs import shards_by_tic
+    from pipeline.centroid import where
+
+    started = time.time()
+    jobs = json.loads(Path("centroid_jobs.json").read_text(encoding="utf-8"))[part::parts]
+    shards = shards_by_tic(lc_root)
+    out.mkdir(parents=True, exist_ok=True)
+    for n, j in enumerate(jobs, 1):
+        if time.time() - started > max_hours * 3600:
+            print(f"stopped at the time cap after {n - 1}", flush=True)
+            break
+        if j["tic"] not in shards:
+            continue
+        with np.load(shards[j["tic"]]) as z:
+            sectors = sorted({int(s) for s in z[f"{j['tic']}_sector"]})
+        try:
+            c = where(j["tic"], j["checks"]["signal"], max_sectors=99, star=j["checks"]["star"], sectors=sectors)
+            r = {k: c.get(k) for k in ("verdict", "why", "offset_arcsec", "err_arcsec", "offset_sigma", "sectors_used",
+                                       "on_star", "suspects")}
+        except Exception as e:
+            r = {"error": f"{e.__class__.__name__}: {e}"[:200]}
+        (out / f"centroid_{j['toi']}.json").write_text(json.dumps({"toi": j["toi"], "centroid_all": r}, default=float),
+                                                       encoding="utf-8")
+        print(f"{time.strftime('%H:%M:%S')} {n}/{len(jobs)} {j['toi']}: {r.get('verdict', r.get('error'))}", flush=True)
+    print(f"done in {(time.time() - started) / 60:.0f} min", flush=True)
+
+
 def post(model: str, body: dict) -> dict:
     import httpx
 
@@ -323,12 +353,19 @@ def main() -> None:
     r.add_argument("mode", choices=("text", "plots", "tools"))
     r.add_argument("--jobs", type=int, default=16)
     sub.add_parser("score")
+    cj = sub.add_parser("centroid-job")
+    cj.add_argument("--out", type=Path, default=Path("/kaggle/working"))
+    cj.add_argument("--lc", type=Path, default=Path(os.environ.get("KAGGLE_INPUTS", "/kaggle/input")))
+    cj.add_argument("--part", type=int, default=0)
+    cj.add_argument("--parts", type=int, default=1)
     sub.add_parser("attach").add_argument("dir", type=Path)
     a = ap.parse_args()
     if a.cmd == "pick":
         pick(a.dir, a.all)
     elif a.cmd == "job":
         job(a.out, a.lc, not a.no_plots)
+    elif a.cmd == "centroid-job":
+        centroid_job(a.out, a.lc, a.part, a.parts)
     elif a.cmd == "attach":
         attach(a.dir)
     elif a.cmd == "run":

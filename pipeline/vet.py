@@ -402,6 +402,9 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
         checks["system1"] = system1.score(checks)
         checks["similar"] = system1.similar(checks)  # the labelled TOIs most like it, for the dossier prompt (v6)
     checks["code_verdict"], checks["reasons"] = verdict(checks)
+    if checks["code_verdict"] == "agent" and not outside:  # prompt v8 reads two tools; gate 2 their evidence
+        from .tools import for_agent  # tools imports this module
+        checks["tools"] = finite(for_agent(checks, raw, lc))
     return checks
 
 

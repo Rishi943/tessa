@@ -24,7 +24,8 @@ from .when import when
 
 
 TESS_ORBIT_D = 13.7  # TESS goes round the Earth every 13.7 days and stops to send data home each time
-ROTATION_REJECT_RANK = 0.05  # a dip at the spin period rejects below this System 1 planet rank (prompt v8)
+ROTATION_REJECT_RANK = 0.04  # a dip at the spin period rejects below this System 1 planet rank (prompt v8;
+# 0.05 lost a planet at rank 0.044 once System 1 read the sector checks)
 
 
 def evidence(tic: int) -> dict:
