@@ -19,5 +19,7 @@
   ],
   // visitors' searches (migrations/): wrangler d1 migrations apply tessa-searches --remote
   "d1_databases": [{ "binding": "DB", "database_name": "tessa-searches", "database_id": "715a4b71-0753-47a0-9cf8-e749297ea3cb" }],
+  // Ask Tessa at low reasoning effort: on 20 test questions the same answers as the default, 8.2 s vs 16.5 s
+  "vars": { "ASK_EFFORT": "low" },
   "observability": { "enabled": true }
 }
