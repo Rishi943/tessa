@@ -13,11 +13,11 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
 | Searched | 22,978, ranked by how small a planet each could show |
 | Repeating dips found | 785, with a gate calibrated on upside-down light curves so about 1 star in 100 passes on noise |
-| Explained away | 528, each with a written reason |
-| Still unexplained | 247, flagged with what is left to check |
-| Known planets and candidates found again | 3 |
-| New candidates | 7: TIC 240488148, 50099421, 316447391, 166321785, 32206438, 358533152, 61220826 |
-| Model cost | $1.40 for every dossier, investigation, note and audit |
+| Explained away | 618, each with a written reason |
+| Still unexplained | 160, flagged with what is left to check |
+| Known planets and candidates found again | 2 |
+| New candidates | 5: TIC 50099421, 166321785, 240488148, 316447391, 61220826 |
+| Model cost | $1.01 for every dossier, investigation, note and audit |
 
 Each candidate has a case file on the site with its checks, its weak spots and when the next transits can be
 seen. For example, **TIC 240488148**: a 1.4 Earth-radius body every 1.51251 days around a K dwarf 59 pc away,
