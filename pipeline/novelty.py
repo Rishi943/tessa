@@ -21,6 +21,7 @@ import astropy.units as u
 from astropy.coordinates import SkyCoord
 
 from . import catalogs
+from .reported import reported
 from .vet import MAX_ECLIPSE_DEPTH, gaia_field, harmonic, known, signal_from_results, star_info
 
 VSX_ARCSEC = 60  # about 3 TESS pixels
@@ -130,8 +131,9 @@ def novelty(tic: int, sig: dict) -> dict:
                     errors.append(f"{name}: {e.__class__.__name__}: {e}"[:200])
                 else:
                     time.sleep(10 * (attempt + 1))
+    # other searches' published lists: credited, not counted as known (pipeline/reported.py)
     return {"tic": tic, "new": not matches and not errors, "complete": not errors,
-            "matches": matches, "notes": notes, "errors": errors}
+            "matches": matches, "notes": notes, "errors": errors, "reported": reported(tic, sig)}
 
 
 def main() -> None:

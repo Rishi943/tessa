@@ -16,7 +16,7 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Explained away | 618, each with a written reason |
 | Still unexplained | 160, flagged with what is left to check |
 | Known planets and candidates found again | 2 |
-| New candidates | 5: TIC 50099421, 166321785, 240488148, 316447391, 61220826 |
+| Candidates | 5: TIC 50099421, 166321785, 240488148, 316447391, 61220826 (4 also found by other searches) |
 | Model cost | $1.01 for every dossier, investigation, note and audit |
 
 Each candidate has a case file on the site with its checks, its weak spots and when the next transits can be
@@ -25,6 +25,10 @@ depth steady over 6 sectors; a Gaia star 5.4" away is not yet excluded; next TES
 
 A candidate is not a planet. It is a dip no check could explain, that no catalogue lists, and that predicts its
 own next transit closely enough to test.
+
+TIC 166321785, 240488148, 316447391 and 50099421 were also found independently by
+[eumemic/exoplanets](https://github.com/eumemic/exoplanets) and [RAVEN](https://zenodo.org/records/19661443);
+TIC 61220826 is on no published list.
 
 ## Built before and during the hackathon
 
@@ -131,7 +135,12 @@ Each module's docstring gives its exact arguments. Tests: `python -m pytest test
 ## Data
 
 NASA TESS light curves via MAST; ESA Gaia DR3; the TESS Input Catalog v8.2; ExoFOP TOI and CTOI lists; the NASA
-Exoplanet Archive; the TESS eclipsing binary catalogue; AAVSO VSX; SIMBAD; TESScut for difference images. Data
-files are not in the repo; the pipeline downloads them.
+Exoplanet Archive; the TESS eclipsing binary catalogue; AAVSO VSX; SIMBAD; TESScut for difference images.
+Other searches' candidate lists, for credit: eumemic/exoplanets, RAVEN (Zenodo 19661443), T16 (Roth et al. 2026),
+ExoMiner++ (Valizadegan et al. 2025, 2026). Data files are not in the repo; the pipeline downloads them.
+
+This research has made use of the NASA Exoplanet Archive, which is operated by the California Institute of
+Technology, under contract with the National Aeronautics and Space Administration under the Exoplanet
+Exploration Program.
 
 Built for the Meta AI Developer Hackathon, October to November 2026.
