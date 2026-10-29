@@ -50,12 +50,33 @@ function glimmer() {
   };
 }
 
+// Muse Spark Open, Meta's 816B (42B active) open-weight MoE, on Baseten. The hackathon key only works with
+// this exact id. Prices from baseten.co/pricing (2026-10-29); the $100 hackathon credit pays for it.
+function sparkOpen() {
+  return {
+    id: "meta-models/muse-spark-open-1026",
+    name: "Muse Spark Open",
+    api: "openai-completions",
+    provider: "baseten",
+    baseUrl: "https://inference.baseten.co/v1",
+    reasoning: false,
+    input: ["text"],
+    cost: { input: 1.25, output: 4.25, cacheRead: 0.15, cacheWrite: 0 },
+    contextWindow: 128000,
+    maxTokens: 16384,
+    compat: COMPAT,
+  };
+}
+
+const KEYS = { glimmer: "GLIMMER_API_KEY", baseten: "BASETEN_API_KEY", meta: "META_API_KEY" };
+
 export function glimmerPrompt(prompt, effort) {
   return effort ? `${prompt}\n\nReasoning strength: ${effort}.` : prompt;
 }
 
 export const MODELS = {
   "muse-glimmer": glimmer(),
+  "muse-spark-open": sparkOpen(),
   "muse-spark-1.3": meta("muse-spark-1.3", "Muse Spark 1.3", 1.25, 4.25, 0.15),
   "muse-spark-1.3-contributor": meta("muse-spark-1.3-contributor", "Muse Spark 1.3 (contributor)", 0.1, 0.2, 0.002),
   "muse-spark-1.2": meta("muse-spark-1.2", "Muse Spark 1.2", 1.25, 4.25, 0.15),
@@ -65,7 +86,7 @@ export const MODELS = {
 };
 
 export function apiKey(id) {
-  const name = MODELS[id]?.provider === "glimmer" ? "GLIMMER_API_KEY" : "META_API_KEY";
+  const name = KEYS[MODELS[id]?.provider] ?? "META_API_KEY";
   const key = process.env[name];
   if (!key) throw new Error(`${name} is not set`);
   return key;

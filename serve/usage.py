@@ -19,7 +19,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 USAGE = ROOT / "data" / "usage"
 CALLS = USAGE / "model_calls.jsonl"
-OPEN = ("muse-glimmer",)  # open-weight models, served by us on Modal
+OPEN = ("muse-glimmer", "muse-spark-open")  # open-weight models: Glimmer on our Modal, Spark Open on Baseten
 GPUS = ("L40S", "H100", "A100", "A10G", "T4", "L4", "B200", "H200")
 
 
