@@ -19,10 +19,12 @@ function round(v) {
 
 // What prompt v6 reads beyond v5's checks: System 1's score and drivers, the similar TOIs in words, and the
 // two fractions its odd/even and secondary rules use. The raw clues stay out: System 1 has read them.
+// v8 on also reads two tools' results (tools: sectors_by_source, rotation); earlier versions never see them.
 const OUTCOME = { gate2: "planet", reject: "not a planet", flag: "ambiguous" };
-export function systemOneView(checks) {
+export function systemOneView(checks, version = "v8") {
   const c = structuredClone(checks);
   delete c.clues;
+  if (Number(version.slice(1)) < 8) delete c.tools;
   const { depth_odd_ppm: a, depth_even_ppm: b } = c.odd_even ?? {};
   const deeper = Math.max(Math.abs(a ?? 0), Math.abs(b ?? 0));
   if (a != null && b != null && deeper) c.odd_even.depth_difference = Math.abs(a - b) / deeper;
@@ -37,7 +39,7 @@ export function systemOneView(checks) {
 
 // The input a prompt version reads: v6 on sees System 1's summary in place of the raw clues.
 export function promptInput(checks, version) {
-  return Number(version.slice(1)) >= 6 ? systemOneView(checks) : checks;
+  return Number(version.slice(1)) >= 6 ? systemOneView(checks, version) : checks;
 }
 
 export function userMessage(checks) {

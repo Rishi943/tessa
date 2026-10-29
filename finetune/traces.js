@@ -44,7 +44,7 @@ const outDir = into ? pathToFileURL(`${resolve(into)}/`)
   : new URL(v5 ? "../data/finetune/traces/" : `../data/finetune/traces_${VERSION}/`, import.meta.url);
 mkdirSync(outDir, { recursive: true });
 const prompt = systemPrompt(VERSION);
-const view = (checks) => anonymize(v5 ? checks : systemOneView(checks));
+const view = (checks) => anonymize(v5 ? checks : systemOneView(checks, VERSION));
 
 // Half low, half high in training, so the tuned model keeps both ways of working; test at low, the dossiers' level.
 const effortsFor = (split) => (split === "test" ? ["low"] : Array.from({ length: samples }, (_, i) => (i < samples / 2 ? "low" : "high")));

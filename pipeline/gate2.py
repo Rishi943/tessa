@@ -24,6 +24,7 @@ from .when import when
 
 
 TESS_ORBIT_D = 13.7  # TESS goes round the Earth every 13.7 days and stops to send data home each time
+ROTATION_REJECT_RANK = 0.05  # a dip at the spin period rejects below this System 1 planet rank (prompt v8)
 
 
 def evidence(tic: int) -> dict:
@@ -81,7 +82,9 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
     if cen.get("verdict") == "off_target" and not on_target:
         out.append(f"centroid: the dip sits {cen['offset_arcsec']:.1f}\" off the target ({cen['offset_sigma']:.1f} sigma)")
     pc = c["phase_curve"]
-    if ge(pc["ratio_to_depth"], 0.3) and ge(pc["chi2"], 50):
+    # the star's swing at this period counts only when the dip sits at a multiple of its spot rotation (prompt v8)
+    spots = "rotation" not in ev or ev["rotation"].get("signal_at_rotation_multiple") is not None
+    if ge(pc["ratio_to_depth"], 0.3) and ge(pc["chi2"], 50) and spots:
         out.append(f"phase_curve: the star swings {pc['ratio_to_depth']:.2f}x the dip at this period")
     # dips on gaps in the data: more than chance allows, or a period that matches TESS's own 13.7-day orbit
     # with half or more of them there
@@ -141,10 +144,13 @@ def evidence_rejects(c: dict, ev: dict) -> list[str]:
         why.append(f"centroid_all: difference imaging on every sector puts the dip on Gaia {cen['on_star']['source_id']}, "
                    f"{cen['on_star']['sep_arcsec']}\" away ({cen['offset_sigma']:.1f} sigma off this star)")
     rot = ev.get("rotation", {})
-    pc = c["phase_curve"]
-    if rot.get("signal_at_rotation_multiple") and pc["ratio_to_depth"] >= 0.3 and pc["chi2"] >= 50:
-        why.append(f"rotation: the star's spots turn every {rot['rotation_d']:.3f} d, the dip repeats at "
-                   f"{rot['signal_at_rotation_multiple']:g}x that, and the star swings {pc['ratio_to_depth']:.2f}x the dip")
+    multiple = rot.get("signal_at_rotation_multiple")
+    rank = (c.get("system1") or {}).get("planet_rank") or 0
+    # at half, once or twice the rotation, with System 1 already doubting it, the dip is the spots (prompt v8).
+    # Not on the star's swing alone: that rule rejected 3 known planets of 1,139 train+val signals for 1 FP.
+    if multiple in (0.5, 1, 2) and rank < ROTATION_REJECT_RANK:
+        why.append(f"rotation: the star's spots turn every {rot['rotation_d']:.3f} d, the dip repeats at {multiple:g}x "
+                   f"that, and System 1 ranks it below {1 - ROTATION_REJECT_RANK:.0%} of planets")
     return why
 
 
