@@ -175,9 +175,7 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
     // Keep the whole 100 pc sphere in view on narrow screens, and push it right on wide ones
     const fit = w / h < 1 ? 3.3 / Math.max(w / h, 0.55) : 3.3;
     camera.position.z = fit;
-    // With the Ask drawer open, pull the Sun left of it so a star turned to the front stays in view
-    const drawer = document.querySelector<HTMLElement>("aside.ask");
-    const centre = w <= 840 ? w / 2 : drawer && !drawer.hidden ? Math.min(w * 0.67, w - drawer.offsetWidth - 260) : w * 0.67;
+    const centre = w <= 840 ? w / 2 : w * 0.67;
     camera.setViewOffset(w, h, w / 2 - centre, 0, w, h);
     camera.updateProjectionMatrix();
     request();
@@ -290,9 +288,6 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
   canvas.addEventListener("pointerleave", () => { tip.hidden = true; });
 
   const ro = new ResizeObserver(resize);
-  const drawerWatch = new MutationObserver(resize);
-  const drawerEl = document.querySelector("aside.ask");
-  if (drawerEl) drawerWatch.observe(drawerEl, { attributes: true, attributeFilter: ["hidden"] });
   ro.observe(canvas);
   const io = new IntersectionObserver(([e]) => {
     visible = e.isIntersecting;
@@ -345,7 +340,6 @@ export function mountSky(host: HTMLElement, sky: Sky, onFocusChange?: (s: Status
       cancelAnimationFrame(raf);
       spin = 0;
       ro.disconnect();
-      drawerWatch.disconnect();
       io.disconnect();
       geom.dispose();
       material.dispose();

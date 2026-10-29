@@ -1,5 +1,6 @@
-// Ask Tessa: a column on the live view, no window, so it can stay open while you explore or search. It talks to
-// the Worker's /api/ask, where Muse Spark answers from Tessa's own files with tools. The Worker streams one JSON
+// Ask Tessa: one line at the bottom of every screen. The conversation rises above it, over a fade, and folds
+// away again without losing what was said, so it can stay open while you explore or search. It talks to the
+// Worker's /api/ask, where Muse Spark answers from Tessa's own files with tools. The Worker streams one JSON
 // object per line: steps as she works, pictures and buttons as she calls for them, then the answer.
 import { foldChart, lightCurve, sectorDepths, snrBars } from "./charts";
 import { getStar } from "./data";
@@ -14,30 +15,35 @@ type Turn = { role: "user" | "assistant"; content: string };
 const history: Turn[] = [];
 const STARTERS = ["What is Tessa, in one minute?", "What has Tessa found so far?", "How do you find a planet you can't see?"];
 const SEARCH_STARTER = "Search some stars for me";
+const ARROW = '<svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12h16M14 6l6 6-6 6"></path></svg>';
 
-let drawer: HTMLElement, log: HTMLElement, input: HTMLTextAreaElement, send: HTMLButtonElement, pill: HTMLButtonElement;
-let opener: HTMLElement | null = null, pillTimer = 0;
-const openers = () => document.querySelectorAll<HTMLButtonElement>(".bar .ask-open");
+let root: HTMLElement, talk: HTMLElement, log: HTMLElement, starters: HTMLElement;
+let input: HTMLTextAreaElement, send: HTMLButtonElement;
 
 export function setupAsk() {
-  drawer = document.querySelector("aside.ask")!;
+  root = document.querySelector("aside.ask")!;
   log = el("div", { class: "log", "aria-live": "polite" });
-  input = el("textarea", { rows: 1, placeholder: "Ask about a star, a word, or how this works", "aria-label": "Your question" }) as HTMLTextAreaElement;
-  send = el("button", { type: "submit" }, "Ask") as HTMLButtonElement;
-  // on a phone the chat covers the screen, so a running search shows here and a tap goes back to it
-  pill = el("button", { type: "button", class: "ask-pill", hidden: true }) as HTMLButtonElement;
-  pill.addEventListener("click", closeAsk);
-  const form = el("form", {}, input, send);
-  drawer.append(pill, log, form, el("p", { class: "foot" }, "Tessa is an AI and can make mistakes."));
-  hello();
-  drawer.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAsk(); });
+  const close = el("button", { type: "button", class: "ask-close" }, "Close");
+  close.addEventListener("click", closeAsk);
+  talk = el("div", { class: "ask-talk", hidden: true },
+    el("div", { class: "ask-top" }, el("span", {}, "Ask Tessa"), close), log,
+    el("p", { class: "foot" }, "Tessa is an AI and can make mistakes."));
+  const chip = (q: string, go = false) => el("button", { type: "button", class: go ? "go" : "", onclick: () => ask(q) }, q);
+  starters = el("div", { class: "ask-starters", hidden: true }, ...STARTERS.map((q) => chip(q)), chip(SEARCH_STARTER, true));
+  input = el("textarea", { rows: 1, placeholder: "Ask Tessa anything, or ask her to search some stars", "aria-label": "Ask Tessa" }) as HTMLTextAreaElement;
+  send = el("button", { type: "submit", "aria-label": "Send" }) as HTMLButtonElement;
+  send.innerHTML = ARROW;
+  const form = el("form", { class: "ask-line" }, input, send);
+  root.append(talk, starters, form, el("div", { class: "ask-rule", "aria-hidden": "true" }));
+  root.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAsk(); });
   form.addEventListener("submit", (e) => { e.preventDefault(); ask(input.value); });
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); ask(input.value); }
   });
   input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = `${input.scrollHeight}px`; });
-  // the header's button opens the chat and, while it is open, closes it
-  openers().forEach((b) => b.addEventListener("click", () => (drawer.hidden ? openAsk() : closeAsk())));
+  // the starters offer themselves when the line is empty and nothing has been asked yet
+  input.addEventListener("focus", () => { starters.hidden = history.length > 0 || !talk.hidden; });
+  root.addEventListener("focusout", (e) => { if (!root.contains(e.relatedTarget as Node)) starters.hidden = true; });
   log.addEventListener("click", (e) => {
     const a = (e.target as HTMLElement).closest("a");
     if (a?.getAttribute("href")?.startsWith("/")) {
@@ -54,10 +60,10 @@ export function setupAsk() {
   };
   document.addEventListener("click", term, true);
   document.addEventListener("keydown", term, true);
-  // a search tells Tessa when a star clears the bar and when it ends; she says so only if the chat is open
+  // a search tells Tessa when a star clears the bar and when it ends; she says so only while the talk is open
   addEventListener("tessa:search", (e) => {
     const d = (e as CustomEvent).detail as { kind: string; tic?: number; period?: number; k: number; n: number; found: number };
-    if (drawer.hidden) return;
+    if (talk.hidden) return;
     const text = d.kind === "cleared"
       ? [el("b", {}, `TIC ${d.tic} cleared the bar:`), ` a dip every ${d.period!.toFixed(1)} days. I'll put it through the rest of my checks; most turn out to be two stars eclipsing.`]
       : [`Your search is done: ${d.k} star${d.k === 1 ? "" : "s"}, ${d.found ? `${d.found} cleared the bar` : "none cleared the bar, which is what most stars do"}.`];
@@ -66,40 +72,24 @@ export function setupAsk() {
   });
 }
 
-function hello() {
-  const chip = (q: string, go = false) => el("button", { type: "button", class: go ? "go" : "", onclick: () => ask(q) }, q);
-  log.append(el("div", { class: "hello" }, el("p", { class: "hi" }, "Hi, I'm Tessa."), el("p", {}, "I look for planets in NASA's TESS data."),
-    el("div", { class: "starters" }, ...STARTERS.map((q) => chip(q)), chip(SEARCH_STARTER, true))));
-}
-
-function setOpeners(open: boolean) {
-  openers().forEach((b) => { b.textContent = open ? "Close" : "Ask Tessa"; b.setAttribute("aria-expanded", String(open)); });
+// the tour's first stop points at the line, which pulses three times
+export function pulseAsk() {
+  root.classList.add("pulse");
+  setTimeout(() => root.classList.remove("pulse"), 5200);
 }
 
 export function openAsk(question?: string) {
-  if (drawer.hidden) opener = document.activeElement as HTMLElement;
-  drawer.hidden = false;
+  talk.hidden = false;
+  starters.hidden = true;
   document.body.classList.add("asking");
-  setOpeners(true);
-  tickPill();
-  clearInterval(pillTimer);
-  pillTimer = window.setInterval(tickPill, 1000);
   input.focus();
   if (question) ask(question);
 }
 
 function closeAsk() {
-  drawer.hidden = true;
+  talk.hidden = true;
+  starters.hidden = true;
   document.body.classList.remove("asking");
-  setOpeners(false);
-  clearInterval(pillTimer);
-  opener?.focus();
-}
-
-function tickPill() {
-  const s = searchState();
-  pill.hidden = !s;
-  if (s) pill.textContent = `Searching: star ${s.star} of ${s.of}`;
 }
 
 // Plain text in, a little structure out: paragraphs, bullets, bold, and TIC numbers as links
@@ -138,9 +128,9 @@ async function picture(tic: number, view: string): Promise<HTMLElement | null> {
   }
 }
 
-// Tessa offers a search; it starts only when the reader clicks
+// Tessa offers a search; it starts only when the reader clicks, and the talk folds away so the search shows
 function offer(n: number): HTMLElement {
-  const go = (k: number) => () => { startSearch(k); if (matchMedia("(max-width: 900px)").matches) closeAsk(); };
+  const go = (k: number) => () => { startSearch(k); closeAsk(); };
   return el("div", { class: "acts" },
     el("button", { type: "button", class: "solid", onclick: go(n) }, n === 1 ? "Search one star" : `Start a ${n}-star search`),
     n > 1 ? el("button", { type: "button", onclick: go(1) }, "Just one star") : null);
@@ -149,16 +139,23 @@ function offer(n: number): HTMLElement {
 async function ask(question: string) {
   const q = question.trim();
   if (!q || send.disabled) return;
-  log.querySelector(".hello")?.remove();
+  talk.hidden = false;
+  starters.hidden = true;
+  document.body.classList.add("asking");
   input.value = "";
   input.style.height = "auto";
-  log.append(el("div", { class: "msg-user" }, el("span", {}, "You"), q));
+  input.placeholder = "Ask a follow-up";
+  log.append(el("p", { class: "msg-user" }, q));
   history.push({ role: "user", content: q });
   send.disabled = true;
+  const turn = el("div", { class: "turn" }, el("div", { class: "who" }, el("b", {}, "Tessa"), "Muse Spark"));
+  const body = el("div", { class: "turn-body" });
+  turn.append(body);
   const steps = el("div", { class: "steps" });
-  log.append(steps);
   const thinking = el("div", { class: "thinking" }, "Thinking");
   steps.append(thinking);
+  body.append(steps);
+  log.append(turn);
   log.scrollTop = log.scrollHeight;
   try {
     const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
@@ -183,15 +180,15 @@ async function ask(question: string) {
           steps.append(el("div", { class: "step" }, ev.text));
         } else if (ev.type === "show" && ev.tic) {
           const fig = await picture(ev.tic, ev.view);
-          if (fig) log.append(fig);
+          if (fig) body.append(fig);
         } else if (ev.type === "explain") {
           const fig = await explainFigure(ev.topic, ev.tic);
-          if (fig) log.append(fig);
+          if (fig) body.append(fig);
         } else if (ev.type === "offer") {
           after.push(offer(ev.stars));
         } else if (ev.type === "answer") {
           thinking.remove();
-          log.append(render(ev.text), ...after);
+          body.append(render(ev.text), ...after);
           history.push({ role: "assistant", content: ev.text });
           answered = true;
         } else if (ev.type === "error") {
@@ -204,7 +201,7 @@ async function ask(question: string) {
   } catch (e) {
     thinking.remove();
     history.pop();
-    log.append(el("p", { class: "err" }, (e as Error).message));
+    body.append(el("p", { class: "err" }, (e as Error).message));
   } finally {
     send.disabled = false;
     log.scrollTop = log.scrollHeight;

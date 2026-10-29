@@ -61,15 +61,17 @@ const planetHex = (p: Planets, i: number) => (p.kind[i] === 2 ? TESSA : p.kind[i
 // The opening clock: seconds into the intro -> the year the sky has reached. Waiting candidates arrive at 2027,
 // Tessa's at 2028, after today's planets.
 const CLOCK: [number, number][] = [[0, 1990.6], [1.2, 1992.4], [8.4, 2026.6], [9.6, 2027.6], [11, 2028.6]];
-const MILESTONES: [number, string][] = [
-  [1992, "The first planets ever confirmed, circling a dead star."],
-  [1995, "The first around a star like the Sun: 51 Pegasi b."],
-  [2009, "NASA launches Kepler to stare at one patch of sky."],
-  [2014, "Kepler: 715 planets announced in one day."],
-  [2016, "Kepler again: 1,284 in one day."],
-  [2018, "NASA launches TESS to watch the whole sky."],
-  [2026, "Today."],
+// The opening on a first visit: the story in six lines, one at a time, while the planets arrive. Then the choice.
+const LINES = [
+  "TESS watches millions of stars, looking for planets.",
+  "When a planet passes in front of its star, the star dims a little.",
+  "All of this data is public. Anyone can download it.",
+  "But checking a dip properly takes an astronomer's tools.",
+  "Tessa puts those tools in your browser. She runs on Meta's Muse models and explains every check as she goes.",
+  "Search a star yourself: if a dip clears the bar, it goes to Tessa's checks with your name on it.",
 ];
+const LINE_S = 3.8;  // seconds each line holds, fades included
+const SEEN = "tessa.seen";  // a returning visitor goes straight to the choice
 
 interface System {
   host: string; kind: number; group: Group; rows: number[]; at: THREE.Vector3; dist: number; year: number;
@@ -494,6 +496,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
 
   function overview() {
     closeSystem();
+    leaveHero();
+    card.hidden = false;
     setAt(null);
     selPoint.visible = false;
     selected = null;
@@ -521,14 +525,52 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
           el("p", {}, el("a", { href: "/survey", "data-link": true }, "Tessa's survey, in full")))));
   }
 
-  const introYear = el("p", { class: "u-year" });
-  const introCount = el("p", { class: "u-count" });
-  const introNote = el("p", { class: "u-note" });
-  function introCard() {
-    const skip = el("button", { type: "button", class: "u-bar-btn" }, "Skip");
-    skip.addEventListener("click", () => endIntro());
-    card.replaceChildren(bar([dot("var(--ok)"), "1992 to today"], skip),
-      el("div", { class: "u-body" }, introYear, introCount, introNote));
+  // the opening: one line at a time in the middle, the year the sky has reached in the corner
+  const introYear = el("span", { class: "o-yr" });
+  const introCount = el("span", {});
+  const line = el("p", { class: "o-line" });
+  const skip = el("button", { type: "button", class: "o-skip" }, "Skip");
+  skip.addEventListener("click", () => endIntro());
+  const opening = el("div", { class: "o-open", hidden: true },
+    el("div", { class: "o-lines", "aria-live": "polite" }, line),
+    el("div", { class: "o-corner" }, el("p", { class: "o-year", "aria-hidden": "true" }, introYear, introCount), skip));
+  let lineAt = -1;
+
+  // the choice: what Tessa is, what she has done, and the two ways in
+  const searchedAll = Number(sum?.searched_total ?? sum?.survey_searched ?? 0);
+  const byVisitors = el("dt", {}, "0");
+  fetch("/api/search/stats").then((r) => r.json()).then((s: { searched: number }) => { byVisitors.textContent = int(s.searched); }).catch(() => {});
+  const explore = el("button", { type: "button", class: "o-explore" }, "Explore the map");
+  explore.addEventListener("click", () => overview());
+  const heroEl = el("div", { class: "o-hero", hidden: true },
+    el("h1", {}, "Tessa puts an astronomer's checks in your browser."),
+    el("p", { class: "o-sub" }, "She runs on Meta's Muse models and explains every check as she goes."),
+    sum ? el("dl", { class: "o-stats" },
+      el("div", {}, el("dt", {}, int(searchedAll)), el("dd", {}, "stars searched")),
+      el("div", {}, byVisitors, el("dd", {}, "searched by visitors")),
+      el("div", {}, el("dt", { class: "o-new" }, int(sum.candidate)), el("dd", {}, "possible new worlds"))) : null,
+    el("div", { class: "o-actions" }, tour.length ? tourButton("o-btn") : null, sum ? searchButton("o-btn primary") : null),
+    explore);
+  section.append(opening, heroEl);
+  function hero() {
+    closeSystem();
+    setAt(null);
+    selPoint.visible = false;
+    selected = null;
+    focus = null;
+    paint();
+    centred.textContent = "Centred on the Sun";
+    card.hidden = true;
+    heroEl.hidden = false;
+    section.classList.add("home");
+    dim.classList.add("on");  // the words sit over the brightest part of the map
+    resize();
+  }
+  function leaveHero() {
+    if (heroEl.hidden) return;
+    heroEl.hidden = true;
+    section.classList.remove("home");
+    dim.classList.remove("on");
   }
   // cumulative confirmed planets by year, for the intro's counter
   const byYear = new Map<number, number>();
@@ -611,6 +653,8 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     endIntro(false);
     leaveTour(false);
     leaveSearch(false);
+    leaveHero();
+    card.hidden = false;
     selected = s;
     ring(s);
     hint.hidden = true;
@@ -649,24 +693,26 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     clock = null;
     tourEl?.dispose();
     tourEl = null;
-    card.hidden = false;
+    card.hidden = true;
+    leaveHero();
     section.classList.remove("touring");
     dim.classList.remove("on");
     controls.target.set(0, 0, 0);
     intro = { t0: performance.now() };
-    introCard();
+    lineAt = -1;
+    opening.hidden = false;
+    section.classList.add("opening");
+    resize();
   }
-  function endIntro(toOverview = true) {
-    if (intro) {
-      intro = null;
-      introDone = true;
-      uniforms.uYear.value = 3000;
-      if (toOverview) overview();
-    } else if (!introDone) {
-      introDone = true;
-      uniforms.uYear.value = 3000;
-      if (toOverview) overview();
-    }
+  function endIntro(toHero = true) {
+    if (!intro && introDone) return;
+    intro = null;
+    introDone = true;
+    opening.hidden = true;
+    section.classList.remove("opening");
+    uniforms.uYear.value = 3000;
+    try { localStorage.setItem(SEEN, "1"); } catch { /* private mode */ }
+    if (toHero) hero();
   }
   function clockYear(sec: number) {
     for (let k = 1; k < CLOCK.length; k++) {
@@ -696,13 +742,14 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     const fit = Math.max(at.length() * (innerWidth > 900 ? 1.6 : 2.6), 30);
     flyTo(at.clone().multiplyScalar(0.6), fit, side, 2400);  // a little nearer the system than the Sun: it is the subject
   }
-  function tourButton() {
-    const b = el("button", { type: "button", class: "u-btn u-tour" }, "Take the tour");
+  function tourButton(cls = "u-btn u-tour") {
+    const b = el("button", { type: "button", class: cls }, "Take the tour");
     b.addEventListener("click", () => tourStop(0));
     return b;
   }
   function tourStop(k: number) {
     endIntro(false);
+    leaveHero();
     closeSystem();
     const s = tour[k];
     stopAt = k;
@@ -743,14 +790,15 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   let searching = false;
   const g1 = (sum?.survey_gate1 ?? { floor: 14.3 }) as { floor: number };
   const odds = sum && sum.by_status.candidate ? `1 in ${int(Number((Number(sum.searched_total ?? sum.survey_searched) / sum.by_status.candidate).toPrecision(2)))}` : "1 in 5,000";
-  function searchButton() {
-    const b = el("button", { type: "button", class: "u-btn u-tour" }, "Search a star");
+  function searchButton(cls = "u-btn u-tour") {
+    const b = el("button", { type: "button", class: cls }, "Search a star");
     b.addEventListener("click", () => searchMode());
     return b;
   }
   // start: a batch size to begin at once (/search?go=10, Ask Tessa's button)
   function searchMode(start = 0) {
     endIntro(false);
+    leaveHero();
     closeSystem();
     leaveTour(false);
     tourEl?.dispose();
@@ -761,7 +809,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     paint();
     runClock(3000, 1200);
     ring(null);
-    dim.classList.remove("on");
+    dim.classList.add("on");  // the search has the screen; the map stays faintly behind it
     card.hidden = true;
     section.classList.add("touring");
     history.replaceState(history.state, "", "/search");
@@ -792,7 +840,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     history.replaceState(history.state, "", "/");
     resize();
     if (toOverview) {
-      overview();
+      hero();
       flyTo(new THREE.Vector3(), HOME.dist, HOME.dir, 2400);
     }
   }
@@ -810,7 +858,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     paint();
     resize();
     if (toOverview) {
-      overview();
+      hero();
       flyTo(new THREE.Vector3(), HOME.dist, HOME.dir, 2400);
     }
   }
@@ -903,7 +951,7 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
     // labels keep clear of the header, the card and the readout
     const top = document.querySelector<HTMLElement>(".bar")?.offsetHeight ?? 64;
     const base = section.getBoundingClientRect();
-    keepOut = [[0, 0, w, top], ...[card, readout, ...(tourEl ? [...tourEl.node.querySelectorAll<HTMLElement>(".t-head,.t-say,.t-stat,.t-ctrl,.t-stage")] : [])]
+    keepOut = [[0, 0, w, top], ...[card, readout, ...([...heroEl.children] as HTMLElement[]), line, ...(tourEl ? [...tourEl.node.querySelectorAll<HTMLElement>(".t-head,.t-say,.t-stat,.t-ctrl,.t-stage,.s-col")] : [])]
       .filter((e) => e.offsetWidth > 0).map((e) => {
       const b = e.getBoundingClientRect();
       return [b.left - base.left, b.top - base.top, b.right - base.left, b.bottom - base.top];
@@ -932,9 +980,11 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
       introYear.textContent = y < firstYear ? "" : String(shown);
       introCount.textContent = y > 2027 ? `+ ${int(p.counts.waiting)} TESS candidates waiting${y > 2028 ? `, and Tessa's ${words(p.counts.tessa)}` : ""}`
         : y < firstYear ? "" : `${int(cumulative(shown))} planet${cumulative(shown) === 1 ? "" : "s"} known`;
-      introNote.textContent = y > 2027 ? "Faint dust: candidates waiting for a second look. Teal: Tessa's."
-        : [...MILESTONES].reverse().find(([yr]) => yr <= shown)?.[1] ?? "";
-      if (sec > 12.5) endIntro();
+      // each line fades in, holds and fades out in its own slot
+      const slot = Math.floor(sec / LINE_S), into = sec - slot * LINE_S;
+      if (slot !== lineAt && slot < LINES.length) { lineAt = slot; line.textContent = LINES[slot]; }
+      line.style.opacity = String(Math.min(into / 0.6, 1, (LINE_S - into) / 0.5));
+      if (sec > LINES.length * LINE_S) endIntro();
     } else if (tween) {
       const t = Math.min((now - tween.t0) / tween.ms, 1), e = ease(t);
       // diving into a system, the view's centre reaches the star in the first half and the rest is zoom, or the
@@ -1038,14 +1088,17 @@ function mount(host: HTMLElement, p: Planets, sum: Summary | null, star: StarPag
   const at = params.get("at"), stop = Number(params.get("tour")) - 1;
   const start = at ? find(at) : undefined;
   const onTour = stop >= 0 && stop < tour.length, onSearch = /^\/search\/?$/.test(location.pathname) && !!sum;
-  if (introDone || still || start || onTour || onSearch) {
+  // ?skip goes straight to the choice, as for a returning visitor
+  let seen = params.has("skip");
+  try { seen ||= localStorage.getItem(SEEN) === "1"; } catch { /* private mode */ }
+  if (introDone || still || seen || start || onTour || onSearch) {
     introDone = true;
     uniforms.uYear.value = 3000;
     camera.position.copy(HOME.dir).multiplyScalar(HOME.dist);
     if (start) select(start);
     else if (onTour) tourStop(stop);
     else if (onSearch) searchMode([1, 10, 50, 100].includes(Number(params.get("go"))) ? Number(params.get("go")) : 0);
-    else overview();
+    else hero();
   } else startIntro();
   resize();
   raf = requestAnimationFrame(frame);

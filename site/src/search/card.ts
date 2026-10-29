@@ -38,7 +38,9 @@ function why(v: Verdict, floor: number, tic: number) {
 }
 
 export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void } {
-  const text = el("p", { class: "t-text", "aria-live": "polite" });
+  // the search full screen: the star on the left, Tessa's steps on the right as a transcript, newest at the bottom
+  const log = el("div", { class: "s-log", "aria-live": "polite" });
+  const kick = el("p", { class: "s-kick" });
   const big = el("p", { class: "t-big" }), sub = el("p", { class: "t-sub" }), facts = el("p", { class: "s-facts" });
   const leave = el("button", { type: "button", class: "u-bar-btn" }, "Back to the map");
   leave.addEventListener("click", () => o.onLeave());
@@ -54,13 +56,23 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     return b;
   });
   const ctrl = el("div", { class: "t-ctrl" }, handle, ...tiers);
-  const node = el("section", { class: "t-card bare", "aria-label": "Search a star" },
-    el("div", { class: "t-side" },
-      el("div", { class: "t-head" }, el("div", { class: "t-top" }, el("span", { class: "t-where" }, el("span", { class: "u-dot", style: "background: var(--ok)" }),
-        el("b", {}, "Search a star")), leave)),
-      el("div", { class: "t-say" }, text), el("div", { class: "t-stat" }, big, sub, facts), ctrl),
-    stage);
-  const say = (s: string) => text.replaceChildren(...rich(s));
+  const node = el("section", { class: "t-card s-full bare", "aria-label": "Search a star" },
+    el("div", { class: "t-head" }, el("div", { class: "t-top" }, el("span", { class: "t-where" }, el("span", { class: "u-dot", style: "background: var(--ok)" }),
+      el("b", {}, "Search a star")), leave)),
+    el("div", { class: "t-stat" }, kick, big, sub, facts), ctrl,
+    el("div", { class: "s-col" }, log, stage));
+  // each step is a line of the transcript; a step still running (the orbit count) updates in place
+  const begun = performance.now();
+  const clock = () => { const s = Math.round((performance.now() - begun) / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+  let live: HTMLElement | null = null;
+  const entry = (s: string) => {
+    const p = el("p", { class: "s-say" }, ...rich(s));
+    log.append(el("div", { class: "s-step" }, el("div", { class: "who" }, el("b", {}, "Tessa"), clock()), p));
+    while (log.children.length > 8) log.firstElementChild!.remove();
+    return p;
+  };
+  const say = (s: string) => { live = null; entry(s); };
+  const sayLive = (s: string) => { if (live) live.replaceChildren(...rich(s)); else live = entry(s); };
   const stat = (a: string, b: string, c = "") => { big.textContent = a; sub.textContent = b; facts.textContent = c; };
 
   say(`Your computer runs Tessa's search on stars nobody has searched yet. About ${o.odds} stars gives a [[candidate]], so most searches find nothing, and that still counts: every star searched is one fewer to go. How many?`);
@@ -120,6 +132,7 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     const lc = decode(buf);
     const sectors = new Set(lc.sector).size, years = (lc.t[lc.t.length - 1] - lc.t[0]) / 365.25;
     // the star stays described in the corner for the whole search
+    kick.textContent = k ? `Star ${k} of your ${n}` : "Your star";
     stat(`TIC ${star.tic}`, `${kind(star.teff)}, ${int(star.dist * LY)} light-years away`,
       `${sectors} TESS sector${sectors > 1 ? "s" : ""}${years >= 1 ? ` over ${Math.round(years)} years` : ""}, ${int(lc.t.length)} measurements`);
     node.classList.remove("bare");
@@ -133,7 +146,7 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     const c = cores();
     const left = k ? ` About ${mins((n - k + 1) * pace)} to go.` : "";
     const running = run(lc, rad, mass, o.floor, (done, total, s, g) => {
-      say(`${head}Trying ${int(total)} possible [[orbit|orbits]] on ${c} of your computer's cores: ${Math.floor((100 * done) / total)}%.${left}`);
+      sayLive(`${head}Trying ${int(total)} possible [[orbit|orbits]] on ${c} of your computer's cores: ${Math.floor((100 * done) / total)}%.${left}`);
       periodogram(plot, s, g, o.floor, null);
     });
     job = running;
