@@ -28,6 +28,8 @@ ON_TARGET_ARCSEC = 5
 SIMBAD_BINARY = {"EB*": "an eclipsing binary", "EB?": "a candidate eclipsing binary", "El*": "an ellipsoidal variable",
                  "SB*": "a spectroscopic binary"}
 VSX_ECLIPSING = ("E", "EA", "EB", "EW", "ELL")
+SIMBAD_SERVERS = ("simbad.cds.unistra.fr", "simbad.harvard.edu")
+VIZIER_SERVERS = ("vizier.cds.unistra.fr", "vizier.idia.ac.za", "vizier.nao.ac.jp")
 
 
 def toi_lists(tic: int, star: dict, sig: dict) -> tuple[list, list]:
@@ -38,10 +40,20 @@ def toi_lists(tic: int, star: dict, sig: dict) -> tuple[list, list]:
     return [k for k in hits if k["harmonic"] is not None], notes
 
 
+def mirrored(servers: tuple[str, ...], query):
+    """query(server) on each mirror in turn until one answers (CDS itself was unreachable on 2026-10-29)."""
+    for i, server in enumerate(servers):
+        try:
+            return query(server)
+        except Exception:
+            if i == len(servers) - 1:
+                raise
+
+
 def vsx(star: dict, sig: dict) -> tuple[list, list]:
     from astroquery.vizier import Vizier
-    got = Vizier(columns=["Name", "Type", "Period", "_r"], row_limit=50).query_region(
-        SkyCoord(star["ra"], star["dec"], unit="deg"), radius=VSX_ARCSEC * u.arcsec, catalog="B/vsx/vsx")
+    got = mirrored(VIZIER_SERVERS, lambda s: Vizier(columns=["Name", "Type", "Period", "_r"], row_limit=50, vizier_server=s)
+                   .query_region(SkyCoord(star["ra"], star["dec"], unit="deg"), radius=VSX_ARCSEC * u.arcsec, catalog="B/vsx/vsx"))
     matches, notes = [], []
     for r in (got[0] if len(got) else []):
         p = float(r["Period"]) if r["Period"] is not None and str(r["Period"]) != "--" else None
@@ -84,9 +96,13 @@ def gaia_ebs(tic: int, star: dict, sig: dict) -> tuple[list, list]:
 
 def simbad(star: dict) -> tuple[list, list]:
     from astroquery.simbad import Simbad
-    sb = Simbad()
-    sb.add_votable_fields("otype")
-    got = sb.query_region(SkyCoord(star["ra"], star["dec"], unit="deg"), radius=SIMBAD_ARCSEC * u.arcsec)
+
+    def query(server):
+        sb = Simbad()
+        sb.server = server
+        sb.add_votable_fields("otype")
+        return sb.query_region(SkyCoord(star["ra"], star["dec"], unit="deg"), radius=SIMBAD_ARCSEC * u.arcsec)
+    got = mirrored(SIMBAD_SERVERS, query)
     notes = []
     target = SkyCoord(star["ra"], star["dec"], unit="deg")
     for r in (got if got is not None else []):
