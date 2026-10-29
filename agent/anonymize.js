@@ -13,6 +13,7 @@ export function anonymize(checks) {
     delete part.t0;
     part.period = sig3(part.period);
   }
+  for (const d of c.system1?.drivers ?? []) d.value = sig3(d.value); // a driver can be the period
   for (const n of c.neighbours?.closest_that_could ?? []) delete n.source_id;
   if (c.centroid) {
     for (const s of c.centroid.suspects ?? []) delete s.source_id;

@@ -274,6 +274,7 @@ def rescore(vet_dirs: list[Path], clue_dir: Path, write: bool = False) -> list[d
                     c[k] = clue[k]
             c["clues"] = {"fit": clue.get("fit") or {}, "gaia": g["extra"], "eb": g["eb"]}
             c["system1"] = score(c)
+            c["similar"] = similar(c)
             c["clues"].update(gaia={k: v for k, v in g["extra"].items() if k == str(c["star"].get("source_id"))},
                               eb={k: v for k, v in g["eb"].items() if k in {str(s) for s in suspects(c) | {c["star"].get("source_id")}}})
             c["code_verdict"], c["reasons"] = verdict(c)

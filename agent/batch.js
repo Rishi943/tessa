@@ -5,7 +5,7 @@
 //   third of the time. Other models (the Wonder audit) keep their own level; --effort "" does the same for Spark.
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { inventedNumbers, parseDossier, systemPrompt, writeDossier } from "./dossier.js";
+import { inventedNumbers, parseDossier, promptInput, systemPrompt, writeDossier } from "./dossier.js";
 
 const args = process.argv.slice(2);
 const opt = (name, fallback) => {
@@ -32,7 +32,7 @@ async function one(checks) {
     try {
       const run = await writeDossier(checks, model, version, effort);
       run.dossier = parseDossier(run.raw);
-      run.invented = inventedNumbers(run.dossier, checks, systemPrompt(version));
+      run.invented = inventedNumbers(run.dossier, promptInput(checks, version), systemPrompt(version));
       writeFileSync(path, JSON.stringify(run, null, 1));
       return run;
     } catch (e) {

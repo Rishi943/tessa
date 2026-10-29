@@ -17,19 +17,45 @@ function round(v) {
   return typeof v === "number" && !Number.isInteger(v) ? Number(v.toPrecision(4)) : v;
 }
 
+// What prompt v6 reads beyond v5's checks: System 1's score and drivers, the similar TOIs in words, and the
+// two fractions its odd/even and secondary rules use. The raw clues stay out: System 1 has read them.
+const OUTCOME = { gate2: "planet", reject: "not a planet", flag: "ambiguous" };
+export function systemOneView(checks) {
+  const c = structuredClone(checks);
+  delete c.clues;
+  const { depth_odd_ppm: a, depth_even_ppm: b } = c.odd_even ?? {};
+  const deeper = Math.max(Math.abs(a ?? 0), Math.abs(b ?? 0));
+  if (a != null && b != null && deeper) c.odd_even.depth_difference = Math.abs(a - b) / deeper;
+  if (c.secondary?.depth_ppm != null && c.refit?.depth_ppm) c.secondary.depth_over_dip = c.secondary.depth_ppm / c.refit.depth_ppm;
+  if (c.system1) {
+    const { p_planet, planet_rank, drivers } = c.system1;
+    c.system1 = { p_planet, planet_rank, drivers: drivers.map((d) => ({ check: d.label, value: d.value, log_odds: d.log_odds })) };
+  }
+  if (c.similar) c.similar = c.similar.map((s) => ({ outcome: OUTCOME[s.target], ...(s.reason && s.reason !== "unknown" && { reason: s.reason }) }));
+  return c;
+}
+
+// The input a prompt version reads: v6 on sees System 1's summary in place of the raw clues.
+export function promptInput(checks, version) {
+  return Number(version.slice(1)) >= 6 ? systemOneView(checks) : checks;
+}
+
 export function userMessage(checks) {
   const compact = JSON.parse(JSON.stringify(checks, (k, v) => round(v)));
   return `Flagged signal and the code checks already run on it:\n${JSON.stringify(compact)}`;
 }
 
 function numbersIn(text) {
-  return (text.match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+  // "10-22" is a range and "4101+/-718" an error bar, not -22 or -718; 5.4e-05 is one number
+  return (text.match(/(?<![\w./+])-?\d+(?:\.\d+)?(?:e[-+]?\d+)?/gi) || []).map(Number);
 }
 
 // Numbers in the dossier's reasons that match nothing in its inputs (checks or prompt) within 3%,
 // also as a percentage. Small integers are skipped: they are counts ("7 sectors").
 export function inventedNumbers(dossier, checks, prompt) {
   const known = numbersIn(JSON.stringify(checks) + prompt);
+  const rank = checks.system1?.planet_rank;
+  if (typeof rank === "number") known.push(1 - rank); // "less planet-like than 96% of planets"
   const near = (a, b) => Math.abs(a - b) <= Math.max(0.15, 0.03 * Math.abs(b));
   const cited = dossier.reasons.flatMap((r) => numbersIn(`${r.value} ${r.why}`));
   return cited.filter((x) => !(Number.isInteger(x) && Math.abs(x) <= 10) && !known.some((k) => near(x, k) || near(x, 100 * k)));
@@ -40,6 +66,7 @@ export function parseDossier(text) {
   const d = JSON.parse(body.slice(body.indexOf("{"), body.lastIndexOf("}") + 1));
   if (!["reject", "flag", "gate2"].includes(d.verdict)) throw new Error(`bad verdict ${d.verdict}`);
   if (!Array.isArray(d.reasons)) throw new Error("reasons missing");
+  if (!d.reasons.every((r) => typeof r?.check === "string" && typeof r?.why === "string")) throw new Error("a reason lacks check or why");
   return d;
 }
 
@@ -50,7 +77,7 @@ export async function writeDossier(checks, id, version, effort, purpose = "dossi
   const model = effort && !glimmer ? { ...MODELS[id], reasoning: true, compat: { ...MODELS[id].compat, supportsReasoningEffort: true } } : MODELS[id];
   const context = {
     systemPrompt: glimmer ? glimmerPrompt(systemPrompt(version), effort) : systemPrompt(version),
-    messages: [{ role: "user", content: userMessage(checks), timestamp: Date.now() }],
+    messages: [{ role: "user", content: userMessage(promptInput(checks, version)), timestamp: Date.now() }],
     tools: [],
   };
   const t0 = Date.now();

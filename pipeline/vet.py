@@ -400,6 +400,7 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
     if s1:
         checks["clues"] = finite(system1.clues(lc, sig, star, checks))
         checks["system1"] = system1.score(checks)
+        checks["similar"] = system1.similar(checks)  # the labelled TOIs most like it, for the dossier prompt (v6)
     checks["code_verdict"], checks["reasons"] = verdict(checks)
     return checks
 

@@ -77,7 +77,7 @@ export async function investigate(checks, flags, modelId) {
   const raw = last.content.filter((b) => b.type === "text").map((b) => b.text).join("");
   const dossier = parseDossier(raw);
   const sum = (k) => assistant.reduce((s, m) => s + (m.usage?.[k] ?? 0), 0);
-  const known = { ...checks, tools: used.map((u) => u.result) };
+  const known = { ...checks, flags, tools: used.map((u) => u.result) };
   return {
     model: modelId, prompt: VERSION, ms: Date.now() - t0, flags, tools: used, raw, dossier,
     cost: assistant.reduce((s, m) => s + (m.usage?.cost?.total ?? 0), 0),
