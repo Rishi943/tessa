@@ -15,12 +15,21 @@ run (Kaggle CPU, entry fpp_job.py): apertures from the TESS-SPOC light-curve fil
   cutouts through lightkurve with retries (MAST answers bursts with 503s), then N_RUNS independent runs.
   Both the TESS-SPOC and QLP fluxes are corrected for dilution, so the default dilution_corrected=True holds.
 
+jobs (Kaggle, fetch job mounted): the same fold, done in the job from the mounted light curves, for a list of
+  signals (period, epoch, duration, depth: finetune/fpp_test.py writes it for the labelled test). A signal
+  with no light curve, or none at 10-minute cadence near a transit, is written as uncovered with the reason;
+  every signal is written to fpp_TIC.json as it finishes, none runs past its time limit, and the job stops
+  itself at --max-minutes. Signals already finished in a mounted earlier output are skipped (resume).
+
 Run: python -m pipeline.fpp export TIC [TIC ...] --out DIR      (writes fpp_input_TIC.json)
      Kaggle: python fpp_job.py [--runs 5] [--max-minutes 600]   (reads every fpp_input_*.json beside it)
+             python fpp_job.py --jobs fpp_jobs.json [--runs 1] [--limit N] [--part I --parts N]
 """
 import argparse
 import json
 import os
+import shutil
+import signal
 import sys
 import time
 from pathlib import Path
@@ -32,6 +41,9 @@ BIN_MIN = 5
 EXPTIME_S = 600
 N_SIM = 1_000_000
 CIRCLE_PX = 2.0  # aperture radius for stars with no TESS-SPOC sector
+MIN_POINTS = 30  # 10-minute points within the window, over all transits: fewer is no light curve to fit
+MAX_GEOMETRY_SECTORS = 4  # each sector costs a cutout and an aperture download, and the flux ratios are averaged
+SIGNAL_LIMIT_MIN = 40  # one signal's setup and runs: MAST reads can hang with no timeout of their own
 T0 = time.time()
 
 
@@ -62,15 +74,20 @@ def candidate(tic: int) -> tuple[dict, dict]:
     raise LookupError(f"TIC {tic} is not a candidate")
 
 
-def export(tic: int, out: Path) -> Path:
-    from .tools import light_curve
-    cand, _ = candidate(tic)
-    eph = cand["when"]["ephemeris"]
-    checks, raw, lc = light_curve(tic)
-    p, t0, t14 = eph["period"], eph["t0_btjd"], eph["t14_h"] / 24
+class Uncovered(Exception):
+    """A signal that can't be given an FPP because of its data, not because something broke."""
+
+
+def fold(tic: int, p: float, t0: float, t14_h: float, depth_ppm: float, raw: dict, lc: dict) -> dict:
+    """The job input for one signal: its light curve folded and binned (see the module docstring).
+    raw: time, flux, sector, source as the fetch jobs store them; lc: search.detrend of it."""
+    t14 = t14_h / 24
     keep = np.abs(lc["span"] * 86400 - EXPTIME_S) < 60  # 10-minute points only
     dt = (lc["t"] - t0 + p / 2) % p - p / 2
     near = keep & (np.abs(dt) < WINDOW_DURATIONS * t14)
+    if near.sum() < MIN_POINTS or (near & (np.abs(dt) < t14 / 2)).sum() < 3:
+        raise Uncovered(f"no 10-minute light curve at the transits: {int(near.sum())} points within {WINDOW_DURATIONS} "
+                        f"durations ({int(keep.sum())} 10-minute points in all, sectors {sorted({int(s) for s in lc['sector']})})")
     edges = np.arange(-WINDOW_DURATIONS * t14, WINDOW_DURATIONS * t14 + 1e-9, BIN_MIN / 1440)
     idx = np.digitize(dt[near], edges)
     w, y = lc["w"][near], lc["y"][near]
@@ -83,15 +100,23 @@ def export(tic: int, out: Path) -> Path:
         e_bin.append(float(1 / np.sqrt(sw)))
     sectors = sorted({int(s) for s in lc["sector"][keep]})
     sources = {int(s): int(raw["source"][raw["sector"] == s][0]) for s in np.unique(raw["sector"])}
-    d = {"tic": tic, "period": p, "t0_btjd": t0, "t14_h": eph["t14_h"],
-         "depth": cand["signal"]["depth_ppm"] * 1e-6, "exptime_s": EXPTIME_S, "bin_min": BIN_MIN,
-         "lc_sectors": sectors, "sources": sources,  # 0 SPOC, 1 TESS-SPOC, 2 QLP
-         "geometry_sectors": sorted(s for s, src in sources.items() if src == 1),
-         "n_points_unbinned": int(near.sum()), "time": t_bin, "flux": f_bin, "flux_err": float(np.median(e_bin))}
+    return {"tic": tic, "period": p, "t0_btjd": t0, "t14_h": t14_h,
+            "depth": depth_ppm * 1e-6, "exptime_s": EXPTIME_S, "bin_min": BIN_MIN,
+            "lc_sectors": sectors, "sources": sources,  # 0 SPOC, 1 TESS-SPOC, 2 QLP
+            "geometry_sectors": sorted(s for s, src in sources.items() if src == 1),
+            "n_points_unbinned": int(near.sum()), "time": t_bin, "flux": f_bin, "flux_err": float(np.median(e_bin))}
+
+
+def export(tic: int, out: Path) -> Path:
+    from .tools import light_curve
+    cand, _ = candidate(tic)
+    eph = cand["when"]["ephemeris"]
+    checks, raw, lc = light_curve(tic)
+    d = fold(tic, eph["period"], eph["t0_btjd"], eph["t14_h"], cand["signal"]["depth_ppm"], raw, lc)
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"fpp_input_{tic}.json"
     path.write_text(json.dumps(d), encoding="utf-8")
-    print(f"TIC {tic}: {d['n_points_unbinned']} points in {len(t_bin)} bins from sectors {sectors}; "
+    print(f"TIC {tic}: {d['n_points_unbinned']} points in {len(d['time'])} bins from sectors {d['lc_sectors']}; "
           f"geometry from TESS-SPOC sectors {d['geometry_sectors']}; flux error {d['flux_err'] * 1e6:.0f} ppm")
     return path
 
@@ -177,16 +202,25 @@ def apertures(tic: int, sectors: list[int], folder: Path) -> dict[int, list[list
     return out
 
 
-def run_one(d: dict, runs: int, deadline: float, outdir: Path) -> dict:
+def thin(sectors: list[int], n: int = MAX_GEOMETRY_SECTORS) -> list[int]:
+    """At most n sectors, evenly spread through the list."""
+    if len(sectors) <= n:
+        return sectors
+    return [sectors[i] for i in np.linspace(0, len(sectors) - 1, n).round().astype(int)]
+
+
+def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | None = None) -> dict:
+    """scratch: where the aperture files go (default beside the output; the labelled test keeps them out of it)."""
     import triceratops.triceratops as tr
+    started = time.time()
     tic = d["tic"]
-    work = outdir / f"work_{tic}"
+    work = (scratch or outdir) / f"work_{tic}"
     work.mkdir(parents=True, exist_ok=True)
-    aps = apertures(tic, d["geometry_sectors"], work) if d["geometry_sectors"] else {}
+    aps = apertures(tic, thin(d["geometry_sectors"]), work) if d["geometry_sectors"] else {}
     sectors = sorted(aps)
     circular = not sectors
     if circular:  # QLP-only stars: a circular aperture of CIRCLE_PX pixels around the target, like QLP's own
-        sectors = d["lc_sectors"]
+        sectors = thin(d["lc_sectors"])
     log(f"TIC {tic}: {'circular apertures' if circular else 'TESS-SPOC apertures'} for sectors {sectors}")
     target = tr.target(ID=tic, sectors=np.array(sectors), search_radius=10)
     if circular:
@@ -204,6 +238,7 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path) -> dict:
         if miss > 1.0:
             raise RuntimeError(f"sector {s}: the target is {miss:.1f} px from its aperture")
     target.calc_depths(tdepth=d["depth"], all_ap_pixels=[np.array(aps[s]) for s in sectors])
+    t_setup = time.time()
     t, f = np.array(d["time"]), np.array(d["flux"])
     results = []
     for i in range(runs):
@@ -225,9 +260,90 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path) -> dict:
            "class": classify(*((fpp.mean(), nfpp.mean()) if len(fpp) else (None, None))),
            "validated": bool(len(fpp) and fpp.mean() < 0.015 and nfpp.mean() < 0.001),
            "likely_planet": bool(len(fpp) and fpp.mean() < 0.5 and nfpp.mean() < 0.001), "runs": results,
-           "neighbours_within_10px": int(len(target.stars)) - 1}
+           "neighbours_within_10px": int(len(target.stars)) - 1, "seconds": round(time.time() - started),
+           "seconds_setup": round(t_setup - started)}
     (outdir / f"fpp_{tic}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     return out
+
+
+class TimedOut(BaseException):
+    """Raised by the alarm; not an Exception, so the download retries inside the libraries can't swallow it."""
+
+
+def attempt(d: dict, args, deadline: float, outdir: Path, scratch: Path | None = None) -> None:
+    """One signal, written to fpp_TIC.json whatever happens: a connection error gets three tries, any other failure
+    none, and nothing runs past SIGNAL_LIMIT_MIN or the job's deadline."""
+    tic = d["tic"]
+    for _ in range(3):  # MAST and the TIC service drop connections now and then
+        left = min(SIGNAL_LIMIT_MIN * 60, deadline - time.time())
+        if left <= 0:
+            return log(f"TIC {tic}: no time left")
+        try:
+            if hasattr(signal, "SIGALRM"):
+                def stop(*_):
+                    raise TimedOut(f"stopped after {left / 60:.0f} min")
+                signal.signal(signal.SIGALRM, stop)
+                signal.alarm(int(left))
+            r = run_one(d, args.runs, deadline, outdir, scratch)
+            return log(f"TIC {tic}: FPP {r.get('FPP_mean')}, NFPP {r.get('NFPP_mean')}, validated {r.get('validated')}")
+        except (Exception, TimedOut) as e:  # one candidate's failure must not stop the others
+            import traceback
+            traceback.print_exc()
+            (outdir / f"fpp_{tic}.json").write_text(json.dumps({"tic": tic, "error": f"{e.__class__.__name__}: {e}"[:300]}))
+            if "Connection" not in e.__class__.__name__ + str(e):
+                return
+            log(f"TIC {tic}: connection lost, trying again in a minute")
+            time.sleep(60)
+        finally:
+            if hasattr(signal, "SIGALRM"):
+                signal.alarm(0)
+            if scratch:  # the aperture files and the TESScut cutouts (lightkurve's cache) pile up over 100 stars
+                import lightkurve
+                shutil.rmtree(scratch / f"work_{tic}", ignore_errors=True)
+                shutil.rmtree(lightkurve.config.get_cache_dir(), ignore_errors=True)
+
+
+def folds(jobs: list[dict], inputs: Path, outdir: Path) -> dict[int, dict]:
+    """Each job's folded light curve from the mounted fetch output, and coverage.json: which signals have one.
+    A signal with none is written to fpp_TIC.json as uncovered, with the reason."""
+    from finetune.inputs import shards_by_tic
+    from .search import detrend
+    shards = shards_by_tic(inputs)
+    out, coverage = {}, []
+    for j in jobs:
+        tic = j["tic"]
+        row = {"tic": tic}
+        try:
+            if tic not in shards:
+                raise Uncovered("no light curve in the fetch output")
+            with np.load(shards[tic]) as z:
+                raw = {k: z[f"{tic}_{k}"] for k in ("time", "flux", "sector", "source")}
+            d = fold(tic, j["period"], j["t0"], j["t14_h"], j["depth_ppm"], raw, detrend(raw["time"], raw["flux"], raw["sector"]))
+            out[tic] = d
+            row |= {"covered": True, "lc_sectors": d["lc_sectors"], "n_points": d["n_points_unbinned"], "n_bins": len(d["time"]),
+                    "spoc_sectors": d["geometry_sectors"]}
+        except Uncovered as e:
+            row |= {"covered": False, "why": str(e)}
+            (outdir / f"fpp_{tic}.json").write_text(json.dumps({"tic": tic, "uncovered": str(e)}), encoding="utf-8")
+        except Exception as e:
+            row |= {"covered": False, "why": f"{e.__class__.__name__}: {e}"[:300]}
+        coverage.append(row)
+    (outdir / "coverage.json").write_text(json.dumps(coverage), encoding="utf-8")
+    log(f"{len(out)} of {len(jobs)} signals have a 10-minute light curve at their transits; "
+        f"{sum(bool(r.get('spoc_sectors')) for r in coverage)} also have TESS-SPOC apertures")
+    return out
+
+
+def finished(inputs: Path) -> set[int]:
+    """Signals with an FPP in a mounted earlier output (a rehearsal, or a part that hit its time cap)."""
+    done = set()
+    for p in inputs.rglob("fpp_[0-9]*.json"):
+        try:
+            if json.loads(p.read_text(encoding="utf-8")).get("FPP_mean") is not None:
+                done.add(int(p.stem.removeprefix("fpp_")))
+        except ValueError:
+            pass
+    return done
 
 
 def main() -> None:
@@ -243,29 +359,34 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
     ap.add_argument("--max-minutes", type=float, default=600)
+    ap.add_argument("--jobs", type=Path, help="fpp_jobs.json: fold these signals' light curves here instead of reading "
+                                              "fpp_input_*.json")
+    ap.add_argument("--limit", type=int, help="run at most this many signals (a rehearsal)")
+    ap.add_argument("--part", type=int, default=0)
+    ap.add_argument("--parts", type=int, default=1)
+    ap.add_argument("--inputs", type=Path, default=Path(os.environ.get("KAGGLE_INPUTS", "/kaggle/input")))
     args = ap.parse_args()
     here = Path(__file__).resolve().parent
-    outdir = Path("/kaggle/working") if Path("/kaggle/working").exists() else here / "out"
+    kaggle = Path("/kaggle/working").exists()
+    outdir = Path("/kaggle/working") if kaggle else here / "out"
     outdir.mkdir(parents=True, exist_ok=True)
     retrying_downloads()
     deadline = T0 + args.max_minutes * 60
+    if args.jobs:
+        scratch = Path("/kaggle/temp/fpp") if kaggle else outdir / "scratch"  # aperture files stay out of the output
+        scratch.mkdir(parents=True, exist_ok=True)
+        jobs = json.loads(args.jobs.read_text(encoding="utf-8"))[args.part::args.parts]
+        found, done = folds(jobs, args.inputs, outdir), finished(args.inputs)
+        todo = [found[j["tic"]] for j in jobs if j["tic"] in found and j["tic"] not in done][:args.limit]
+        log(f"{len(todo)} to run ({len(done)} finished in a mounted earlier output), {args.runs} run(s) each")
+        for n, d in enumerate(todo, 1):
+            attempt(d, args, deadline, outdir, scratch)
+            log(f"{n}/{len(todo)} done")
+        return
     inputs = sorted(here.glob("fpp_input_*.json"))
     log(f"{len(inputs)} candidates")
     for path in inputs:
-        d = json.loads(path.read_text(encoding="utf-8"))
-        for attempt in range(3):  # MAST and the TIC service drop connections now and then
-            try:
-                r = run_one(d, args.runs, deadline, outdir)
-                log(f"TIC {d['tic']}: FPP {r.get('FPP_mean')}, NFPP {r.get('NFPP_mean')}, validated {r.get('validated')}")
-                break
-            except Exception as e:  # one candidate's failure must not stop the others
-                import traceback
-                traceback.print_exc()
-                (outdir / f"fpp_{d['tic']}.json").write_text(json.dumps({"tic": d["tic"], "error": f"{e.__class__.__name__}: {e}"}))
-                if "Connection" not in e.__class__.__name__ + str(e):
-                    break
-                log(f"TIC {d['tic']}: connection lost, trying again in a minute")
-                time.sleep(60)
+        attempt(json.loads(path.read_text(encoding="utf-8")), args, deadline, outdir)
 
 
 if __name__ == "__main__":
