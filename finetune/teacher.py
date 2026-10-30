@@ -80,6 +80,23 @@ def pick(job_dir: Path, every: bool) -> None:
     print(f"{len(chosen)} signals ({sum(r['split'] == 'val' for r in chosen)} val), jobs in {job_dir}")
 
 
+def centroid_pick(job_dir: Path, splits: list[str]) -> None:
+    """The signals centroid_all is for: agent-bound, with the centroid row off target or a plausible neighbour inside
+    one pixel that the centroid row doesn't clear. Writes centroid_jobs.json for centroid-job."""
+    jobs = []
+    for f in sorted((DATA / "finetune" / "vet_s1").glob("*.json")):
+        d = json.loads(f.read_text(encoding="utf-8"))
+        c = d["checks"]
+        if d["label"]["split"] not in splits or c["code_verdict"] != "agent":
+            continue
+        verdict = (c.get("centroid") or {}).get("verdict")
+        if verdict == "off_target" or ((c.get("neighbours") or {}).get("plausible_within_1px") and verdict != "on_target"):
+            jobs.append({"toi": d["toi"], "tic": d["tic"], "checks": {k: c[k] for k in ("star", "signal")}})
+    job_dir.mkdir(parents=True, exist_ok=True)
+    (job_dir / "centroid_jobs.json").write_text(json.dumps(jobs), encoding="utf-8")
+    print(f"{len(jobs)} signals ({', '.join(splits)}), jobs in {job_dir}")
+
+
 def plot(lc: dict, sig: dict, path: Path) -> None:
     import matplotlib
     matplotlib.use("Agg")
@@ -359,6 +376,9 @@ def main() -> None:
     cj.add_argument("--lc", type=Path, default=Path(os.environ.get("KAGGLE_INPUTS", "/kaggle/input")))
     cj.add_argument("--part", type=int, default=0)
     cj.add_argument("--parts", type=int, default=1)
+    cp = sub.add_parser("centroid-pick")
+    cp.add_argument("dir", type=Path)
+    cp.add_argument("--split", nargs="+", default=["train", "val"])
     sub.add_parser("attach").add_argument("dir", type=Path)
     a = ap.parse_args()
     if a.cmd == "pick":
@@ -367,6 +387,8 @@ def main() -> None:
         job(a.out, a.lc, not a.no_plots)
     elif a.cmd == "centroid-job":
         centroid_job(a.out, a.lc, a.part, a.parts)
+    elif a.cmd == "centroid-pick":
+        centroid_pick(a.dir, a.split)
     elif a.cmd == "attach":
         attach(a.dir)
     elif a.cmd == "run":
