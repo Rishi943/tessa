@@ -24,11 +24,13 @@ LEAK = re.compile(r"follow-up|follow up|hint|was told|we know|known outcome|outc
                   r"false positive was|disposition", re.IGNORECASE)
 
 
-def good(t: dict, planet_flag: bool = False) -> bool:
+def good(t: dict, planet_flag: bool = False, fp_flag: bool = False) -> bool:
     """A trace worth training on. planet_flag: for a planet, "flag" counts too. Gate 2's own ranges flag most
     real planets (bright, deep transits vary between sectors at high significance), so the prompt asks for a flag
-    there; the costly mistakes are rejecting a planet and passing a false positive."""
-    right = t.get("verdict") == t["target"] or (planet_flag and t["target"] == "gate2" and t.get("verdict") == "flag")
+    there; the costly mistakes are rejecting a planet and passing a false positive. fp_flag: the same for a false
+    positive: prompt v8's table rejects only on its reject column, so most say flag, even told the outcome."""
+    right = t.get("verdict") == t["target"] or (t.get("verdict") == "flag" and (
+        planet_flag and t["target"] == "gate2" or fp_flag and t["target"] == "reject"))
     return right and not t.get("invented") and t.get("stop") == "stop" and t.get("thinking")
 
 
@@ -43,6 +45,7 @@ def main() -> None:
     ap.add_argument("--traces", default="traces", help="folder in data/finetune with the trace files (v6: traces_v6)")
     ap.add_argument("--out", default="sft", help="folder in data/finetune for train.jsonl and val.jsonl")
     ap.add_argument("--planet-flag", action="store_true", help="a planet's trace may say flag (v6)")
+    ap.add_argument("--fp-flag", action="store_true", help="a false positive's trace may say flag (v8)")
     ap.add_argument("--per-target", default="", help="traces kept per TOI by outcome, e.g. gate2=1,flag=1,reject=2")
     ap.add_argument("--repeat", default="", help="repeat an outcome's examples, e.g. reject=3, so the rare verdict is not drowned out")
     args = ap.parse_args()
@@ -58,8 +61,9 @@ def main() -> None:
     stats = Counter()
     for toi, traces in sorted(by_toi.items()):
         split, target = traces[0]["split"], traces[0]["target"]
-        plain = [t for t in traces if not t.get("hint") and good(t, args.planet_flag)]
-        hinted = [t for t in traces if t.get("hint") and good(t, args.planet_flag) and not LEAK.search(t["thinking"])]
+        plain = [t for t in traces if not t.get("hint") and good(t, args.planet_flag, args.fp_flag)]
+        hinted = [t for t in traces if t.get("hint") and good(t, args.planet_flag, args.fp_flag)
+                  and not LEAK.search(t["thinking"])]
         # the outcome itself first (a planet's gate2 before its flag), one low and one high strength when both exist
         plain.sort(key=lambda t: t["verdict"] != target)
         picked = []
@@ -69,9 +73,10 @@ def main() -> None:
         stats[f"{split} TOIs"] += 1
         if picked:
             stats[f"{split} with a correct trace"] += 1
-            out[split] += [example(t) for t in picked] * repeat.get(target, 1)
+            # the repeat is for the rare verdict itself: a false positive's flag isn't rare
+            out[split] += [example(t) for t in picked for _ in range(repeat.get(t["verdict"], 1))]
         elif hinted:
-            out[split] += [example(hinted[0])] * repeat.get(target, 1)
+            out[split] += [example(hinted[0])] * repeat.get(hinted[0]["verdict"], 1)
             stats[f"{split} hinted"] += 1
     for split, rows in out.items():
         hinted = [r for r in rows if r["hinted"]]
