@@ -24,8 +24,8 @@ from .when import when
 
 
 TESS_ORBIT_D = 13.7  # TESS goes round the Earth every 13.7 days and stops to send data home each time
-ROTATION_REJECT_RANK = 0.04  # a dip at the spin period rejects below this System 1 planet rank (prompt v8;
-# 0.05 lost a planet at rank 0.044 once System 1 read the sector checks)
+ROTATION_FLAG_RANK = 0.04  # a dip at the spin period flags below this System 1 planet rank (prompt v8). A reject
+# until 2026-10-30: it rejected 3 known planets of the train signals with 10 FPs and 9 APCs
 
 
 def evidence(tic: int) -> dict:
@@ -87,6 +87,12 @@ def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
     spots = "rotation" not in ev or ev["rotation"].get("signal_at_rotation_multiple") is not None
     if ge(pc["ratio_to_depth"], 0.3) and ge(pc["chi2"], 50) and spots:
         out.append(f"phase_curve: the star swings {pc['ratio_to_depth']:.2f}x the dip at this period")
+    # at half, once or twice the rotation, with System 1 already doubting it, the dip may be the spots (prompt v8)
+    rot = ev.get("rotation", {})
+    multiple = rot.get("signal_at_rotation_multiple")
+    if multiple in (0.5, 1, 2) and rank < ROTATION_FLAG_RANK:
+        out.append(f"rotation: the star's spots turn every {rot['rotation_d']:.3f} d, the dip repeats at {multiple:g}x "
+                   f"that, and System 1 ranks it below {1 - ROTATION_FLAG_RANK:.0%} of planets")
     # dips on gaps in the data: more than chance allows, or a period that matches TESS's own 13.7-day orbit
     # with half or more of them there
     g = c.get("gaps") or {}
@@ -139,18 +145,9 @@ def season_fails(found: list[dict]) -> list[str]:
 
 def evidence_rejects(c: dict, ev: dict) -> list[str]:
     """Rejections from the tools' evidence: the same kind of rule as the code vetting's."""
-    why = []
-    # centroid_all only clears (on_target, in outside_planet_range): its dip on a Gaia star at 5 sigma or more
-    # rejected 3 known planets of 233 train+val signals for 1 FP
-    rot = ev.get("rotation", {})
-    multiple = rot.get("signal_at_rotation_multiple")
-    rank = (c.get("system1") or {}).get("planet_rank") or 0
-    # at half, once or twice the rotation, with System 1 already doubting it, the dip is the spots (prompt v8).
-    # Not on the star's swing alone: that rule rejected 3 known planets of 1,139 train+val signals for 1 FP.
-    if multiple in (0.5, 1, 2) and rank < ROTATION_REJECT_RANK:
-        why.append(f"rotation: the star's spots turn every {rot['rotation_d']:.3f} d, the dip repeats at {multiple:g}x "
-                   f"that, and System 1 ranks it below {1 - ROTATION_REJECT_RANK:.0%} of planets")
-    return why
+    # none for now: centroid_all only clears (on_target, in outside_planet_range), as its dip on a Gaia star at
+    # 5 sigma or more rejected 3 known planets of 233 train+val signals for 1 FP; the spin rotation only flags
+    return []
 
 
 def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple[str, list[str], dict]:

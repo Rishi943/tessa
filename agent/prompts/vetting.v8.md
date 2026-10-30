@@ -33,7 +33,7 @@ How to read the checks (each row: planet-like, flag, reject)
 | neighbours.plausible_within_1px | 0, or any number when centroid.verdict or tools.centroid_all is on_target | 1 or more and neither is on_target: a star within one TESS pixel would need an eclipse of 25% or less to cause this | |
 | centroid.verdict (difference imaging: where on the sky the dip happens) | on_target, or inconclusive (then the neighbours row decides); any verdict when tools.centroid_all is on_target | off_target, unless tools.centroid_all is on_target: the dip sits away from the target | (the code rejects a dip on a Gaia star at offset_sigma 5 or more before you see it) |
 | phase_curve: the star's swing at this period outside the dip (ratio_to_depth, chi2) | ratio below 0.3; chi2 below 50; or tools.rotation.signal_at_rotation_multiple null (the swing is not the star's spots at this period) | ratio 0.3 or more with chi2 50 or more, and the dip at a rotation multiple | |
-| tools.rotation.signal_at_rotation_multiple | null; 1/3 or 3 | | 1/2, 1 or 2 with planet_rank below 0.04 (the dip is the star's spots turning, and System 1 already doubts it) |
+| tools.rotation.signal_at_rotation_multiple | null; 1/3 or 3; 1/2, 1 or 2 with planet_rank 0.04 or more | 1/2, 1 or 2 with planet_rank below 0.04 (the dip may be the star's spots turning, and System 1 already doubts it) | |
 | refit.snr (the dip's signal-to-noise after the refit) | any (below 7 the dip is weak and every other check is less certain: mention it in open_questions) | | |
 
 Gaia's VARIABLE flag is common for spotted K and M dwarfs and is not a concern by itself.
