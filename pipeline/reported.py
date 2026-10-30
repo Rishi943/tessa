@@ -9,7 +9,7 @@ Lists, reduced to one row per star and period (tic, period, list):
   - RAVEN (Zenodo 19661443): the TESS-SPOC search's vetted, validated and NSFP < 0.09 tables
   - T16 (Roth et al. 2026, Harvard Dataverse): its candidates, and single transits (no period)
   - ExoMiner++ (Zenodo 15466293) and ExoMiner++ 2.0 (Zenodo 17707413): SPOC TCEs it scores as planets (>= 0.5)
-  - Kunimoto et al. 2025 (VizieR J/AJ/170/280): LEO-Vetter's M-dwarf candidates
+  - Kunimoto et al. 2025 (AJ 170, 280; not on VizieR): LEO-Vetter's 172 M-dwarf candidates, the journal's Table 2
 
 Run (Kaggle CPU, as the files are about 220 MB): python -m pipeline.reported --build OUT_DIR
      writes reported.csv (a few MB) and a log of each list's columns; copy it to data/catalogs/reported.csv
@@ -17,6 +17,7 @@ Run (Kaggle CPU, as the files are about 220 MB): python -m pipeline.reported --b
 import argparse
 import io
 import json
+import re
 import sys
 
 import pandas as pd
@@ -32,8 +33,7 @@ EXOMINER = [("https://zenodo.org/api/records/15466293/files/exominerplusplus_cat
              "tess-spoc-2min_complete_1-16-2025_1014.csv/content", "ExoMiner++"),
             ("https://zenodo.org/api/records/17707413/files/vetting_catalog_2-min.csv/content", "ExoMiner++ 2.0 (2-min)"),
             ("https://zenodo.org/api/records/17707413/files/vetting_catalog_FFI.csv/content", "ExoMiner++ 2.0 (FFI)")]
-VIZIER = ("https://{}/viz-bin/asu-tsv?-source=J/AJ/170/280/table3&-out.max=unlimited&-out=TIC,Per")
-VIZIER_SERVERS = ("vizier.cds.unistra.fr", "vizier.cfa.harvard.edu", "vizier.idia.ac.za", "vizier.nao.ac.jp")
+KUNIMOTO = "https://content.cld.iop.org/journals/1538-3881/170/5/280/revision1/ajae070at2_mrt.txt"
 EXOMINER_PLANET = 0.5
 
 
@@ -113,16 +113,10 @@ def build(out_dir: str) -> None:
         return fetch
 
     def kunimoto():
-        # VizieR's TSV: comment lines, then the column names, a units line and a dashes line before the rows
-        for i, server in enumerate(VIZIER_SERVERS):  # CDS itself is not always reachable: its mirrors serve the same
-            try:
-                body = get(VIZIER.format(server))
-                break
-            except Exception:
-                if i == len(VIZIER_SERVERS) - 1:
-                    raise
-        lines = [line for line in body.decode("utf-8", "replace").splitlines() if line and not line.startswith("#")]
-        d = pd.DataFrame([line.split("\t") for line in lines[3:]], columns=lines[0].split("\t"))
+        # the journal's machine-readable Table 2 (CDS format): a header, then rows of TIC, TOI, CTOI, Per, ...
+        r = [line.split() for line in get(KUNIMOTO).decode("utf-8", "replace").splitlines() if re.match(r"\s*\d{5,9}\s+\d+\.\d\d\s", line)]  # TICs are right-aligned
+        d = pd.DataFrame({"TIC": [x[0] for x in r], "Per": [x[3] for x in r]})
+        log["Kunimoto columns"] = "Table 2: TIC (col 1), Per (col 4)"
         return rows(d, "TIC", "Per", "Kunimoto et al. 2025 (LEO-Vetter M dwarfs)")
 
     add("eumemic", eumemic)
