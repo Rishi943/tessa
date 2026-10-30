@@ -20,8 +20,10 @@ function round(v) {
 // What prompt v6 reads beyond v5's checks: System 1's score and drivers, the similar TOIs in words, and the
 // two fractions its odd/even and secondary rules use. The raw clues stay out: System 1 has read them.
 // v8 on also reads two tools' results (tools: sectors_by_source, rotation); earlier versions never see them.
+// v9 reads the same input; what changes is the prompt (System 1's rank decides flag against gate2) and which signals
+// reach it (the code rejects a dip on a Gaia star or a varying star alone only below planet_rank 0.07).
 const OUTCOME = { gate2: "planet", reject: "not a planet", flag: "ambiguous" };
-export function systemOneView(checks, version = "v8") {
+export function systemOneView(checks, version = "v9") {
   const c = structuredClone(checks);
   delete c.clues;
   if (Number(version.slice(1)) < 8) delete c.tools;

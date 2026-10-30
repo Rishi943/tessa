@@ -1,4 +1,4 @@
-from pipeline.vet import verdict
+from pipeline.vet import RULE_REJECT_RANK, junk, verdict
 
 
 def checks(**over):
@@ -30,3 +30,23 @@ def test_unmeasured_checks_do_not_reject():
                size={"rp_rearth": None}, phase_curve={"ratio_to_depth": None, "chi2": None, "amplitude_ppm": None},
                duration={"ratio": None})
     assert verdict(c) == ("agent", [])
+
+
+VARIES = {"ratio_to_depth": 0.9, "chi2": 300.0, "amplitude_ppm": 900.0}
+ON_GAIA = {"verdict": "off_target", "on_star": {"source_id": 7, "sep_arcsec": 20.0}, "offset_sigma": 8.0, "offset_arcsec": 20.0}
+
+
+def test_the_star_varying_and_a_dip_on_a_gaia_star_reject_alone_only_at_a_low_rank():
+    ok = {"p_planet": 0.6, "cut": 0.12, "passes": True, "planet_rank": 0.5, "drivers": []}
+    for over in ({"phase_curve": VARIES}, {"centroid": ON_GAIA}):
+        assert verdict(checks(odd_even={"diff_sigma": 1.0}, system1=ok, **over)) == ("agent", [])  # rank 0.5: a flag for the agent
+        low = dict(ok, planet_rank=RULE_REJECT_RANK - 0.01)
+        assert verdict(checks(odd_even={"diff_sigma": 1.0}, system1=low, **over))[0] == "reject"
+        assert verdict(checks(odd_even={"diff_sigma": 1.0}, **over))[0] == "reject"  # no System 1 score: as before v9
+        v, why = verdict(checks(odd_even={"diff_sigma": 1.0}, system1=dict(ok, passes=False), **over))  # another reason: both listed
+        assert v == "reject" and len(why) == 2
+
+
+def test_a_varying_star_still_gets_a_system1_score():
+    assert junk(checks(phase_curve=VARIES)) == []  # junk skips System 1, the centroid and the tools
+    assert junk(checks(duration={"ratio": 4.0}))

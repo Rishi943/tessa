@@ -1,8 +1,9 @@
 """Code vetting for a flagged signal: the checks that need no model.
 
-Each check returns plain numbers, and fixed rules turn them into a verdict. Junk (known objects, a
-star that varies at the period, an impossible duration) and dips on a neighbouring star are closed
-here. Everything else goes to System 1 (pipeline/system1.py), which reads all the checks plus the
+Each check returns plain numbers, and fixed rules turn them into a verdict. Junk (known objects, an
+impossible duration) is closed here. So are a star that varies at the period and a dip on a neighbouring
+star, but only below System 1's planet rank RULE_REJECT_RANK (vetting v9; above it they are flags for the
+agent). Everything else goes to System 1 (pipeline/system1.py), which reads all the checks plus the
 transit fit and Gaia's binarity signs: odd/even, a secondary eclipse and size are its inputs, not
 vetoes (as vetoes they rejected 19% of confirmed planets in the labelled set; System 1's cut loses 2%).
 Without a System 1 score (system1=False) they are vetoes again, as before.
@@ -44,6 +45,11 @@ PHASE_BINS = 10
 VARIABILITY_RATIO = 0.5  # out-of-transit swing at this period, as a fraction of the dip depth,
 VARIABILITY_CHI2 = 100  # at this significance (red-noise-scaled chi2 over PHASE_BINS - 1 dof)
 CENTROID_REJECT_SIGMA = 5.0  # dip this far off the target and on a Gaia star that could make it
+# The two rules above (the star varies at this period; the dip is on a Gaia star) reject with no other reason only
+# when System 1's planet rank is below this (vetting v9). Above it they go to the agent as flags: alone they
+# rejected 15 planets for 22 false positives of the train+val signals, and below this rank, 2 for 15. Without a
+# System 1 score they reject as before.
+RULE_REJECT_RANK = 0.07
 
 # Shape and neighbours (reported, never rejected on: the agent weighs them)
 INGRESS_FRACTIONS = np.round(np.arange(0.05, 0.51, 0.05), 2)  # 0.5 is a V
@@ -329,19 +335,36 @@ def at_least(v, x) -> bool:
 
 
 def junk(checks: dict) -> list[str]:
-    """The rules that stay hard with System 1: not a new transit at all."""
+    """The rules that stay hard with System 1: not a new transit at all. A junk signal skips System 1, the
+    centroid and the tools, so a rule System 1 can overrule (star_varies, on_gaia_star) does not belong here."""
     why = []
     for k in checks["known"]:
         if k["harmonic"] is not None:
             where = "this star" if k["tic"] == checks["tic"] else f"TIC {k['tic']}, {k['separation_arcsec']:.0f}\" away"
             why.append(f"known: {k['list']} {k['id']} ({where}) at {k['harmonic']:g}x this period")
-    pc = checks["phase_curve"]
-    if at_least(pc["ratio_to_depth"], VARIABILITY_RATIO) and at_least(pc["chi2"], VARIABILITY_CHI2):
-        why.append(f"the star varies by {pc['amplitude_ppm']:.0f} ppm at this period outside the dip "
-                   f"({pc['ratio_to_depth']:.1f}x the dip): rotation or a contact binary")
     if above(checks["duration"]["ratio"], MAX_DURATION_RATIO):
         why.append(f"transit {checks['duration']['ratio']:.1f}x longer than this star allows")
     return why
+
+
+def star_varies(checks: dict) -> list[str]:
+    """The star swings at this period outside the dip: rotation or a contact binary. Hard only below
+    RULE_REJECT_RANK (see verdict)."""
+    pc = checks["phase_curve"]
+    if at_least(pc["ratio_to_depth"], VARIABILITY_RATIO) and at_least(pc["chi2"], VARIABILITY_CHI2):
+        return [f"the star varies by {pc['amplitude_ppm']:.0f} ppm at this period outside the dip "
+                f"({pc['ratio_to_depth']:.1f}x the dip): rotation or a contact binary"]
+    return []
+
+
+def on_gaia_star(checks: dict) -> list[str]:
+    """Difference imaging puts the dip on a Gaia star that could make it. Hard only below RULE_REJECT_RANK."""
+    c = checks.get("centroid") or {}
+    if c.get("on_star") and c["offset_sigma"] >= CENTROID_REJECT_SIGMA:
+        s = c["on_star"]
+        return [f"the dip comes from Gaia {s['source_id']}, {s['sep_arcsec']}\" away: difference imaging puts it "
+                f"{c['offset_arcsec']:.1f}\" off this star ({c['offset_sigma']:.1f} sigma)"]
+    return []
 
 
 def binary_signs(checks: dict) -> list[str]:
@@ -362,14 +385,15 @@ def verdict(checks: dict) -> tuple[str, list[str]]:
     hard = junk(checks)
     known_hits = [r for r in hard if r.startswith("known:")]
     s1 = checks.get("system1")
-    why = known_hits + (binary_signs(checks) if s1 is None else []) + [r for r in hard if r not in known_hits]
-    if s1 is not None and not s1["passes"]:
-        why.append(system1.reason(s1))
-    c = checks.get("centroid") or {}
-    if c.get("on_star") and c["offset_sigma"] >= CENTROID_REJECT_SIGMA:
-        s = c["on_star"]
-        why.append(f"the dip comes from Gaia {s['source_id']}, {s['sep_arcsec']}\" away: difference imaging puts it "
-                   f"{c['offset_arcsec']:.1f}\" off this star ({c['offset_sigma']:.1f} sigma)")
+    binary = binary_signs(checks) if s1 is None else []
+    others = [r for r in hard if r not in known_hits]
+    cut = [system1.reason(s1)] if s1 is not None and not s1["passes"] else []
+    varies, on_star = star_varies(checks), on_gaia_star(checks)
+    # vetting v9: the star varying and the dip on a Gaia star reject on their own only below RULE_REJECT_RANK
+    # (or with no System 1 score); with any other reason they stay listed beside it
+    if s1 is not None and (s1.get("planet_rank") or 0) >= RULE_REJECT_RANK and not (known_hits or binary or others or cut):
+        varies = on_star = []
+    why = known_hits + binary + varies + others + cut + on_star
     return ("reject" if why else "agent"), why
 
 
@@ -392,7 +416,9 @@ def vet(tic: int, sig: dict, lc_dir: Path, blind: bool = False, centroid: bool =
         "known": [] if blind else known(tic, star, sig),
     }
     checks["code_verdict"], checks["reasons"] = verdict(checks)
-    s1 = with_system1 and not junk(checks)  # odd/even, secondary and size are System 1's inputs, not vetoes
+    # odd/even, secondary and size are System 1's inputs, not vetoes; so is the star varying (v9: it rejects only
+    # below RULE_REJECT_RANK, which needs the score, the centroid and the tools to have run)
+    s1 = with_system1 and not junk(checks)
     if centroid and (s1 or checks["code_verdict"] == "agent"):
         from .centroid import where  # centroid imports this module
         checks["centroid"] = where(tic, sig, star=star if outside else None,

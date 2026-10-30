@@ -1,8 +1,9 @@
 """Gate 2: does a vetted signal become a candidate?
 
-Fixed rules the agent cannot change. A candidate needs every code check in the planet-like range
-(the same table the agent reads) or settled by evidence from the agent's tools (pipeline/tools.py,
-measured by code), the agent's own "gate2" verdict, nothing in novelty check B, a test: a
+Fixed rules the agent cannot change. A candidate needs System 1's planet rank at PASS_RANK or more (vetting
+v9; the table's rows then cost nothing but the HARD_ROWS), or, with no System 1 score, every code check in the
+planet-like range (the same table the agent reads) or settled by evidence from the agent's tools
+(pipeline/tools.py, measured by code), the agent's own "gate2" verdict, nothing in novelty check B, a test: a
 future TESS sector or a night on the ground when the transit time is still known, and every observing
 season predicted by the others (leave-one-season-out). The agent can stop a signal by rejecting or
 flagging it, but never pass one the rules don't.
@@ -26,6 +27,11 @@ from .when import when
 TESS_ORBIT_D = 13.7  # TESS goes round the Earth every 13.7 days and stops to send data home each time
 ROTATION_FLAG_RANK = 0.04  # a dip at the spin period flags below this System 1 planet rank (prompt v8). A reject
 # until 2026-10-30: it rejected 3 known planets of the train signals with 10 FPs and 9 APCs
+PASS_RANK = 0.32  # vetting v9: from this System 1 planet rank up, the table's rows flag nothing but the HARD_ROWS; below
+# it a signal flags even with no row. On train+val this passes 586 planets with 14 FPs (the table passed 468 with 13)
+# The rows below flag at any rank. None fires on a labelled TOI (they are vetted blind, so nothing is "known"; gate 1
+# wants 3 transits; every target is in Gaia), so they cost no planets there; each is a missing check, not a number
+HARD_ROWS = ("known:", "refit:", "neighbours: the target is not in Gaia")
 
 
 def evidence(tic: int) -> dict:
@@ -34,6 +40,21 @@ def evidence(tic: int) -> dict:
 
 
 def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
+    """Why a signal is not planet-like (vetting v9): empty when System 1's planet rank is PASS_RANK or more and no
+    HARD_ROWS row fires; below the rank the first reason is the rank, then the table's rows. With no System 1
+    score the table decides alone, as before v9."""
+    rows = table_rows(c, ev)
+    s1 = c.get("system1")
+    if s1 is None:
+        return rows
+    rank = s1.get("planet_rank") or 0
+    if rank >= PASS_RANK:
+        return [r for r in rows if r.startswith(HARD_ROWS)]
+    return [f"system1: planet rank {rank:.2f}, below the {PASS_RANK:g} that passes without follow-up "
+            f"({1 - rank:.0%} of known planets score higher)"] + rows
+
+
+def table_rows(c: dict, ev: dict | None = None) -> list[str]:
     """The checks whose numbers fall outside the planet-like column of the agent's table, unless
     evidence from the agent's tools (pipeline/tools.py, measured by code) settles them."""
     ev = ev or {}

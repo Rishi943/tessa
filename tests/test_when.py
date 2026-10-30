@@ -1,6 +1,6 @@
 import numpy as np
 
-from pipeline.gate2 import outside_planet_range
+from pipeline.gate2 import PASS_RANK, outside_planet_range
 from pipeline.search import detrend
 from pipeline.vet import phase_offset
 from pipeline.when import ephemeris, predict
@@ -47,3 +47,22 @@ def test_gate2_rules_follow_the_agents_table():
     checks["centroid"]["verdict"] = "on_target"
     checks["secondary"]["best_brightening_snr"] = 3.0  # 6 is now above 1.5 x the noise
     assert [r.split(":")[0] for r in outside_planet_range(checks)] == ["secondary"]
+
+
+def test_gate2_v9_lets_system1s_rank_pass_and_flags_below_it():
+    checks = {"odd_even": {"diff_sigma": 0.5}, "secondary": {"snr": 6.0, "phase": 0.5, "best_brightening_snr": 3.0},
+              "sectors": {"p_constant": 0.4}, "size": {"rp_rearth": 2.2}, "duration": {"ratio": 0.8}, "known": [],
+              "shape": {"v_sigma": 0.0}, "neighbours": {"target_found": True, "plausible_within_1px": 0},
+              "centroid": {"verdict": "on_target"}, "phase_curve": {"ratio_to_depth": 0.2, "chi2": 80.0},
+              "refit": {"transits": 40}, "signal": {"period": 2.5}}
+    assert [r.split(":")[0] for r in outside_planet_range(checks)] == ["secondary"]  # no System 1 score: the table decides
+    checks["system1"] = {"planet_rank": PASS_RANK}
+    assert outside_planet_range(checks) == []  # the secondary row no longer flags a signal System 1 ranks this high
+    checks["neighbours"]["target_found"] = False  # a check that was not made still flags
+    assert [r.split(":")[0] for r in outside_planet_range(checks)] == ["neighbours"]
+    checks["neighbours"]["target_found"] = True
+    checks["system1"]["planet_rank"] = PASS_RANK - 0.01
+    why = outside_planet_range(checks)
+    assert [r.split(":")[0] for r in why] == ["system1", "secondary"] and "0.31" in why[0]
+    checks["secondary"]["snr"] = 1.0  # with no row at all, below the rank still flags
+    assert [r.split(":")[0] for r in outside_planet_range(checks)] == ["system1"]

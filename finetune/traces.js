@@ -2,6 +2,7 @@
 // train and val (the correct ones become reasoning traces to train on), one per star in test (the base
 // model's score). Only TOIs the code rules pass to the agent, as in the survey. Existing files are kept.
 // Run: node finetune/traces.js [--version v6] [--samples 4] [--jobs 48] [--splits train,val,test] [--limit N] [--hint]
+//   [--vet FOLDER]   (the vet files in data/finetune: vet for v5, vet_s1_v9 for v9, else vet_s1)
 //   [--export prompts.jsonl | --import FOLDER [--into FOLDER --model glimmer-vetter]]   (run the prompts inside
 //   Modal: finetune/remote_traces.py; --into keeps another model's replies apart from base Glimmer's)
 //   --hint: one more dossier, at high strength, for each train/val TOI none of whose samples got the outcome
@@ -39,7 +40,10 @@ const MODEL = opt("--model", "muse-glimmer"); // glimmer-vetter: the tuned model
 const into = opt("--into", "");
 
 const v5 = VERSION === "v5";
-const vetDir = new URL(v5 ? "../data/finetune/vet/" : "../data/finetune/vet_s1/", import.meta.url);
+// v9's agent-bound set differs from v8's (a dip on a Gaia star or a varying star reaches the agent above rank 0.07):
+// python -m finetune.s1_inputs --rescore vet_s1_v9 makes its vet files from vet_s1
+const vetName = opt("--vet", v5 ? "vet" : Number(VERSION.slice(1)) >= 9 ? "vet_s1_v9" : "vet_s1");
+const vetDir = new URL(`../data/finetune/${vetName}/`, import.meta.url);
 const outDir = into ? pathToFileURL(`${resolve(into)}/`)
   : new URL(v5 ? "../data/finetune/traces/" : `../data/finetune/traces_${VERSION}/`, import.meta.url);
 mkdirSync(outDir, { recursive: true });
