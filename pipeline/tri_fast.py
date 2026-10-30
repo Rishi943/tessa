@@ -20,6 +20,8 @@ stay the published code, so with the same random seed the same draws are scored.
 
 Run: python -m pipeline.tri_fast     parity and speed on the golden calls (tools/fpp_golden.py)
 """
+import shutil
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import numpy as np
@@ -33,6 +35,9 @@ DS = np.sin(_phi) / 2 * _w * np.pi / 2
 SECONDARY_T = np.linspace(-0.05, 0.05, 25)
 SMALL_K, CLEAR_OF_LIMB = 0.1, 0.9  # the closed form holds for k below this, with z + k below that
 Rsun, Rearth = 6.957e10, 6.3781e8  # replaced by TRICERATOPS's own constants in install()
+CACHE = None  # the folder for each star's setup, when install() is given one
+POOL = ThreadPoolExecutor(2)
+PENDING = {}  # the Gaia queries running behind the rest of the setup, by the file each will write
 
 
 @njit(cache=True)
@@ -288,12 +293,43 @@ def lnL_EB_twin_p(time, flux, sigma, R_EB, EB_fluxratio, P_orb, inc, a, R_s, u1,
                   companion_is_host, exptime, nsamples, twin=True)
 
 
-def install() -> None:
-    """Point TRICERATOPS's scenarios at these likelihoods. calc_probs must run with parallel=True."""
-    global Rsun, Rearth
+def gaia_field(real, ra, dec, tic, kwargs):
+    """Stock's Gaia query (its longest step, 52 s of 150 on one star), into the cache."""
+    made = real(ra, dec, tic, **kwargs)
+    if made is None:
+        return None
+    path = CACHE / f"gaia_{tic}.csv"
+    shutil.move(made, path)
+    return str(path)
+
+
+def settle(target) -> None:
+    """Wait for the star's Gaia query, which ran alongside the rest of the setup."""
+    query = PENDING.pop(target.trilegal_fname, None)
+    if query is not None and query.result() is None:
+        target.trilegal_fname = None  # as stock: no field stars, so no blended-star scenarios
+
+
+def install(cache: Path | None = None) -> None:
+    """Point TRICERATOPS's scenarios at these likelihoods; calc_probs must run with parallel=True. cache: a folder to keep
+    each star's setup in (pipeline/fpp.py), which also moves the Gaia query off the setup's path."""
+    global Rsun, Rearth, CACHE
     import triceratops.marginal_likelihoods as ml
+    import triceratops.triceratops as tt
     Rsun, Rearth = float(ml.Rsun), float(ml.Rearth)
     ml.lnL_TP_p, ml.lnL_EB_p, ml.lnL_EB_twin_p = lnL_TP_p, lnL_EB_p, lnL_EB_twin_p
+    if cache:
+        CACHE = Path(cache)
+        CACHE.mkdir(parents=True, exist_ok=True)
+        real = tt.query_gaia_background
+
+        def behind(ra, dec, tic, **kwargs):
+            path = str(CACHE / f"gaia_{tic}.csv")
+            if not Path(path).exists():
+                PENDING[path] = POOL.submit(gaia_field, real, ra, dec, tic, kwargs)
+            return path
+
+        tt.query_gaia_background = behind
 
 
 def golden_check() -> None:

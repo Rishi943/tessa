@@ -93,6 +93,7 @@ def install():
         finally:
             T.calc_probs = time.perf_counter() - t
 
+    target.__wrapped__ = cls
     tr.target = target
     cls.calc_depths, cls.calc_probs = calc_depths, calc_probs
 
@@ -130,6 +131,7 @@ def main() -> None:
     ap.add_argument("--inputs", type=Path, default=Path(os.environ.get("KAGGLE_INPUTS", "/kaggle/input")))
     ap.add_argument("--ns", type=int, nargs="+", default=[1_000_000, 100_000])
     ap.add_argument("--fast", action="store_true", help="the fast likelihoods (pipeline/tri_fast.py) instead of stock's")
+    ap.add_argument("--cache", type=Path, help="with --fast: keep each star's setup here")
     ap.add_argument("--machine", default="kaggle" if Path("/kaggle/working").exists() else "laptop")
     ap.add_argument("--out", type=Path, default=Path("/kaggle/working") if Path("/kaggle/working").exists() else Path("time_fpp_out"))
     args = ap.parse_args()
@@ -151,7 +153,7 @@ def main() -> None:
     print(env, flush=True)
     if args.fast:
         from pipeline import tri_fast
-        tri_fast.install()
+        tri_fast.install(args.cache)
     install()
     runs = []
     for n in args.ns:

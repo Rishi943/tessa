@@ -28,6 +28,7 @@ Run: python -m pipeline.fpp export TIC [TIC ...] --out DIR      (writes fpp_inpu
 import argparse
 import json
 import os
+import pickle
 import shutil
 import signal
 import sys
@@ -216,27 +217,41 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | N
     tic = d["tic"]
     work = (scratch or outdir) / f"work_{tic}"
     work.mkdir(parents=True, exist_ok=True)
-    aps = apertures(tic, thin(d["geometry_sectors"]), work) if d["geometry_sectors"] else {}
-    sectors = sorted(aps)
-    circular = not sectors
-    if circular:  # QLP-only stars: a circular aperture of CIRCLE_PX pixels around the target, like QLP's own
-        sectors = thin(d["lc_sectors"])
-    log(f"TIC {tic}: {'circular apertures' if circular else 'TESS-SPOC apertures'} for sectors {sectors}")
-    target = tr.target(ID=tic, sectors=np.array(sectors), search_radius=10)
-    if circular:
-        for j, s in enumerate(sectors):
-            x, y = target.pix_coords[j][0]  # the target's CCD column and row in this sector
-            cols, rows = np.meshgrid(np.arange(round(x) - 3, round(x) + 4), np.arange(round(y) - 3, round(y) + 4))
-            m = (cols - x) ** 2 + (rows - y) ** 2 <= CIRCLE_PX ** 2
-            aps[s] = np.column_stack([cols[m], rows[m]]).tolist()
-    if len(target.pix_coords) != len(sectors):
-        raise RuntimeError(f"TRICERATOPS placed the stars in {len(target.pix_coords)} of {len(sectors)} sectors")
-    for j, s in enumerate(sectors):  # the target must sit on its own aperture, or the frames disagree
-        miss = np.min(np.hypot(*(np.array(aps[s]) - target.pix_coords[j][0]).T))
-        log(f"TIC {tic} sector {s}: target at CCD {target.pix_coords[j][0].round(2).tolist()}, "
-            f"{miss:.2f} px from the nearest aperture pixel")
-        if miss > 1.0:
-            raise RuntimeError(f"sector {s}: the target is {miss:.1f} px from its aperture")
+    from . import tri_fast
+    stored = tri_fast.CACHE / f"setup_{tic}.pkl" if tri_fast.CACHE else None
+    if stored and stored.exists():  # the catalogues, cutouts and apertures of an earlier run on this star
+        with stored.open("rb") as f:
+            aps, sectors, circular, state = pickle.load(f)
+        target = object.__new__(getattr(tr.target, "__wrapped__", tr.target))
+        target.__dict__.update(state)
+        log(f"TIC {tic}: setup from {stored}")
+    else:
+        aps = apertures(tic, thin(d["geometry_sectors"]), work) if d["geometry_sectors"] else {}
+        sectors = sorted(aps)
+        circular = not sectors
+        if circular:  # QLP-only stars: a circular aperture of CIRCLE_PX pixels around the target, like QLP's own
+            sectors = thin(d["lc_sectors"])
+        log(f"TIC {tic}: {'circular apertures' if circular else 'TESS-SPOC apertures'} for sectors {sectors}")
+        target = tr.target(ID=tic, sectors=np.array(sectors), search_radius=10)
+        if circular:
+            for j, s in enumerate(sectors):
+                x, y = target.pix_coords[j][0]  # the target's CCD column and row in this sector
+                cols, rows = np.meshgrid(np.arange(round(x) - 3, round(x) + 4), np.arange(round(y) - 3, round(y) + 4))
+                m = (cols - x) ** 2 + (rows - y) ** 2 <= CIRCLE_PX ** 2
+                aps[s] = np.column_stack([cols[m], rows[m]]).tolist()
+        if len(target.pix_coords) != len(sectors):
+            raise RuntimeError(f"TRICERATOPS placed the stars in {len(target.pix_coords)} of {len(sectors)} sectors")
+        for j, s in enumerate(sectors):  # the target must sit on its own aperture, or the frames disagree
+            miss = np.min(np.hypot(*(np.array(aps[s]) - target.pix_coords[j][0]).T))
+            log(f"TIC {tic} sector {s}: target at CCD {target.pix_coords[j][0].round(2).tolist()}, "
+                f"{miss:.2f} px from the nearest aperture pixel")
+            if miss > 1.0:
+                raise RuntimeError(f"sector {s}: the target is {miss:.1f} px from its aperture")
+    tri_fast.settle(target)
+    if stored and not stored.exists():
+        with stored.with_suffix(".tmp").open("wb") as f:
+            pickle.dump((aps, sectors, circular, target.__dict__), f)
+        stored.with_suffix(".tmp").replace(stored)
     target.calc_depths(tdepth=d["depth"], all_ap_pixels=[np.array(aps[s]) for s in sectors])
     t_setup = time.time()
     t, f = np.array(d["time"]), np.array(d["flux"])
