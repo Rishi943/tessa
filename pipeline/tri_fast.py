@@ -7,6 +7,8 @@ stay the published code, so with the same random seed the same draws are scored.
   - A draw's secondary eclipse is tested first. Stock simulates the whole primary, then throws away 97% of EB draws on
     that test.
   - Bins outside the transit cost nothing: chi-square is the flat line's, plus a correction from the bins in transit.
+  - Bins go from the transit's centre outwards, and a draw stops as soon as it provably can't come within 100 of the best
+    lnL. That assumes no prior below e^-100 on the best draw: true without contrast curves, which pipeline/fpp.py doesn't use.
   - The flux needs no elliptic integrals. A small occulter inside the limb has a closed form (the mean of the limb
     darkening over a disc, by Pizzetti's series). Otherwise the limb-darkened star is integrated directly: the inner disc
     fully covered in closed form, and over the annuli partly covered, the covered share of each annulus (an arccos) by
@@ -15,11 +17,14 @@ stay the published code, so with the same random seed the same draws are scored.
   - The orbit is Kepler's equation, solved. PyTransit expands it in a Taylor series about the transit, so the two agree
     at e = 0.3 (1e-8 in flux) and part at e = 0.9, where stock's light curves are off. Those draws fit so badly that it
     doesn't change an evidence, but it's why lnL can differ there.
+  - The per-draw limb-darkening loop in the scenarios with a companion becomes one lookup per distinct star.
   - One upstream quirk is kept on purpose, for the same numbers: the parallel EB model multiplies every k below 1 by
     0.999 (`k[(k - 1.0) < 1e-6]`, no abs(); the serial model has the abs()).
 
 Run: python -m pipeline.tri_fast     parity and speed on the golden calls (tools/fpp_golden.py)
 """
+import inspect
+import re
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -33,6 +38,7 @@ _phi = (_x + 1) * np.pi / 2
 S = (1 - np.cos(_phi)) / 2  # 0..1 across the band, bunched at both ends
 DS = np.sin(_phi) / 2 * _w * np.pi / 2
 SECONDARY_T = np.linspace(-0.05, 0.05, 25)
+PILOT, MARGIN = 2000, 100.0  # a draw this far above the pilot's best lnL carries e^-100 of its weight
 SMALL_K, CLEAR_OF_LIMB = 0.1, 0.9  # the closed form holds for k below this, with z + k below that
 Rsun, Rearth = 6.957e10, 6.3781e8  # replaced by TRICERATOPS's own constants in install()
 CACHE = None  # the folder for each star's setup, when install() is given one
@@ -182,13 +188,69 @@ def region(z2, inner, reach):
     return 0 if z2 < inner else 1 if z2 < reach else 2
 
 
+@njit(cache=True)
+def transit_change(time, data, flat, scale, limit, room, distance, half_exp, edges, weights, k, p, a, inc, e, w, u1, u2, third,
+                   xs, ys, vx, vy, front, s, ds):
+    """One draw: what its transit adds to the flat line's chi-square, or inf once it provably can't get under limit."""
+    ns = len(edges)
+    m0 = conjunction(e, w)
+    sin_i, cos_i = np.sin(inc), np.cos(inc)
+    rate = 2 * np.pi / p
+    speed = rate * a * (1 + e * np.sin(w)) / np.sqrt(1 - e * e)  # across the sky at conjunction
+    limit_t = p / 4
+    window = min(1.6 * (1 + k) / speed, limit_t)
+    reach = (1 + k) ** 2
+    inner = (1 - k) ** 2 if k < 1 else -1.0
+    while window < limit_t:  # high e: the speed changes during the transit
+        xa, ya, _, _, _, _ = orbit_knots(window, rate, m0, a, cos_i, sin_i, e, w, rate * window + m0)
+        xb, yb, _, _, _, _ = orbit_knots(-window, rate, m0, a, cos_i, sin_i, e, w, -rate * window + m0)
+        if xa * xa + ya * ya > reach and xb * xb + yb * yb > reach:
+            break
+        window = min(window * 1.5, limit_t)
+    knots = KNOTS if e < HIGH_E else KNOTS_HIGH_E
+    h = 2 * window / (knots - 1)
+    ea = -rate * window + m0
+    for j in range(knots):
+        xs[j], ys[j], vx[j], vy[j], front[j], ea = orbit_knots(-window + j * h, rate, m0, a, cos_i, sin_i, e, w, ea)
+    change = 0.0
+    last = int(np.searchsorted(distance, window + half_exp, side="right"))
+    for b in range(last):
+        if (flat + change - (room[last] - room[b])) * scale > limit:
+            return np.inf
+        t = time[b]
+        z_a, x_a = position(t - half_exp, window, h, knots, xs, ys, vx, vy)
+        z_b, x_b = position(t + half_exp, window, h, knots, xs, ys, vx, vy)
+        same_side = x_a * x_b > 0
+        ra, rb = region(z_a, inner, reach), region(z_b, inner, reach)
+        if ra == 2 and rb == 2 and same_side:
+            continue  # the whole exposure is off the disc
+        f = 0.0
+        if ra == rb and same_side:
+            for i in range(3):
+                f += weights[i] * sample_flux(t + (i - 1) * ROOT_06 * half_exp, window, h, knots, xs, ys, vx, vy, front, reach,
+                                              k, u1, u2, s, ds)
+        else:
+            for i in range(ns):
+                f += sample_flux(t + edges[i], window, h, knots, xs, ys, vx, vy, front, reach, k, u1, u2, s, ds) / ns
+        if f < 1:
+            model = (f + third) / (1 + third)
+            change += (data[b] - model) ** 2 - (data[b] - 1) ** 2
+    return change
+
+
 @njit(cache=True, parallel=True)
-def half_chi2(time, data, sigma, exptime, ns, k, p, a, inc, ecc, w, u1, u2, third, skip, s, ds):
+def half_chi2(time, data, sigma, exptime, ns, k, p, a, inc, ecc, w, u1, u2, third, skip, limit, s, ds):
     """chi-square / 2 of (F + third) / (1 + third) for each draw not skipped: the flat line's, corrected over the bins in
     transit. The orbit is solved at a few knots across the transit and interpolated (cubic Hermite in x and y, which are
-    smooth), and a bin with no contact in it is averaged over three instants: only the contacts need all ns."""
+    smooth), and a bin with no contact in it is averaged over three instants: only the contacts need all ns.
+    time is sorted by |t|, so the bins at the transit's centre come first, and a draw is dropped (inf) as soon as even a
+    perfect fit to the rest of its window couldn't bring it under limit: a proof, not an estimate.
+    The per-draw work stays in transit_change: numba hoists constant assignments out of a prange body."""
     n, flat = len(k), np.sum((data - 1) ** 2)
     out = np.full(n, 0.5 * flat / sigma ** 2)
+    scale = 0.5 / sigma ** 2
+    room = np.concatenate((np.zeros(1), np.cumsum((data - 1) ** 2)))  # the most the bins up to b can give back
+    distance = np.abs(time)
     half_exp = exptime / 2
     edges = exptime * ((np.arange(1, ns + 1) - 0.5) / ns - 0.5)
     weights = np.array([5 / 18, 8 / 18, 5 / 18])
@@ -196,52 +258,26 @@ def half_chi2(time, data, sigma, exptime, ns, k, p, a, inc, ecc, w, u1, u2, thir
         xs, ys, vx, vy = np.empty(KNOTS_HIGH_E), np.empty(KNOTS_HIGH_E), np.empty(KNOTS_HIGH_E), np.empty(KNOTS_HIGH_E)
         front = np.empty(KNOTS_HIGH_E)
         for d in range(block * BLOCK, min((block + 1) * BLOCK, n)):
-            if skip[d]:
-                continue
-            e, kk, third_d, u, v = ecc[d], k[d], third[d], u1[d], u2[d]
-            m0 = conjunction(e, w[d])
-            sin_i, cos_i = np.sin(inc[d]), np.cos(inc[d])
-            rate = 2 * np.pi / p[d]
-            speed = rate * a[d] * (1 + e * np.sin(w[d])) / np.sqrt(1 - e * e)  # across the sky at conjunction
-            limit = p[d] / 4
-            window = min(1.6 * (1 + kk) / speed, limit)
-            reach = (1 + kk) ** 2
-            inner = (1 - kk) ** 2 if kk < 1 else -1.0
-            while window < limit:  # high e: the speed changes during the transit
-                xa, ya, _, _, _, _ = orbit_knots(window, rate, m0, a[d], cos_i, sin_i, e, w[d], rate * window + m0)
-                xb, yb, _, _, _, _ = orbit_knots(-window, rate, m0, a[d], cos_i, sin_i, e, w[d], -rate * window + m0)
-                if xa * xa + ya * ya > reach and xb * xb + yb * yb > reach:
-                    break
-                window = min(window * 1.5, limit)
-            knots = KNOTS if e < HIGH_E else KNOTS_HIGH_E
-            h = 2 * window / (knots - 1)
-            ea = -rate * window + m0
-            for j in range(knots):
-                xs[j], ys[j], vx[j], vy[j], front[j], ea = orbit_knots(-window + j * h, rate, m0, a[d], cos_i, sin_i, e, w[d], ea)
-            change = 0.0
-            for b in range(len(time)):
-                t = time[b]
-                if abs(t) > window + half_exp:
-                    continue
-                z_a, x_a = position(t - half_exp, window, h, knots, xs, ys, vx, vy)
-                z_b, x_b = position(t + half_exp, window, h, knots, xs, ys, vx, vy)
-                same_side = x_a * x_b > 0
-                ra, rb = region(z_a, inner, reach), region(z_b, inner, reach)
-                if ra == 2 and rb == 2 and same_side:
-                    continue  # the whole exposure is off the disc
-                f = 0.0
-                if ra == rb and same_side:
-                    for i in range(3):
-                        f += weights[i] * sample_flux(t + (i - 1) * ROOT_06 * half_exp, window, h, knots, xs, ys, vx, vy, front,
-                                                      reach, kk, u, v, s, ds)
-                else:
-                    for i in range(ns):
-                        f += sample_flux(t + edges[i], window, h, knots, xs, ys, vx, vy, front, reach, kk, u, v, s, ds) / ns
-                if f < 1:
-                    model = (f + third_d) / (1 + third_d)
-                    change += (data[b] - model) ** 2 - (data[b] - 1) ** 2
-            out[d] += 0.5 * change / sigma ** 2
+            if not skip[d]:
+                out[d] += scale * transit_change(time, data, flat, scale, limit, room, distance, half_exp, edges, weights, k[d],
+                                                 p[d], a[d], inc[d], ecc[d], w[d], u1[d], u2[d], third[d], xs, ys, vx, vy, front,
+                                                 s, ds)
     return out
+
+
+def scored(time, data, sigma, exptime, ns, k, p, a, inc, ecc, w, u1, u2, third, skip):
+    """half_chi2 with the bins in order from the centre, and a limit from a pilot of the draws: MARGIN above the best of
+    them. The pilot's best can only be worse than the true best, so the limit errs on the safe side."""
+    order = np.argsort(np.abs(time))
+    t, d = np.asarray(time, float)[order], np.asarray(data, float)[order]
+    n = len(k)
+    limit = np.inf
+    if n > 4 * PILOT:
+        pick = np.arange(0, n, n // PILOT)
+        pilot = half_chi2(t, d, sigma, exptime, ns, k[pick], p[pick], a[pick], inc[pick], ecc[pick], w[pick], u1[pick], u2[pick],
+                          third[pick], skip[pick], np.inf, S, DS)
+        limit = np.min(pilot) + MARGIN
+    return half_chi2(t, d, sigma, exptime, ns, k, p, a, inc, ecc, w, u1, u2, third, skip, limit, S, DS)
 
 
 def plain(v, n):
@@ -254,9 +290,9 @@ def lnL_TP_p(time, flux, sigma, R_p, P_orb, inc, a, R_s, u1, u2, ecc, argp, comp
     n = len(R_p)
     fc = companion_fluxratio / (1 - companion_fluxratio)
     third = 1 / fc if companion_is_host else fc
-    return half_chi2(np.asarray(time, float), np.asarray(flux, float), float(sigma), float(exptime), int(nsamples),
-                     R_p * Rearth / (R_s * Rsun), plain(P_orb, n), a / (R_s * Rsun), plain(inc * np.pi / 180, n),
-                     plain(ecc, n), (90 - argp) * np.pi / 180, plain(u1, n), plain(u2, n), third, np.zeros(n, dtype=np.bool_), S, DS)
+    return scored(time, flux, float(sigma), float(exptime), int(nsamples), R_p * Rearth / (R_s * Rsun), plain(P_orb, n),
+                  a / (R_s * Rsun), plain(inc * np.pi / 180, n), plain(ecc, n), (90 - argp) * np.pi / 180, plain(u1, n),
+                  plain(u2, n), third, np.zeros(n, dtype=np.bool_))
 
 
 def lnL_EB(time, flux, sigma, R_EB, EB_fluxratio, P_orb, inc, a, R_s, u1, u2, ecc, argp, companion_fluxratio,
@@ -275,8 +311,7 @@ def lnL_EB(time, flux, sigma, R_EB, EB_fluxratio, P_orb, inc, a, R_s, u1, u2, ec
     else:  # the secondary dims the EB, of light fe out of host + fe + other
         share = fe / (host + fe + other)
         seen = ~secondary_ok(k_sec, p, a_rs, incl, e, w + np.pi, c1, c2, np.zeros(n), share, float(sigma), SECONDARY_T, S, DS)
-    out = half_chi2(np.asarray(time, float), np.asarray(flux, float), float(sigma), float(exptime), int(nsamples), k, p, a_rs,
-                    incl, e, w, c1, c2, third, seen, S, DS)
+    out = scored(time, flux, float(sigma), float(exptime), int(nsamples), k, p, a_rs, incl, e, w, c1, c2, third, seen)
     out[seen] = np.inf
     return out
 
@@ -291,6 +326,35 @@ def lnL_EB_twin_p(time, flux, sigma, R_EB, EB_fluxratio, P_orb, inc, a, R_s, u1,
                   companion_is_host=False, exptime=0.00139, nsamples=20):
     return lnL_EB(time, flux, sigma, R_EB, EB_fluxratio, P_orb, inc, a, R_s, u1, u2, ecc, argp, companion_fluxratio,
                   companion_is_host, exptime, nsamples, twin=True)
+
+
+def ldc_of(teffs, loggs, table_teffs, table_loggs, table_u1, table_u2):
+    """The limb darkening of each drawn star, looking up each distinct star once: stock loops over the million draws."""
+    keys, first, back = np.unique(np.asarray(teffs, float) * 1e4 + loggs, return_index=True, return_inverse=True)
+    u1, u2 = np.zeros(len(keys)), np.zeros(len(keys))
+    for i, j in enumerate(first):
+        mask = (table_teffs == teffs[j]) & (table_loggs == loggs[j])
+        u1[i], u2[i] = table_u1[mask].item(), table_u2[mask].item()  # as stock: an error unless there's exactly one
+    return u1[back], u2[back]
+
+
+LOOP = re.compile(r"for i, \((\w+), (\w+)\) in enumerate\(\s*zip\((\w+), (\w+)\)\s*\):\s*"
+                  r"mask = \((\w+) == \1\) & \((\w+) == \2\)\s*"
+                  r"(\w+)\[i\], (\w+)\[i\] = (\w+)\[mask\]\.item\(\), (\w+)\[mask\]\.item\(\)")
+
+
+def vectorised(ml, tt) -> list[str]:
+    """Stock's per-draw limb-darkening loop, as one lookup: the scenarios' own source with that loop replaced, so it takes
+    effect only on the code it was written for, and a new TRICERATOPS without the loop simply keeps its own."""
+    done = []
+    for name, f in list(vars(ml).items()):
+        if name.startswith("lnZ_") and inspect.isfunction(f):
+            source, n = LOOP.subn(r"\7, \8 = ldc_of(\3, \4, \5, \6, \9, \10)", inspect.getsource(f))
+            if n:
+                exec(compile(source, f"<tri_fast {name}>", "exec"), vars(ml))
+                setattr(tt, name, getattr(ml, name))
+                done.append(name)
+    return done
 
 
 def gaia_field(real, ra, dec, tic, kwargs):
@@ -318,6 +382,8 @@ def install(cache: Path | None = None) -> None:
     import triceratops.triceratops as tt
     Rsun, Rearth = float(ml.Rsun), float(ml.Rearth)
     ml.lnL_TP_p, ml.lnL_EB_p, ml.lnL_EB_twin_p = lnL_TP_p, lnL_EB_p, lnL_EB_twin_p
+    ml.ldc_of = ldc_of
+    print(f"tri_fast: one lookup for the loop in {', '.join(vectorised(ml, tt)) or 'nothing'}", flush=True)
     if cache:
         CACHE = Path(cache)
         CACHE.mkdir(parents=True, exist_ok=True)
