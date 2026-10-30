@@ -19,7 +19,7 @@ from pathlib import Path
 
 from .novelty import novelty
 from .paths import CACHE, DATA
-from .vet import CENTROID_REJECT_SIGMA, gaps, load_lc
+from .vet import gaps, load_lc
 from .when import when
 
 
@@ -140,10 +140,8 @@ def season_fails(found: list[dict]) -> list[str]:
 def evidence_rejects(c: dict, ev: dict) -> list[str]:
     """Rejections from the tools' evidence: the same kind of rule as the code vetting's."""
     why = []
-    cen = ev.get("centroid_all", {})
-    if cen.get("on_star") and cen["offset_sigma"] >= CENTROID_REJECT_SIGMA:
-        why.append(f"centroid_all: difference imaging on every sector puts the dip on Gaia {cen['on_star']['source_id']}, "
-                   f"{cen['on_star']['sep_arcsec']}\" away ({cen['offset_sigma']:.1f} sigma off this star)")
+    # centroid_all only clears (on_target, in outside_planet_range): its dip on a Gaia star at 5 sigma or more
+    # rejected 3 known planets of 233 train+val signals for 1 FP
     rot = ev.get("rotation", {})
     multiple = rot.get("signal_at_rotation_multiple")
     rank = (c.get("system1") or {}).get("planet_rank") or 0

@@ -315,26 +315,27 @@ def score() -> None:
               f"{sum(x is None for _, x in v):>9} {calls:>10.1f} {out_tok:>10.0f}")
 
 
-def compact_tools(t: dict) -> dict:
-    """What prompt v8 reads of the tools (pipeline/tools.py): the sector depths' verdict and the rotation match."""
-    rot = t.get("rotation") or {}
-    return {"sectors_by_source": (t.get("sector_depths_by_source") or {}).get("verdict"),
-            "rotation": {"rotation_d": rot.get("rotation_d"),
-                         "signal_at_rotation_multiple": rot.get("signal_at_rotation_multiple")}}
+EVIDENCE_KEYS = ("sector_depths_by_source", "rotation", "centroid_all")  # what vet's for_agent saves for gate 2
 
 
 def attach(folder: Path) -> None:
+    """The Kaggle tools_ and centroid_ results into vet_s1: the full results as the record's evidence (gate 2's,
+    what production saves to data/evidence/TIC.json), the short form as checks.tools (the prompt's)."""
+    from pipeline.tools import compact
+
     vet = DATA / "finetune" / "vet_s1"
     n = 0
-    for p in folder.rglob("tools_*.json"):
+    for p in [*folder.rglob("tools_*.json"), *folder.rglob("centroid_*.json")]:
         t = json.loads(p.read_text(encoding="utf-8"))
         path = vet / f"{t['toi']}.json"
-        if path.exists():
-            d = json.loads(path.read_text(encoding="utf-8"))
-            d["checks"]["tools"] = compact_tools(t)
-            path.write_text(json.dumps(d), encoding="utf-8")
-            n += 1
-    print(f"tools attached to {n} signals in {vet}")
+        if not path.exists() or "error" in t.get("centroid_all", {}):
+            continue
+        d = json.loads(path.read_text(encoding="utf-8"))
+        d["evidence"] = d.get("evidence", {}) | {k: v for k, v in t.items() if k in EVIDENCE_KEYS}
+        d["checks"]["tools"] = compact(d["evidence"])
+        path.write_text(json.dumps(d), encoding="utf-8")
+        n += 1
+    print(f"{n} results attached in {vet}")
 
 
 def main() -> None:

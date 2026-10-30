@@ -230,11 +230,33 @@ def for_agent(checks: dict, raw: dict, lc: dict) -> dict:
             full[name] = json.loads(json.dumps(f(checks["tic"], data), default=float))
         except Exception as e:  # e.g. too few points in every sector: the tool's answer is that it couldn't tell
             full[name] = {"error": f"{e.__class__.__name__}: {e}"[:200]}
+    # centroid_all (slow: a TESScut cutout per sector) only where the neighbours or centroid row would flag, as only
+    # its on_target clears: 8 known planets of 233 such train+val signals, no FPs
+    cen = checks.get("centroid") or {}
+    if cen.get("verdict") == "off_target" or (checks["neighbours"].get("plausible_within_1px")
+                                              and cen.get("verdict") != "on_target"):
+        from .centroid import where
+        try:
+            c = where(checks["tic"], checks["signal"], max_sectors=99, star=checks["star"],
+                      sectors=sorted({int(s) for s in raw["sector"]}))
+            full["centroid_all"] = json.loads(json.dumps({k: c.get(k) for k in (
+                "verdict", "why", "offset_arcsec", "err_arcsec", "offset_sigma", "sectors_used", "on_star", "suspects")},
+                default=float))
+        except Exception as e:  # e.g. TESScut unreachable: no clearing
+            full["centroid_all"] = {"error": f"{e.__class__.__name__}: {e}"[:200]}
     save_evidence(checks["tic"], full)
-    rot = full["rotation"]
-    return {"sectors_by_source": full["sector_depths_by_source"].get("verdict"),
-            "rotation": {"rotation_d": rot.get("rotation_d"),
-                         "signal_at_rotation_multiple": rot.get("signal_at_rotation_multiple")}}
+    return compact(full)
+
+
+def compact(full: dict) -> dict:
+    """What prompt v8 reads of the tools' results (checks.tools)."""
+    rot = full.get("rotation") or {}
+    out = {"sectors_by_source": (full.get("sector_depths_by_source") or {}).get("verdict"),
+           "rotation": {"rotation_d": rot.get("rotation_d"),
+                        "signal_at_rotation_multiple": rot.get("signal_at_rotation_multiple")}}
+    if "centroid_all" in full:
+        out["centroid_all"] = full["centroid_all"].get("verdict")
+    return out
 
 
 def main() -> None:

@@ -12,17 +12,18 @@ import json
 from collections import Counter, defaultdict
 from pathlib import Path
 
-from pipeline.gate2 import outside_planet_range
+from pipeline.gate2 import evidence_rejects, outside_planet_range
 from pipeline.paths import DATA
 
 FOLDER = DATA / "finetune"
 VERDICTS = ("gate2", "flag", "reject")
 
 
-def rules(checks: dict) -> str:
-    if checks["code_verdict"] == "reject":
+def rules(checks: dict, ev: dict | None = None) -> str:
+    """ev: the tools' evidence (the vet file's, as gate 2 reads data/evidence/TIC.json in production)."""
+    if checks["code_verdict"] == "reject" or evidence_rejects(checks, ev or {}):
         return "reject"
-    return "flag" if outside_planet_range(checks) else "gate2"
+    return "flag" if outside_planet_range(checks, ev) else "gate2"
 
 
 def combine(rule: str, model: str | None) -> str | None:
@@ -77,15 +78,15 @@ def main() -> None:
             continue
         if args.subset == "recent" and not lab.get("recent"):
             continue
-        tois.append((d["toi"], lab, d["checks"]))
+        tois.append((d["toi"], lab, d["checks"], d.get("evidence")))
     models = {name: model_verdicts(Path(folder), 0) for name, folder in (m.split("=", 1) for m in args.models)}
     print(f"{len(tois)} {args.split} TOIs ({args.subset}); "
-          f"code-rejected {sum(c['code_verdict'] == 'reject' for _, _, c in tois)}")
+          f"code-rejected {sum(c['code_verdict'] == 'reject' for _, _, c, _ in tois)}")
 
     results = defaultdict(list)
     missing = Counter()
-    for toi, lab, checks in tois:
-        rule = rules(checks)
+    for toi, lab, checks, ev in tois:
+        rule = rules(checks, ev)
         results["rules alone"].append((lab["target"], rule))
         for name, verdicts in models.items():
             v = "reject" if checks["code_verdict"] == "reject" else verdicts.get(toi)
@@ -101,7 +102,7 @@ def main() -> None:
         print(table(rows))
 
     # what the rules can't see: false positives that only spectra showed
-    spectra = [(lab["target"], rules(c)) for _, lab, c in tois if lab.get("reason") == "spectra"]
+    spectra = [(lab["target"], rules(c, ev)) for _, lab, c, ev in tois if lab.get("reason") == "spectra"]
     if spectra:
         print(f"\nfalse positives found only by spectra: {len(spectra)}, rules passed "
               f"{sum(p == 'gate2' for _, p in spectra)} as planet-like")

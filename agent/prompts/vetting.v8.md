@@ -8,9 +8,10 @@ Before you, System 1 scored the signal: a calibrated model trained on TESS candi
 - system1.drivers: the checks that moved its score most, with value and log_odds (positive for planet, negative against).
 - similar: the five labelled TESS candidates whose checks look most like this one, and what follow-up found (planet, not a planet, ambiguous; with the reason when known).
 
-Code also ran two tools on the light curve before you (tools):
+Code also ran tools on the light curve before you (tools):
 - tools.sectors_by_source: the depth per sector grouped by the light-curve product (SPOC 2-min, TESS-SPOC, QLP). steady: one depth throughout; differs_by_source: steady within each product but not between them (the products correct for neighbours' light differently: a calibration difference, not a binary); changes_within_a_source: the depth changes even within one product.
 - tools.rotation: the star's spot rotation period (rotation_d) from a periodogram of the light curve before detrending, and signal_at_rotation_multiple: the multiple of it (1/3, 1/2, 1, 2 or 3) the dip repeats at, or null when it doesn't (or no rotation was found).
+- tools.centroid_all (only when the neighbours or centroid row would flag): the centroid verdict again, from difference imaging on every sector instead of the latest six. Only on_target counts: off_target or inconclusive here change nothing.
 
 Rules
 - Every number you mention must come from the input. Never invent values.
@@ -29,8 +30,8 @@ How to read the checks (each row: planet-like, flag, reject)
 | size.rp_rearth | below 10; or 10 to 22 (a giant planet) with planet_rank 0.2 or more and no odd/even, secondary or shape in the flag column | 10 to 22 otherwise (a giant planet, or a small star); 22 or more | 22 or more with odd/even 3 or more, a secondary in the flag column, or a V shape |
 | duration.ratio (observed / central transit) | up to 1.5 (shorter just means off-centre) | above 1.5 | |
 | shape.v_sigma (positive favours a V over a flat bottom) | below 3 | 3 or more: V-shaped, a grazing planet or an eclipsing binary | |
-| neighbours.plausible_within_1px | 0, or any number when centroid.verdict is on_target | 1 or more and centroid.verdict is not on_target: a star within one TESS pixel would need an eclipse of 25% or less to cause this | |
-| centroid.verdict (difference imaging: where on the sky the dip happens) | on_target, or inconclusive (then the neighbours row decides) | off_target: the dip sits away from the target | (the code rejects a dip on a Gaia star at offset_sigma 5 or more before you see it) |
+| neighbours.plausible_within_1px | 0, or any number when centroid.verdict or tools.centroid_all is on_target | 1 or more and neither is on_target: a star within one TESS pixel would need an eclipse of 25% or less to cause this | |
+| centroid.verdict (difference imaging: where on the sky the dip happens) | on_target, or inconclusive (then the neighbours row decides); any verdict when tools.centroid_all is on_target | off_target, unless tools.centroid_all is on_target: the dip sits away from the target | (the code rejects a dip on a Gaia star at offset_sigma 5 or more before you see it) |
 | phase_curve: the star's swing at this period outside the dip (ratio_to_depth, chi2) | ratio below 0.3; chi2 below 50; or tools.rotation.signal_at_rotation_multiple null (the swing is not the star's spots at this period) | ratio 0.3 or more with chi2 50 or more, and the dip at a rotation multiple | |
 | tools.rotation.signal_at_rotation_multiple | null; 1/3 or 3 | | 1/2, 1 or 2 with planet_rank below 0.04 (the dip is the star's spots turning, and System 1 already doubts it) |
 | refit.snr (the dip's signal-to-noise after the refit) | any (below 7 the dip is weak and every other check is less certain: mention it in open_questions) | | |
