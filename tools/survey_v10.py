@@ -143,9 +143,16 @@ def answers(tic: int) -> dict:
 
 
 def lenient(text: str, parse) -> dict | None:
-    """pilot.parse, then again with the brace Glimmer sometimes drops (or doubles) between two reasons repaired."""
-    return (parse(text) or parse(re.sub(r'\}\s*,\s*"check"', '},{"check"', text))
-            or parse(re.sub(r'\}\s*\}\s*,\s*\{\s*"check"', '},{"check"', text)))  # or a doubled one
+    """pilot.parse, then again with Glimmer's formatting slips repaired: a brace dropped or doubled between two reasons,
+    or a value's closing quote dropped. Only the JSON is mended; a verdict is never inferred."""
+    for fix in (lambda s: s,
+                lambda s: re.sub(r'\}\s*,\s*"check"', '},{"check"', s),            # a dropped brace between reasons
+                lambda s: re.sub(r'\}\s*\}\s*,\s*\{\s*"check"', '},{"check"', s),  # a doubled one
+                lambda s: re.sub(r'("value":\s*"[^"]*?), "why"', r'\1", "why"', s)):  # a value's closing quote dropped
+        d = parse(fix(text))
+        if d:
+            return d
+    return None
 
 
 def do_glimmer(jobs: int, limit: int | None) -> None:
