@@ -250,6 +250,22 @@ def funnel() -> None:
     others = sorted(t for t in fpp_rows if t not in cands)
     if others:
         print(f"also run through TRICERATOPS but not gate 2 candidates now: {others}")
+    ran = [r for r in fpp_rows.values() if r.get("ran")]
+    ok = [r["tic"] for r in ran if r["FPP"] < 0.5 and r["NFPP"] < 0.1]
+    print(f"\nall TRICERATOPS runs: {len(fpp_rows)} stars, {len(ran)} ran, {len(ok)} pass the survey bar")
+    # stars the README, form or old site name: their TRICERATOPS result and current gate 2 status with its reason
+    status = {}
+    for batch in ("survey", "batch2"):
+        f = DATA / "vet" / f"{batch}_v10" / "status.csv"
+        if f.exists():
+            with open(f, encoding="utf-8") as fh:
+                status |= {int(r["tic"]): (r["status"], r["reasons"]) for r in csv.DictReader(fh)}
+    print("named stars:")
+    for tic in (50099421, 240488148, 316447391, 426450210):
+        r = fpp_rows.get(tic) or {}
+        tri = (f"FPP {r['FPP']:.4f} NFPP {r['NFPP']:.2e} {r['class']}" if r.get("ran") else "no TRICERATOPS result")
+        st, why = status.get(tic, ("not in status.csv", ""))
+        print(f"  {tic:>10}  {tri:52}  gate 2: {st}" + (f" ({why[:150]})" if why else ""))
 
 
 def xgb_only(out: Path) -> None:
