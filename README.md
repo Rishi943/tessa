@@ -11,27 +11,32 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | | |
 |---|---|
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
-| Searched | 22,978, ranked by how small a planet each could show |
-| Repeating dips found | 785, with a gate calibrated on upside-down light curves so about 1 star in 100 passes on noise |
-| Sent to Glimmer, the fine-tuned model | 190; code settled the other 595 |
-| Glimmer called a planet | 53 |
-| Passed novelty, testability and season checks | 8 |
-| Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 7 |
-| Likely planets (FPP < 0.5, NFPP < 0.001; Giacalone et al. 2021) | 3: TIC 71503196, 116046773, 166321785 |
+| Searched | 48,767: every one of the pool's 48,945 stars that never had 2-minute data, except 178 with no usable light curve |
+| Repeating dips found | 1,728, with each batch's bar set on upside-down light curves so about 1 star in 100 passes on noise (476 expected) |
+| Sent to Glimmer, the fine-tuned model | 432; code settled the other 1,296 |
+| Glimmer called a planet | 115 |
+| Passed novelty, testability and season checks | 9 |
+| Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 8 |
+| Likely planets (FPP < 0.5, NFPP < 0.001; Giacalone et al. 2021) | 4: TIC 71503196, 116046773, 166321785, 9066956 |
 | Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
-Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
-the model, and 1 is a known object; the other 8 passed gate 2. The site counts the 8 after TRICERATOPS: TIC 426450210
-(which fails it) as flagged and TIC 458191673 (found before the hackathon) as known, so it shows 47 flagged, 2 known
-and 6 candidates. Every count above is recomputed from the saved run
-by `python tools/glimmer_value.py funnel`. TRICERATOPS ran on all
-53 of Glimmer's planet calls and 24 clear its bar. The novelty, testability and season checks pass 8 of the 53, and 7
-of those 8 clear TRICERATOPS (TIC 426450210 fails, FPP 1.0).
+The search ran in five batches: the survey (4,997 stars), batch 2 (17,981), the 1,000 held-out stars (below), and
+batches 4 and 5 (12,449 and 12,341), which finished the pool on 2 November (`runs/2026-11-02`). Of the 1,728 dips, 1,394
+were rejected, 113 are flagged with what is left to check, 208 were held by code without reaching the model, and 4
+are known objects; the other 9 passed gate 2. TRICERATOPS ran on all 115 of Glimmer's planet calls and 54 clear its
+bar; 8 of the 9 that passed gate 2 clear it (TIC 426450210 fails, FPP 1.0). The site counts TIC 426450210 as flagged
+and TIC 458191673 (found before the hackathon) as known. Every count is recomputed from the saved runs by
+`python tools/glimmer_value.py funnel`.
 
 Two candidates from an earlier run on the site, TIC 240488148 and 316447391, are no longer candidates: both fail the
 season test (hide one observing season and a blind search of the others must find the same period), and TRICERATOPS
 rates TIC 240488148 a likely nearby false positive (NFPP 0.12).
+
+The newest, from batch 4: **TIC 9066956**, a 2.7 Earth-radius body every 0.713 days (17 hours) around an M dwarf
+(3,300 K) 90 pc away, 174 transits over six sectors, on target in difference imaging, every season predicting the
+others, FPP 0.050 and NFPP 1e-9. It is on no published list we checked, and its short period gives 34 nights in the
+next 90 days when a ground telescope can catch a transit.
 
 For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
 FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it
@@ -44,7 +49,7 @@ out. Ground photometry that resolves the neighbours during a transit settles it.
 A candidate is not a planet. It is a dip the checks could not explain, on none of the TOI, CTOI, confirmed-planet or
 eclipsing-binary lists, that predicts its own next transit closely enough to test.
 
-TIC 321290256 and 61220826 are on no published list we checked. TIC 116046773 and 50099421 are also in
+TIC 9066956, 321290256 and 61220826 are on no published list we checked. TIC 116046773 and 50099421 are also in
 [RAVEN](https://zenodo.org/records/19661443), TIC 166321785 in
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
 reached those independently.
@@ -113,29 +118,31 @@ export from the hosted site (about 105 MB). Ask Tessa and *Search a star* need t
 
 ## How well it works
 
-**On the survey, Glimmer found what XGBoost would have thrown away.** Three of the six candidates sit below the cut
-XGBoost (System 1) used on its own in vetting v9, so XGBoost alone would have discarded them: one of the three likely
-planets, and both candidates on no published list (`tools/glimmer_value.py`).
+**On the survey, Glimmer found what XGBoost would have thrown away.** Three of the seven candidates sit below the cut
+XGBoost (System 1) used on its own in vetting v9, so XGBoost alone would have discarded them: one of the four likely
+planets, and two of the three candidates on no published list (`tools/glimmer_value.py`).
 
 | Candidate | Class | XGBoost rank | XGBoost at its 0.32 cut |
 |---|---|---|---|
 | TIC 71503196 | likely planet | 0.090 | rejects |
 | TIC 321290256 | nearby star to rule out; on no published list | 0.144 | rejects |
 | TIC 61220826 | nearby star to rule out; on no published list | 0.131 | rejects |
-| TIC 116046773, 166321785, 50099421 | | 0.465 to 0.932 | passes |
+| TIC 116046773, 166321785, 9066956, 50099421 | | 0.465 to 0.932 | passes |
 
-Glimmer is not just a looser cut. Of the 190 survey signals that reached it, it passed 53 and those hold all six
-candidates. To keep all six, XGBoost would have to pass 121; at 61 it keeps only four.
+Glimmer is not just a looser cut. Of the 432 survey signals that reached it, it passed 115 and those hold all seven
+candidates. To keep all seven, XGBoost would have to pass 264; at 142 it keeps six.
 
 | XGBoost cut | Survey signals passed | Candidates kept |
 |---|---|---|
-| 0.32 (vetting v9) | 15 | 3 of 6 |
-| 0.144 | 61 | 4 of 6 |
-| 0.090 | 121 | 6 of 6 |
-| **Glimmer v10** | **53** | **6 of 6** |
+| 0.32 (vetting v9) | 36 | 4 of 7 |
+| 0.144 | 128 | 5 of 7 |
+| 0.131 | 142 | 6 of 7 |
+| 0.090 | 264 | 7 of 7 |
+| **Glimmer v10** | **115** | **7 of 7** |
 
-The candidates come from what Glimmer passed, so this cannot show candidates only XGBoost would have found: at its own
-cut that is 2 signals, which Glimmer did not pass.
+Does XGBoost alone find candidates that Glimmer missed? At its own cut, 11 signals pass XGBoost and not Glimmer. The 9
+in batches 4 and 5 were run through gate 2 as if passed (`tools/glimmer_value.py xgb-only`), and none becomes a
+candidate: 4 fail the season test, 4 cannot be timed well enough to predict a transit, and 1 is a known variable star.
 
 **On known TESS candidates.** The held-out test split (signals held back from training and tuning, outcomes settled
 by follow-up), with Tessa against XGBoost alone, its cut set on val to recover as many planets as Glimmer:
