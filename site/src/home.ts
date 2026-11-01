@@ -226,7 +226,7 @@ export function footer(): HTMLElement {
   return el("footer", { class: "foot" }, el("div", { class: "inner" },
     el("p", {}, "Data: NASA TESS light curves from MAST (SPOC, TESS-SPOC and QLP), ESA Gaia DR3, the TESS Input Catalog, ExoFOP TOI and CTOI lists, "
       + "the NASA Exoplanet Archive, the TESS eclipsing binary catalogue, VSX and SIMBAD."),
-    el("p", {}, "Models: Meta Muse Glimmer 30B, fine-tuned on traces from Muse Spark Open; Muse Spark 1.3; Muse Wonder 1.0 for an "
+    el("p", {}, el("b", {}, "Built with Muse Spark Open."), " Models: Meta Muse Glimmer 30B, fine-tuned on traces from Muse Spark Open; Muse Spark 1.3; Muse Wonder 1.0 for an "
       + "earlier audit. False-positive probabilities: TRICERATOPS (Giacalone et al. 2021). Built for the Meta AI Developer Hackathon, "
       + "October 2026. ",
       el("a", { href: "https://github.com/Rishi943/tessa" }, "The code is on GitHub"), ".")));
