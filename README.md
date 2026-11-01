@@ -42,13 +42,15 @@ reached those independently.
 ## How well it works
 
 Tessa end to end, with Glimmer making the call behind the code's hard rows and rank floor, against NASA's ExoMiner++
-2.0 on the held-out test TOIs both scored (`finetune/exo_bench.py`). Test signals were held back from all tuning and
-training, their outcomes were settled by follow-up, and this was the first look at them.
+2.0 on the held-out test TOIs both scored (`finetune/exo_bench.py`). Test signals were held back from Glimmer's
+training and tuning, their outcomes were settled by follow-up, and Glimmer v10 and its rank floor were frozen on train
+and val before it ran on them. ExoMiner++'s score is its mean over its 2-minute and full-frame runs; Tessa used
+full-frame data only.
 
 | 70 planets, 94 false positives | Planets passed | False positives passed | Precision |
 |---|---|---|---|
 | **Tessa (Glimmer v10 makes the call)** | 50 | **3** | **94%** |
-| NASA ExoMiner++ 2.0 at its published 0.5 | 55 | 7 | 89% |
+| NASA ExoMiner++ 2.0 at its published 0.5 (2-minute and full-frame) | 55 | 7 | 89% |
 
 Tessa lets through fewer than half of ExoMiner++'s false positives, and every pass comes with a dossier that says
 why. It works from full-frame data and needs no SPOC data-validation products, so it can vet the 48,945 stars in
