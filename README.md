@@ -135,6 +135,12 @@ runs; Tessa uses full-frame data only):
 | XGBoost, cut set on dev | 55 | 4 | 93% |
 | NASA ExoMiner++ 2.0 at 0.5 | 55 | 7 | 89% |
 
+Both scorers in Tessa are ours. System 1 is an XGBoost model trained during the hackathon on the same labelled TOIs
+as Glimmer (`finetune/system1.py`): trees chosen by cross-validation grouped by host star, so no star is in two folds;
+a calibration fitted on val; test scored once. Its inputs are the code checks plus a transit fit, Gaia's binarity signs
+and difference imaging. On the test TOIs ExoMiner++ also scored, it ranks planets above false positives better than
+NASA's ExoMiner++: AUC 0.963 against 0.945.
+
 So the division of labour is deliberate: XGBoost's rank goes into Glimmer's input and sets a floor under its passes,
 and Glimmer makes the call, explains it, and is willing to pass a signal the rank undervalues. On known TOIs that
 willingness costs it about 8 extra false positives in 282 at near-equal recall; on the survey it is where half the candidates
@@ -163,7 +169,7 @@ pipeline, not those scripts: agentic, and built to handle far more data. Everyth
 - the vetting checks, difference-image centroids, gate 2 and the predictions of the next transits
 - Glimmer fine-tuned on tool-calling traces from Muse Spark Open, making the planet call with tools, with invented
   numbers caught
-- XGBoost System 1 and a faster TRICERATOPS (40 s against 392 s on a laptop, same FPP to 0.0001)
+- System 1, our XGBoost scorer trained on TESS candidates whose fate follow-up settled, and a faster TRICERATOPS (40 s against 392 s on a laptop, same FPP to 0.0001)
 - the website, its 3D map and case files, Ask Tessa, and searches that run in visitors' browsers
 
 No code was carried over. A line-by-line comparison with the old scripts finds 23 of Tessa's 6,850 lines in
@@ -222,7 +228,7 @@ Built with Muse Spark Open.
 | Ask Tessa on the site | Muse Spark 1.3 | per question |
 
 Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
-in order. XGBoost is not a Meta model: it is a small scorer that gives Glimmer a rank to weigh.
+in order. XGBoost is not a Meta model: it is our own scorer, trained during the hackathon, that gives Glimmer a rank to weigh.
 
 ## Run the whole survey
 
