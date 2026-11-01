@@ -21,7 +21,9 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
-Every count above is recomputed from the saved run by `python tools/glimmer_value.py funnel`. TRICERATOPS ran on all
+Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
+the model, and 1 is a known object; the other 8 passed gate 2. Every count above is recomputed from the saved run
+by `python tools/glimmer_value.py funnel`. TRICERATOPS ran on all
 53 of Glimmer's planet calls and 24 clear its bar. The novelty, testability and season checks pass 8 of the 53, and 7
 of those 8 clear TRICERATOPS (TIC 426450210 fails, FPP 1.0).
 

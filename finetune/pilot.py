@@ -18,14 +18,14 @@ import time
 from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 
-from pipeline.paths import DATA
+from pipeline.paths import DATA, ROOT
 
 from finetune.teacher import MAX_CALLS, FOLDER as TEACHER, load_env, post, verdict
 
 FOLDER = DATA / "finetune" / "pilot"
 VET = DATA / "finetune" / "vet_s1"
 TRACES = FOLDER / "traces"
-PROMPTS = DATA.parent / "agent" / "prompts"
+PROMPTS = ROOT / "agent" / "prompts"
 PRICE = {"input": 1.25, "output": 4.25}  # $ per million tokens: agent/models.js sparkOpen
 MIX = {"gate2": 8, "reject": 8, "flag": 4}
 EXTRA = re.compile(r"^(fit_|star_density_penalty|sector_oe_|sector_sec_half_|secondary_over_bump|secondary_phase_offset|"
@@ -111,7 +111,7 @@ def views(chosen: list[dict], version: str, score: bool = False) -> dict[str, st
     path = FOLDER / "view_jobs.json"
     path.write_text(re.sub(r"\bNaN\b|-?\bInfinity\b", "null", json.dumps(jobs)), encoding="utf-8")  # null: not measured
     r = subprocess.run(["node", "finetune/pilot_view.js", version, str(path)], capture_output=True, text=True,
-                       encoding="utf-8", cwd=DATA.parent)
+                       encoding="utf-8", cwd=ROOT)
     if r.returncode:
         raise RuntimeError(r.stderr[-800:])
     users = {v["toi"]: v["user"] for v in json.loads(r.stdout)}

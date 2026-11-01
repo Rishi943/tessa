@@ -1,12 +1,15 @@
 // tessa.braveai.solutions: the static site comes straight from the assets; this Worker only answers
 // /api/ask, where Muse Spark answers questions about the survey with tools over the exported files, and
-// /api/search/*, which hands visitors a star to search in their browser and records what they found.
+// /api/search/*, which hands visitors a star to search in their browser and records what they found, and
+// /api/glimmer/*, the fine-tuned Glimmer for the repo's demo (worker/glimmer.ts).
+import { glimmer } from "./glimmer";
+import type { GlimmerEnv } from "./glimmer";
 import { poolSize, search } from "./search";
 import type { SearchEnv } from "./search";
 import { SYSTEM, TOOLS, runTool, stepText } from "./tools";
 
 interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
-export interface Env extends SearchEnv {
+export interface Env extends SearchEnv, GlimmerEnv {
   ASSETS: Fetcher;
   META_API_KEY: string;
   ASK_LIMIT: RateLimit;  // per visitor
@@ -27,6 +30,7 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/api/ask" && request.method === "POST") return ask(request, env, ctx);
     if (url.pathname.startsWith("/api/search/")) return search(request, env);
+    if (url.pathname.startsWith("/api/glimmer/")) return glimmer(request, env);
     if (url.pathname.startsWith("/api/")) return new Response("not found", { status: 404 });
     return env.ASSETS.fetch(request);
   },

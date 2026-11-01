@@ -21,7 +21,7 @@ from pathlib import Path
 
 import numpy as np
 
-from pipeline.paths import DATA
+from pipeline.paths import DATA, ROOT
 
 FOLDER = DATA / "finetune" / "teacher"
 PROMPTS = DATA / "finetune" / "prompts_v7_dev.jsonl"
@@ -54,7 +54,7 @@ MODELS = {
 
 
 def load_env() -> None:
-    for line in (DATA.parent / ".env").read_text(encoding="utf-8").splitlines():
+    for line in (ROOT / ".env").read_text(encoding="utf-8").splitlines():
         if "=" in line and not line.lstrip().startswith("#"):
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip().strip('"'))

@@ -3,6 +3,7 @@
 Each list is downloaded once and cached in data/catalogs/. Pass max_age_days=0
 to force a fresh copy (novelty check B does this for every detection).
 """
+import os
 import time
 from pathlib import Path
 from urllib.parse import quote
@@ -110,7 +111,8 @@ def tess_ebs(max_age_days: float = 365) -> pd.DataFrame:
     def fetch() -> bytes:
         from astroquery.vizier import Vizier
 
-        t = Vizier(columns=["TIC", "Per"], row_limit=-1).get_catalogs("J/ApJS/258/16/tess-ebs")[0]
+        server = os.environ.get("TESSA_VIZIER", "vizier.cds.unistra.fr").split(",")[0]  # as pipeline/novelty.py
+        t = Vizier(columns=["TIC", "Per"], row_limit=-1, vizier_server=server).get_catalogs("J/ApJS/258/16/tess-ebs")[0]
         return t.to_pandas().to_csv(index=False).encode()
 
     df = pd.read_csv(_cached("tess_ebs.csv", fetch, max_age_days))
