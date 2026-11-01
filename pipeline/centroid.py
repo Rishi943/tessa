@@ -173,6 +173,8 @@ def sector_offset(path: Path, sig: dict) -> dict | None:
 def survey_sectors(tic: int, star: dict) -> list[int]:
     """The sectors of the star's light curves in the fetch manifests, or whatever TESScut has."""
     for manifest in [DATA / "fetch_manifest.csv", *sorted(CACHE.glob("lc*/manifest.csv"))]:
+        if not manifest.exists():  # a batch fetched elsewhere keeps only its own folder's manifest
+            continue
         with open(manifest, newline="", encoding="utf-8") as f:
             row = next((r for r in csv.DictReader(f) if int(r["tic"]) == tic), None)
         if row:
