@@ -14,6 +14,7 @@ import argparse
 import contextlib
 import json
 import sys
+import os
 import time
 from pathlib import Path
 
@@ -30,8 +31,10 @@ ON_TARGET_ARCSEC = 5
 SIMBAD_BINARY = {"EB*": "an eclipsing binary", "EB?": "a candidate eclipsing binary", "El*": "an ellipsoidal variable",
                  "SB*": "a spectroscopic binary"}
 VSX_ECLIPSING = ("E", "EA", "EB", "EW", "ELL")
-SIMBAD_SERVERS = ("simbad.cds.unistra.fr", "simbad.harvard.edu")
-VIZIER_SERVERS = ("vizier.cds.unistra.fr", "vizier.idia.ac.za", "vizier.nao.ac.jp")
+# Mirrors in the order tried. When CDS is down, put a working mirror first so each query doesn't wait for CDS to time out:
+#   TESSA_SIMBAD=simbad.harvard.edu  TESSA_VIZIER=vizier.idia.ac.za,vizier.nao.ac.jp  (comma-separated; same catalogues)
+SIMBAD_SERVERS = tuple(os.environ.get("TESSA_SIMBAD", "simbad.cds.unistra.fr,simbad.harvard.edu").split(","))
+VIZIER_SERVERS = tuple(os.environ.get("TESSA_VIZIER", "vizier.cds.unistra.fr,vizier.idia.ac.za,vizier.nao.ac.jp").split(","))
 
 
 def toi_lists(tic: int, star: dict, sig: dict) -> tuple[list, list]:
