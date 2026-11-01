@@ -6,6 +6,8 @@ a proxy adds.
 
   python tools/kaggle_job.py push SLUG --files a.txt pipeline/fetch.py --run pipeline/fetch.py --targets a.txt ...
          [--gpu] [--source OTHER_SLUG ...]          everything after --run is the command (python is implied)
+  Pack a requirements.txt for anything Kaggle's image lacks: pipeline/fetch.py needs astroquery==0.4.11
+  (--files reqs.txt=requirements.txt); the script installs it before the command runs.
   python tools/kaggle_job.py status SLUG
   python tools/kaggle_job.py output SLUG OUT_DIR    download the notebook's output files
 """
