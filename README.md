@@ -49,6 +49,25 @@ TIC 321290256 and 61220826 are on no published list we checked. TIC 116046773 an
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
 reached those independently.
 
+## The held-out test
+
+Before any search, 1,000 stars were drawn at random from the survey's first batch and set aside
+(`survey/holdout.txt`). Nothing in Tessa was tuned on them. On 1 November, with everything frozen (the search, the
+gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched once:
+
+| Held-out stars | |
+|---|---|
+| Searched (999 had data) | 999 |
+| Passed gate 1 at the survey's bar | 23; the same search on the flipped light curves passes 9, the noise expected |
+| Settled by code (binaries, spotted stars, System 1) | 18 |
+| Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
+| Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
+
+The survey's rate, 6 candidates in about 23,000 stars, predicts about 0.3 in 1,000 stars, so none is the most likely
+outcome (about 75%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
+on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
+spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise.
+
 ## Try it
 
 **Hosted:** https://tessa.braveai.solutions. The 3D map of every star in the survey, a case file for every dip (its
