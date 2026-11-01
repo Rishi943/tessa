@@ -134,8 +134,7 @@ def run(tic: int, replay: bool, data: Path) -> dict:
     if star.get("source_id"):
         tools.gaia_params([int(star["source_id"])])
     tools.run("stellar_radius", tic)
-    if cen.get("verdict") == "off_target" or (checks["neighbours"].get("plausible_within_1px") and cen.get("verdict") != "on_target"):
-        tools.run("centroid_all", tic)
+    tools.run("centroid_all", tic)  # all five, so whichever Glimmer calls has an answer (the survey had them all ready)
     import survey_v10
     answers = survey_v10.answers(tic)
     line("ready: " + ", ".join(k for k, v in answers.items() if not (isinstance(v, dict) and v.get("not_run"))))
