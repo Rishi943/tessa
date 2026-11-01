@@ -133,7 +133,7 @@ def gaia_params(source_ids: list[int]) -> None:
     from astroquery.gaia import Gaia
     ids = ",".join(str(int(s)) for s in source_ids)
     with contextlib.redirect_stdout(sys.stderr):
-        r = Gaia.launch_job("SELECT source_id, radius_flame, mass_flame, radius_gspphot, teff_gspphot "
+        r = Gaia.launch_job_async("SELECT source_id, radius_flame, mass_flame, radius_gspphot, teff_gspphot "
                             f"FROM gaiadr3.astrophysical_parameters WHERE source_id IN ({ids})", verbose=False).get_results()
     names = [k for k in r.colnames if k != "source_id"]
     for row in r:

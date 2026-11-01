@@ -261,7 +261,7 @@ def gaia_field(tic: int, star: dict) -> tuple[pd.DataFrame, pd.Series] | None:
         query = ("SELECT source_id, ra, dec, pmra, pmdec, phot_g_mean_mag AS g, phot_rp_mean_mag AS rp "
                  "FROM gaiadr3.gaia_source WHERE 1 = CONTAINS(POINT(ra, dec), "
                  f"CIRCLE({star['ra']}, {star['dec']}, {NEIGHBOUR_ARCSEC / 3600}))")
-        df = Gaia.launch_job(query, verbose=False).get_results().to_pandas()
+        df = Gaia.launch_job_async(query, verbose=False).get_results().to_pandas()
         path.parent.mkdir(exist_ok=True)
         df.to_csv(path, index=False)
     # TIC positions are at epoch 2000, Gaia DR3 at 2016: move Gaia stars back before comparing.

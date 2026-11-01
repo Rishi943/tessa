@@ -83,7 +83,7 @@ def gaia_ebs(tic: int, star: dict, sig: dict) -> tuple[list, list]:
     ids = ", ".join(str(int(s)) for s in able["source_id"])
     with contextlib.redirect_stdout(sys.stderr):
         from astroquery.gaia import Gaia
-        rows = Gaia.launch_job(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
+        rows = Gaia.launch_job_async(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
                                f"WHERE source_id IN ({ids})", verbose=False).get_results()
     sep = dict(zip(able["source_id"].astype("int64"), able["sep"]))
     matches, notes = [], []

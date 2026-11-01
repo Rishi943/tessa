@@ -132,7 +132,7 @@ def gaia_extra(source_ids: list[int]) -> dict[str, dict]:
         ids = ",".join(str(s) for s in source_ids[i:i + 500])
         q = (f"SELECT {cols} FROM gaiadr3.gaia_source AS g LEFT JOIN gaiadr3.astrophysical_parameters AS a "
              f"ON a.source_id = g.source_id WHERE g.source_id IN ({ids})")
-        df = retry(lambda: Gaia.launch_job(q, verbose=False).get_results().to_pandas())
+        df = retry(lambda: Gaia.launch_job_async(q, verbose=False).get_results().to_pandas())
         df.columns = [c.lower() for c in df.columns]
         sids = df.pop("sid").astype("int64").tolist()  # 19-digit IDs: never through float
         df = df[[c for c in df.columns if not c.startswith("source_id")]]
@@ -149,7 +149,7 @@ def gaia_ebs(source_ids: list[int]) -> dict[str, float]:
     out = {}
     for i in range(0, len(source_ids), 1000):
         ids = ",".join(str(s) for s in source_ids[i:i + 1000])
-        df = retry(lambda: Gaia.launch_job(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
+        df = retry(lambda: Gaia.launch_job_async(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
                                            f"WHERE source_id IN ({ids})", verbose=False).get_results().to_pandas())
         df.columns = [c.lower() for c in df.columns]
         out.update({str(int(s)): 1 / float(f) for s, f in zip(df["source_id"], df["frequency"]) if f})

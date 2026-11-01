@@ -66,7 +66,7 @@ def gaia_rows(dr2_ids: list[int]) -> pd.DataFrame:
                  "g.non_single_star FROM gaiadr3.dr2_neighbourhood AS n "
                  "JOIN gaiadr3.gaia_source AS g ON g.source_id = n.dr3_source_id "
                  f"WHERE n.dr2_source_id IN ({ids})")
-            r = retry(lambda: Gaia.launch_job(q, verbose=False).get_results().to_pandas())
+            r = retry(lambda: Gaia.launch_job_async(q, verbose=False).get_results().to_pandas())
             r.columns = [c.lower() for c in r.columns]
             r.to_parquet(part)
             print(f"  Gaia {min(i + BATCH, len(dr2_ids))}/{len(dr2_ids)}", flush=True)
