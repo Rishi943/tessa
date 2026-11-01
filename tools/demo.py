@@ -21,6 +21,7 @@ import os
 import shutil
 import sys
 import time
+import urllib.error
 import urllib.request
 from pathlib import Path
 
@@ -52,11 +53,18 @@ def wake(base: str) -> None:
     url = f"{base.rstrip('/')}/health"
     deadline = time.time() + WAKE_MINUTES * 60
     first = True
+    # Cloudflare turns away Python's default user agent ("Python-urllib") with a 403, so name ours
+    req = urllib.request.Request(url, headers={"User-Agent": "tessa-demo/1.0"})
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen(url, timeout=15) as r:
+            with urllib.request.urlopen(req, timeout=15) as r:
                 body = r.read().decode() or "{}"
                 ready = r.status == 200 and (json.loads(body).get("ready", True) if body.startswith("{") else True)
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403, 404):  # not a sleeping container: waiting won't help
+                raise SystemExit(f"\nGlimmer's endpoint refused the health check ({url}: HTTP {e.code}); "
+                                 "run again with --replay to use its saved dossier")
+            ready = False
         except Exception:
             ready = False
         if ready:
