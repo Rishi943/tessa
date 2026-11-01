@@ -10,6 +10,10 @@
 
 Needs data/ (vet files, testgate/valgate verdicts, survey_v10 dossiers, exo_bench.json from `python -m finetune.exo_bench`).
 Run: python tools/glimmer_value.py
+     python tools/glimmer_value.py funnel            the survey funnel recounted from the saved files (for the README)
+     python tools/glimmer_value.py xgb-only OUT_DIR  the signals XGBoost alone would pass and Glimmer did not: gate 2 as if
+                                                     XGBoost had passed them (novelty, test, seasons), and their folded light
+                                                     curves in OUT_DIR for tools/fpp_survivors.py --folded OUT_DIR
 """
 import json
 import sys
@@ -189,7 +193,82 @@ def part3() -> None:
         print("  triage: no band reaches the dev recall target")
 
 
+def survey_rows() -> list[dict]:
+    rows = []
+    for r in json.loads((DATA / "survey_v10" / "runset.json").read_text(encoding="utf-8")):
+        c = json.loads((DATA / "vet" / f"{r['batch']}_v10" / f"{r['tic']}.json").read_text(encoding="utf-8"))
+        d = DATA / "dossiers" / f"{r['tic']}.glimmer-vetter-v10.v10.json"
+        v = json.loads(d.read_text(encoding="utf-8"))["dossier"]["verdict"] if d.exists() else None
+        rows.append({"tic": r["tic"], "batch": r["batch"], "c": c, "rank": rank(c), "glimmer": v,
+                     "passes": v == "gate2" and not gate2.outside_planet_range(c, gate2.evidence(r["tic"]), "v10")})
+    return rows
+
+
+def funnel() -> None:
+    """Every survey count the README states, from the saved files, so README and form quote one source."""
+    import csv
+    rows = survey_rows()
+    v = [r["glimmer"] for r in rows]
+    print(f"run set (reached Glimmer): {len(rows)}")
+    print(f"Glimmer verdicts: gate2 {v.count('gate2')}, flag {v.count('flag')}, reject {v.count('reject')}, none {v.count(None)}")
+    print(f"gate2 and no hard row / rank floor (a Tessa pass): {sum(r['passes'] for r in rows)}")
+    total = {}
+    for batch in ("survey", "batch2"):
+        f = DATA / "vet" / f"{batch}_v10" / "status.csv"
+        if not f.exists():
+            print(f"{f} missing: run `python tools/survey_v10.py gate2`")
+            continue
+        with open(f, encoding="utf-8") as fh:
+            st = [r["status"] for r in csv.DictReader(fh)]
+        for s in set(st):
+            total[s] = total.get(s, 0) + st.count(s)
+        print(f"gate 2 status, {batch}_v10: " + ", ".join(f"{s} {st.count(s)}" for s in sorted(set(st))))
+    print("gate 2 status, both: " + ", ".join(f"{s} {n}" for s, n in sorted(total.items())) + f"  (total {sum(total.values())})")
+    cands = sorted(int(p.stem) for b in ("survey", "batch2") for p in (DATA / "vet" / f"{b}_v10" / "candidates").glob("*.json"))
+    print(f"gate 2 candidates (before TRICERATOPS): {len(cands)}: {cands}")
+
+
+def xgb_only(out: Path) -> None:
+    """Signals XGBoost at its v9 cut passes and Glimmer did not: what gate 2 says if XGBoost had passed them, and their folds."""
+    from pipeline import fpp
+    from pipeline.paths import CACHE
+    from pipeline.search import detrend
+    from pipeline.vet import load_lc, signal_from_results
+    lc_dir = {"survey": CACHE / "lc", "batch2": CACHE / "lc_batch2"}
+    results = {"survey": DATA / "survey_results.csv", "batch2": DATA / "batch2_results.csv"}
+    picks = [r for r in survey_rows() if r["rank"] >= gate2.PASS_RANK and not r["passes"]]
+    print(f"{len(picks)} signals XGBoost at {gate2.PASS_RANK} passes and Glimmer did not")
+    out.mkdir(parents=True, exist_ok=True)
+    for r in picks:
+        tic, c = r["tic"], r["c"]
+        hard_rows = gate2.outside_planet_range(c, gate2.evidence(tic), "v10")
+        as_pass = {"prompt": "v10", "dossier": {"verdict": "gate2", "reasons": [], "public_summary": ""}}
+        sig = signal_from_results(tic, results[r["batch"]])
+        status, reasons, _ = gate2.decide(c, as_pass, sig, lc_dir[r["batch"]])
+        print(f"TIC {tic} ({r['batch']}): XGBoost rank {r['rank']:.3f}, Glimmer said {r['glimmer']}; "
+              f"hard rows {hard_rows or 'none'}; gate 2 if passed: {status}" + (f" ({'; '.join(reasons)[:160]})" if reasons else ""))
+        if status != "candidate":
+            continue
+        s = c["signal"]
+        raw = load_lc(tic, lc_dir[r["batch"]])
+        lc = detrend(raw["time"], raw["flux"], raw["sector"])
+        try:
+            f = fpp.fold(tic, s["period"], s["t0"], s["dur_h"], s["depth_ppm"], raw, lc)
+        except fpp.Uncovered as e:
+            print(f"  TRICERATOPS cannot cover it: {e}")
+            continue
+        (out / f"fpp_input_{tic}.json").write_text(json.dumps(f), encoding="utf-8")
+        print(f"  folded -> {out / f'fpp_input_{tic}.json'}")
+    print(f"\nnext, in the TRICERATOPS venv: python tools/fpp_survivors.py --folded {out} --out {out / 'fpp'}")
+
+
 if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "funnel":
+        funnel()
+        sys.exit()
+    if len(sys.argv) > 2 and sys.argv[1] == "xgb-only":
+        xgb_only(Path(sys.argv[2]))
+        sys.exit()
     for part in (part1, part2, part3):
         try:
             part()
