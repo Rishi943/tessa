@@ -36,11 +36,23 @@ sys.exit(subprocess.call([sys.executable, "-u"] + {cmd!r}))
 '''
 
 
+def credentials() -> tuple[str, str] | None:
+    """KAGGLE_USERNAME/KAGGLE_KEY, else the kaggle.json Kaggle's own CLI uses; None when a proxy adds them."""
+    if os.environ.get("KAGGLE_KEY"):
+        return os.environ.get("KAGGLE_USERNAME", USER), os.environ["KAGGLE_KEY"]
+    for f in (Path.home() / ".kaggle" / "kaggle.json", Path.home() / ".config" / "kaggle" / "kaggle.json"):
+        if f.exists():
+            c = json.loads(f.read_text(encoding="utf-8"))
+            if c.get("key") and c.get("key") != "proxy-injects-auth":
+                return c["username"], c["key"]
+    return None
+
+
 def call(path: str, body: dict | None = None) -> dict:
     headers = {"Content-Type": "application/json", "User-Agent": "tessa-kaggle-job/1.0"}
-    if os.environ.get("KAGGLE_KEY"):
-        token = base64.b64encode(f"{USER}:{os.environ['KAGGLE_KEY']}".encode()).decode()
-        headers["Authorization"] = f"Basic {token}"
+    cred = credentials()
+    if cred:
+        headers["Authorization"] = "Basic " + base64.b64encode(f"{cred[0]}:{cred[1]}".encode()).decode()
     req = urllib.request.Request(f"{API}/{path}", json.dumps(body).encode() if body is not None else None, headers)
     with urllib.request.urlopen(req, timeout=120) as r:
         return json.loads(r.read() or b"{}")
