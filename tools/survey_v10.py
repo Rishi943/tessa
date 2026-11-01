@@ -11,6 +11,7 @@ Run: python tools/survey_v10.py STAGE [--jobs N] [--limit N]
 """
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -192,7 +193,9 @@ def do_gate2() -> None:
     for batch, (results, lc) in BATCHES.items():
         procs.append(subprocess.Popen([sys.executable, "-m", "pipeline.gate2", str(DATA / "vet" / f"{batch}_v10"), "--results",
                                        str(DATA / results), "--lc", str(DATA / "cache" / lc), "--model", MODEL, "--prompt", "v10"],
-                                      cwd=ROOT, stdout=open(WORK / f"gate2_{batch}.log", "w", encoding="utf-8"), stderr=subprocess.STDOUT))
+                                      cwd=ROOT, stdout=open(WORK / f"gate2_{batch}.log", "w", encoding="utf-8"), stderr=subprocess.STDOUT,
+                                      # catalogue names carry symbols like the arcsecond sign; Windows' default cp1252 can't print them
+                                      env={**os.environ, "PYTHONIOENCODING": "utf-8"}))
     for p in procs:
         p.wait()
     for batch in BATCHES:
