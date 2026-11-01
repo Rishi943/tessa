@@ -49,6 +49,7 @@ MODELS = {
     "glimmer": ("muse-glimmer", "GLIMMER_URL", "GLIMMER_API_KEY"),
     "spark-open": ("meta-models/muse-spark-open-1026", "https://inference.baseten.co", "BASETEN_API_KEY"),
     "spark-1.3": ("muse-spark-1.3", "https://api.meta.ai", "META_API_KEY"),
+    "glimmer-vetter": ("glimmer-vetter-v10", "GLIMMER_VETTER_URL", "GLIMMER_API_KEY"),  # fine-tuned v10 vetter on Modal
 }
 
 
@@ -145,7 +146,7 @@ def plot(lc: dict, sig: dict, path: Path) -> None:
     plt.close(fig)
 
 
-def job(out: Path, lc_root: Path, plots: bool) -> None:
+def job(out: Path, lc_root: Path, plots: bool, part: int = 0, parts: int = 1, max_hours: float = 8.0) -> None:
     """Kaggle: each signal's plot and the result of every tool, with the light curve from the fetch job."""
     import pipeline.tools as tools
     from finetune.inputs import shards_by_tic
@@ -155,7 +156,18 @@ def job(out: Path, lc_root: Path, plots: bool) -> None:
     jobs = json.loads(Path("teacher_jobs.json").read_text(encoding="utf-8"))
     shards = shards_by_tic(lc_root)
     out.mkdir(parents=True, exist_ok=True)
+    params = Path("gaia_params.json")  # fetched beforehand: the archive takes about 80 s a query
+    if params.exists():
+        stored = json.loads(params.read_text(encoding="utf-8"))
+        for j in jobs:  # a star with no row has none to find: don't ask again
+            if sid := j["checks"]["star"].get("source_id"):
+                tools.GAIA_PARAMS[sid] = stored.get(str(sid), {})
+    jobs = jobs[part::parts]
+    print(f"{len(jobs)} signals, part {part} of {parts}", flush=True)
     for n, j in enumerate(jobs, 1):
+        if time.time() - started > max_hours * 3600:
+            print(f"stopped at the time cap after {n - 1}", flush=True)
+            break
         if j["tic"] not in shards:
             print(f"{j['toi']}: no light curve", flush=True)
             continue
@@ -176,7 +188,7 @@ def job(out: Path, lc_root: Path, plots: bool) -> None:
                 plot(lc, j["checks"]["signal"], out / f"plot_{j['toi']}.png")
         except Exception as e:
             print(f"{j['toi']}: plot failed {e}", flush=True)
-        if n % 100 == 0:
+        if n % 20 == 0:
             print(f"{time.strftime('%H:%M:%S')} {n}/{len(jobs)} in {(time.time() - started) / 60:.0f} min", flush=True)
     print(f"done in {(time.time() - started) / 60:.0f} min", flush=True)
 
@@ -223,7 +235,7 @@ def post(model: str, body: dict) -> dict:
             with httpx.Client(follow_redirects=True, max_redirects=1000, timeout=1800) as client:
                 r = client.post(f"{base}/v1/chat/completions", json={"model": name, **body},
                                 headers={"Authorization": f"Bearer {os.environ[key]}"})
-            if r.status_code in (400, 401, 403, 404):
+            if r.status_code in (400, 401, 402, 403, 404):
                 raise PermissionError(f"HTTP {r.status_code}: {r.text[:300]}")
             r.raise_for_status()
             return r.json()
@@ -303,12 +315,18 @@ def run(model: str, mode: str, jobs: int) -> None:
 
 
 def verdict(text: str) -> str | None:
-    body = re.sub(r"^```(?:json)?\s*|\s*```$", "", text.strip())
-    try:
-        v = json.loads(body[body.index("{"):body.rindex("}") + 1]).get("verdict")
-    except (ValueError, AttributeError):
-        return None
-    return v if v in ("reject", "flag", "gate2") else None
+    """The final verdict, tolerating a tool-call block or reasoning before the JSON (Glimmer's tool-call
+    formatting can wrap it): the last balanced {...} that parses with a valid verdict, else the last
+    "verdict": "..." the text names."""
+    for m in reversed(list(re.finditer(r"\{(?:[^{}]|\{[^{}]*\})*\}", text, re.S))):
+        try:
+            v = json.loads(m.group(0)).get("verdict")
+            if v in ("reject", "flag", "gate2"):
+                return v
+        except (ValueError, AttributeError):
+            continue
+    m = re.search(r'"verdict"\s*:\s*"(reject|flag|gate2)"', text)
+    return m.group(1) if m else None
 
 
 def score() -> None:
@@ -366,6 +384,8 @@ def main() -> None:
     j.add_argument("--out", type=Path, default=Path("/kaggle/working"))
     j.add_argument("--lc", type=Path, default=Path(os.environ.get("KAGGLE_INPUTS", "/kaggle/input")))
     j.add_argument("--no-plots", action="store_true")
+    j.add_argument("--part", type=int, default=0)
+    j.add_argument("--parts", type=int, default=1)
     r = sub.add_parser("run")
     r.add_argument("model", choices=list(MODELS))
     r.add_argument("mode", choices=("text", "plots", "tools"))
@@ -384,7 +404,7 @@ def main() -> None:
     if a.cmd == "pick":
         pick(a.dir, a.all)
     elif a.cmd == "job":
-        job(a.out, a.lc, not a.no_plots)
+        job(a.out, a.lc, not a.no_plots, a.part, a.parts)
     elif a.cmd == "centroid-job":
         centroid_job(a.out, a.lc, a.part, a.parts)
     elif a.cmd == "centroid-pick":

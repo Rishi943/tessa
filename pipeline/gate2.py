@@ -16,6 +16,7 @@ check and the predictions.
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 from .novelty import novelty
@@ -32,6 +33,8 @@ PASS_RANK = 0.32  # vetting v9: from this System 1 planet rank up, the table's r
 # The rows below flag at any rank. None fires on a labelled TOI (they are vetted blind, so nothing is "known"; gate 1
 # wants 3 transits; every target is in Gaia), so they cost no planets there; each is a missing check, not a number
 HARD_ROWS = ("known:", "refit:", "neighbours: the target is not in Gaia")
+FLOOR_RANK = 0.05  # vetting v10: the agent decides, but a signal it passes that System 1 rates below this is flagged for a
+# human, not promoted. Val: FPs through 5 -> 1 for 3 borderline planets (93 -> 90); the one remaining leak scored 0.62
 
 
 def evidence(tic: int) -> dict:
@@ -39,11 +42,26 @@ def evidence(tic: int) -> dict:
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
-def outside_planet_range(c: dict, ev: dict | None = None) -> list[str]:
+def prompt_number(version: str | None) -> int:
+    m = re.match(r"v(\d+)", version or "")
+    return int(m.group(1)) if m else 0
+
+
+def outside_planet_range(c: dict, ev: dict | None = None, version: str | None = None) -> list[str]:
     """Why a signal is not planet-like (vetting v9): empty when System 1's planet rank is PASS_RANK or more and no
     HARD_ROWS row fires; below the rank the first reason is the rank, then the table's rows. With no System 1
-    score the table decides alone, as before v9."""
+    score the table decides alone, as before v9. From prompt v10 the agent makes the planet call and sees no
+    System 1 output: only the HARD_ROWS stay, at any rank."""
     rows = table_rows(c, ev)
+    if prompt_number(version) >= 10:
+        # v10: the agent makes the call. Only the HARD_ROWS stand, plus one safety net: a signal the agent passes
+        # that System 1 rates in its bottom FLOOR_RANK is flagged for a human, not promoted (val: catches 4 of 5
+        # FP leaks for 3 borderline planets; the agent still decides reject/flag/gate2, this only caps gate2).
+        hard = [r for r in rows if r.startswith(HARD_ROWS)]
+        rank = (c.get("system1") or {}).get("planet_rank")
+        if rank is not None and rank < FLOOR_RANK:
+            hard.append(f"system1: planet rank {rank:.2f}, in the bottom {FLOOR_RANK:.0%}; a human confirms before it passes")
+        return hard
     s1 = c.get("system1")
     if s1 is None:
         return rows
@@ -186,7 +204,7 @@ def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple
     agent = [f"{r['check']}: {r['why']}" for r in d["reasons"]]
     if d["verdict"] == "reject":
         return "rejected", ["agent: " + a for a in agent], {}
-    rules = outside_planet_range(checks, ev)
+    rules = outside_planet_range(checks, ev, dossier.get("prompt"))
     if rules or d["verdict"] == "flag":
         return "flagged", rules or ["agent: " + a for a in agent], {}
     nov = novelty(checks["tic"], sig)

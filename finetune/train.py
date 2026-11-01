@@ -11,7 +11,7 @@ from pathlib import Path
 import modal
 
 BASE = "unsloth/Muse-Glimmer-30B-unsloth-bnb-4bit"
-MAX_SEQ = 6144  # high-strength dossiers run ~4,300 tokens with the prompt (measured 2026-10-28)
+MAX_SEQ = 9000  # v10's traces with tool answers: median 4,108 tokens, longest 8,546 (measured 2026-10-31)
 
 image = (
     modal.Image.from_registry("nvidia/cuda:12.8.1-devel-ubuntu22.04", add_python="3.12")  # nvcc for JIT kernels
@@ -82,11 +82,21 @@ def run(train_rows: list[dict], val_rows: list[dict], epochs: float = 2.0, rank:
     labels = trainer.train_dataset[0]["labels"]
     first = next(i for i, x in enumerate(labels) if x != -100)
     print("trained part starts:", repr(tokenizer.decode(trainer.train_dataset[0]["input_ids"][first:first + 12])), flush=True)
+    if dry:  # tool calls trained, tool answers not: each masked stretch after the prompt, by its first words
+        ids, gaps, start = trainer.train_dataset[0]["input_ids"], [], None
+        for i in range(first, len(ids)):
+            if labels[i] == -100 and start is None:
+                start = i
+            elif labels[i] != -100 and start is not None:
+                gaps.append((i - start, tokenizer.decode(ids[start:start + 14])))
+                start = None
+        print("masked after the prompt:", gaps, flush=True)
+        print("trained tokens:", sum(x != -100 for x in labels), "of", len(labels), flush=True)
 
     stats = trainer.train()
     print(json.dumps(stats.metrics), flush=True)
     history = [h for h in trainer.state.log_history]
-    name = "glimmer-vetter-dry" if dry else "glimmer-vetter"
+    name = "glimmer-vetter-dry" if dry else "glimmer-vetter-v10"
     model.save_pretrained(f"/out/{name}")
     tokenizer.save_pretrained(f"/out/{name}")
     Path(f"/out/{name}/history.json").write_text(json.dumps(history, indent=1))

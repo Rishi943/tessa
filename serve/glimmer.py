@@ -69,4 +69,5 @@ def serve():
 @modal.concurrent(max_inputs=SEQS)
 @modal.web_server(port=8000, startup_timeout=20 * 60)
 def vetter():
-    vllm("--enable-lora", "--lora-modules", "glimmer-vetter=/ft/glimmer-vetter", "--max-lora-rank", "16")
+    vllm("--enable-lora", "--lora-modules", "glimmer-vetter=/ft/glimmer-vetter",
+         "glimmer-vetter-v10=/ft/glimmer-vetter-v10", "--max-lora-rank", "16")

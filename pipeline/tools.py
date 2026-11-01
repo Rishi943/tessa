@@ -124,20 +124,33 @@ def transit_depths(tic: int) -> dict:
             "share_of_top_3": round(top3, 3), "outliers": outliers}
 
 
+GAIA_PARAMS: dict[int, dict] = {}  # source_id -> FLAME and GSP-Phot values, for one query over many stars
+
+
+def gaia_params(source_ids: list[int]) -> None:
+    """Gaia's radius, mass and temperature for these stars, into GAIA_PARAMS. One star's query takes the archive about
+    85 s, so a batch asks for them together."""
+    from astroquery.gaia import Gaia
+    ids = ",".join(str(int(s)) for s in source_ids)
+    with contextlib.redirect_stdout(sys.stderr):
+        r = Gaia.launch_job("SELECT source_id, radius_flame, mass_flame, radius_gspphot, teff_gspphot "
+                            f"FROM gaiadr3.astrophysical_parameters WHERE source_id IN ({ids})", verbose=False).get_results()
+    names = [k for k in r.colnames if k != "source_id"]
+    for row in r:
+        GAIA_PARAMS[int(row["source_id"])] = {k: (None if np.ma.is_masked(row[k]) else float(row[k])) for k in names}
+
+
 def stellar_radius(tic: int) -> dict:
     """Gaia DR3's own radius and mass for the star (FLAME, from its luminosity and temperature),
     against the TIC's: the expected duration and the planet's size depend on them."""
     checks, _ = locate(tic)
     star, sig = checks["star"], checks["signal"]
     out = {"tic_radius": star["rad"], "tic_mass": star["mass"]}
-    if star.get("source_id"):
-        with contextlib.redirect_stdout(sys.stderr):
-            from astroquery.gaia import Gaia
-            r = Gaia.launch_job("SELECT radius_flame, mass_flame, radius_gspphot, teff_gspphot "
-                                f"FROM gaiadr3.astrophysical_parameters WHERE source_id = {int(star['source_id'])}",
-                                verbose=False).get_results()
-        if len(r):
-            out.update({k: (None if np.ma.is_masked(r[k][0]) else float(r[k][0])) for k in r.colnames})
+    if star.get("source_id") in GAIA_PARAMS:
+        out.update(GAIA_PARAMS[star["source_id"]])
+    elif star.get("source_id"):
+        gaia_params([star["source_id"]])
+        out.update(GAIA_PARAMS.get(star["source_id"], {}))
     rows = []
     for name, rad, mass in [("TIC", star["rad"], star["mass"]),
                             ("Gaia FLAME", out.get("radius_flame"), out.get("mass_flame") or star["mass"]),

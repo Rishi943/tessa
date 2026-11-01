@@ -24,6 +24,8 @@ jobs (Kaggle, fetch job mounted): the same fold, done in the job from the mounte
 Run: python -m pipeline.fpp export TIC [TIC ...] --out DIR      (writes fpp_input_TIC.json)
      Kaggle: python fpp_job.py [--runs 5] [--max-minutes 600]   (reads every fpp_input_*.json beside it)
              python fpp_job.py --jobs fpp_jobs.json [--runs 1] [--limit N] [--part I --parts N]
+     Laptop (TRICERATOPS venv): python -m pipeline.fpp fetch-setups --inputs DIR --cache DIR [--workers 6] [--only TIC ...]
+       downloads many stars' setups at once, one process each; tools/fpp_survivors.py --cache DIR then calculates from them
 """
 import argparse
 import json
@@ -210,13 +212,11 @@ def thin(sectors: list[int], n: int = MAX_GEOMETRY_SECTORS) -> list[int]:
     return [sectors[i] for i in np.linspace(0, len(sectors) - 1, n).round().astype(int)]
 
 
-def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | None = None) -> dict:
-    """scratch: where the aperture files go (default beside the output; the labelled test keeps them out of it)."""
+def setup_star(d: dict, work: Path):
+    """The star's TRICERATOPS target with its apertures: from tri_fast's cache when the star is there, else built (TESS-SPOC
+    apertures, TIC and Gaia queries, cutouts) and stored. Returns target, apertures, sectors, circular."""
     import triceratops.triceratops as tr
-    started = time.time()
     tic = d["tic"]
-    work = (scratch or outdir) / f"work_{tic}"
-    work.mkdir(parents=True, exist_ok=True)
     from . import tri_fast
     stored = tri_fast.CACHE / f"setup_{tic}.pkl" if tri_fast.CACHE else None
     if stored and stored.exists():  # the catalogues, cutouts and apertures of an earlier run on this star
@@ -252,6 +252,16 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | N
         with stored.with_suffix(".tmp").open("wb") as f:
             pickle.dump((aps, sectors, circular, target.__dict__), f)
         stored.with_suffix(".tmp").replace(stored)
+    return target, aps, sectors, circular
+
+
+def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | None = None) -> dict:
+    """scratch: where the aperture files go (default beside the output; the labelled test keeps them out of it)."""
+    started = time.time()
+    tic = d["tic"]
+    work = (scratch or outdir) / f"work_{tic}"
+    work.mkdir(parents=True, exist_ok=True)
+    target, aps, sectors, circular = setup_star(d, work)
     target.calc_depths(tdepth=d["depth"], all_ap_pixels=[np.array(aps[s]) for s in sectors])
     t_setup = time.time()
     t, f = np.array(d["time"]), np.array(d["flux"])
@@ -279,6 +289,63 @@ def run_one(d: dict, runs: int, deadline: float, outdir: Path, scratch: Path | N
            "seconds_setup": round(t_setup - started)}
     (outdir / f"fpp_{tic}.json").write_text(json.dumps(out, indent=1), encoding="utf-8")
     return out
+
+
+def fetch_one(d: dict, cache: str, scratch: str) -> dict:
+    """One worker process, one star: build its setup and store it in the cache (setup_TIC.pkl, gaia_TIC.csv). A failure
+    comes back as a row; a dropped connection gets three tries."""
+    import shutil as sh
+    from . import tri_fast
+    tic, started = d["tic"], time.time()
+    if not tri_fast.CACHE:  # the first star this worker takes
+        tri_fast.install(Path(cache))
+        retrying_downloads()
+    if (tri_fast.CACHE / f"setup_{tic}.pkl").exists():
+        return {"tic": tic, "ok": True, "seconds": 0, "note": "already cached"}
+    work = Path(scratch) / f"work_{tic}"
+    error = None
+    for _ in range(3):
+        try:
+            work.mkdir(parents=True, exist_ok=True)
+            setup_star(d, work)
+            error = None
+            break
+        except Exception as e:
+            error = f"{e.__class__.__name__}: {e}"[:300]
+            log(f"TIC {tic}: {error}")
+            if not any(w in e.__class__.__name__ + str(e) for w in ("Connection", "RemoteService", "Timeout", "503")):
+                break
+            log(f"TIC {tic}: MAST or TIC service refused or dropped the request, trying again in a minute")
+            time.sleep(60)
+    sh.rmtree(work, ignore_errors=True)
+    return {"tic": tic, "ok": error is None, "seconds": round(time.time() - started), "error": error}
+
+
+def fetch_setups(inputs: Path, cache: Path, workers: int, only: list[int] | None = None) -> list[dict]:
+    """The first-run setup of every fpp_input_TIC.json in inputs, downloaded by `workers` separate processes (not threads:
+    SPOC_FRAMES and the lightkurve cache are per-process state) into cache, where tri_fast's runs find it. A star that fails
+    is reported in the returned rows, not raised. Run with the TRICERATOPS interpreter."""
+    import concurrent.futures as cf
+    import multiprocessing as mp
+    cache.mkdir(parents=True, exist_ok=True)
+    scratch = cache / "scratch"
+    jobs = [json.loads(p.read_text(encoding="utf-8")) for p in sorted(inputs.glob("fpp_input_*.json"))]
+    jobs = [d for d in jobs if (not only or d["tic"] in only) and not (cache / f"setup_{d['tic']}.pkl").exists()]
+    log(f"{len(jobs)} stars to fetch with {workers} workers into {cache}")
+    rows = []
+    with cf.ProcessPoolExecutor(workers, mp_context=mp.get_context("spawn")) as pool:
+        futures = {pool.submit(fetch_one, d, str(cache), str(scratch)): d["tic"] for d in jobs}
+        for f in cf.as_completed(futures):
+            try:
+                row = f.result()
+            except Exception as e:
+                row = {"tic": futures[f], "ok": False, "error": f"{e.__class__.__name__}: {e}"[:300]}
+            rows.append(row)
+            log(f"{len(rows)}/{len(jobs)} {json.dumps(row)}")
+    shutil.rmtree(scratch, ignore_errors=True)
+    failed = [r["tic"] for r in rows if not r["ok"]]
+    log(f"{len(rows) - len(failed)} fetched, {len(failed)} failed{': ' + str(failed) if failed else ''}")
+    return rows
 
 
 class TimedOut(BaseException):
@@ -370,6 +437,17 @@ def main() -> None:
         args = ap.parse_args()
         for tic in args.tics:
             export(tic, args.out)
+        return
+    if len(sys.argv) > 1 and sys.argv[1] == "fetch-setups":
+        ap = argparse.ArgumentParser(prog="fpp fetch-setups", description=fetch_setups.__doc__)
+        ap.add_argument("cmd")
+        ap.add_argument("--inputs", type=Path, required=True, help="folder with fpp_input_TIC.json files")
+        ap.add_argument("--cache", type=Path, required=True, help="tri_fast's setup cache (--cache of tools/fpp_survivors.py)")
+        ap.add_argument("--workers", type=int, default=6)
+        ap.add_argument("--only", type=int, nargs="+")
+        args = ap.parse_args()
+        rows = fetch_setups(args.inputs, args.cache, args.workers, args.only)
+        (args.cache / "fetch_setups.json").write_text(json.dumps(rows, indent=1), encoding="utf-8")
         return
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--runs", type=int, default=5)
