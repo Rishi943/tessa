@@ -69,7 +69,9 @@ python tools/demo.py                              # TIC 71503196, end to end
 `demo/data`:
 
 1. **Search** (about 1 minute on CPU): 221,766 trial periods; it finds the dip every 1.56991 days and clears gate 1.
-2. **Code checks, difference imaging and System 1**: XGBoost ranks it 0.196, below the cut XGBoost used on its own.
+2. **Code checks, difference imaging and System 1**: XGBoost ranks it 0.196, below the 0.32 cut XGBoost used on its
+   own. The survey's rank was 0.090: there, difference imaging had not run when System 1 scored the star (its
+   centroid input was missing), and the GPU search fitted the transit a little differently. Same model, same verdict.
 3. **The five measurements** Glimmer may ask for, computed from the bundled data.
 4. **Glimmer makes the call, live**: the fine-tuned Muse Glimmer 30B on Modal, reached through the hosted site
    (`/api/glimmer`, which holds the key and rate-limits). Its GPU sleeps when idle: the first call wakes it in 3 to 5
