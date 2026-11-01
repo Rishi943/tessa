@@ -171,7 +171,8 @@ function method(summary: Summary, dips: Dip[], searched: number): HTMLElement {
       + "pass but never make one. Everything a model writes is checked for numbers it didn't get from the data"
       + (summary.invented ? `: so far ${summary.invented.with_invented_numbers} of ${summary.invented.dossiers} dossiers had one, and it is marked.` : ".")),
     steps,
-    el("p", { class: "costline" }, `Model cost for the whole search so far: ${usd(total)}, or ${usd((total / searched) * 1000)} per thousand stars searched.`)));
+    el("p", { class: "costline" }, `Meta Model API cost for the whole search so far: ${usd(total)}, or ${usd((total / searched) * 1000)} per thousand stars `
+      + "searched. Glimmer runs on Tessa's own rented GPU, paid by the hour, not per call.")));
 }
 
 function dipList(dips: Dip[]): HTMLElement {

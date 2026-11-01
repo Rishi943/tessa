@@ -220,6 +220,9 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
                     **light_curve(detrend(raw["time"], raw["flux"], raw["sector"]), sig)}
             if tic in fpp:
                 page["fpp"] = {**fpp[tic], "tier": fpp_tier(fpp[tic])}
+            if v10 and page["dossier"]:  # Glimmer's dossiers carry their own check (finetune/pilot.py invented)
+                invented["dossiers"] += 1
+                invented["with_invented_numbers"] += bool(page["dossier"].get("invented"))
             ev = DATA / "evidence" / f"{tic}.json"
             if ev.exists():
                 page["evidence"] = json.loads(ev.read_text(encoding="utf-8"))
