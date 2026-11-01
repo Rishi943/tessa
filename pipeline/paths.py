@@ -16,6 +16,8 @@ def batches() -> dict[str, tuple[Path, Path]]:
     for p in sorted(DATA.glob("batch*_results.csv"), key=lambda p: int("0" + "".join(c for c in p.name[5:8] if c.isdigit()))):
         name = p.name.removesuffix("_results.csv")
         out.setdefault(name, (p, CACHE / f"lc_{name}"))
+    if (DATA / "holdout_results.csv").exists():  # the 1,000 held-back stars, searched once with the frozen pipeline
+        out["holdout"] = (DATA / "holdout_results.csv", CACHE / "lc_holdout")
     return out
 
 
