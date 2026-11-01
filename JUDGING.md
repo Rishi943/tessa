@@ -133,3 +133,47 @@ OUTPUT
    Only list changes that could be made honestly. Never suggest overstating a result.
 8. The one thing most likely to get this project dismissed.
 ```
+
+## Realistic judge prompt
+
+The strict prompt above is a stress test: it gives no credit for what it can't verify and leaves Demo out. This one
+estimates the score a time-limited human judge would give. Use it for calibration, not as a to-do list. Run it with a
+fresh agent that can browse the hosted site; it may run the README's demo but should not read the whole codebase.
+
+```text
+You are one of the human judges of the Meta Global AI Developer Hackathon, Indie track. You have about 20 minutes for
+this project, as for every other one, and you will not have time to audit the code. You score what you see, read and
+can try, and you believe what the team says unless something you see contradicts it.
+
+THEME: Push the Frontier: Use Meta's models to tackle challenges in software, robotics, manufacturing, energy,
+materials and beyond. Give a machine a new capability, accelerate a scientific experiment, or unlock a better way to
+understand and control a physical system. Show us what becomes possible when these models meet the real world.
+
+THE SUBMISSION FORM
+Project Description: <paste answer>
+Describe your use of Meta products to build the submitted project: <paste answer>
+Why are Meta's models important to your solution? <paste answer>
+
+WHAT YOU HAVE
+- The public repo and its README: <repo>
+- The hosted demo: https://tessa.braveai.solutions (open it, click around, open a case file, ask Ask Tessa a question)
+- The README's "Try it" demo, which you may run if you want
+- There is no demo video yet: score Demo on the hosted site and the runnable demo, and say what a video would need to show.
+
+HOW TO SPEND YOUR 20 MINUTES
+Read the form answers and the README's top sections. Use the hosted site as a curious judge would. Glance at the code
+structure to confirm it is real. Do not recompute benchmarks or read the git history line by line.
+
+SCORE (0-10 each, decimals allowed; 5 is a typical solid entry, 7-8 the top quarter, 9 among the best in the track)
+1. Impact (30%): real-world potential, who benefits, could people use it, does it fit the theme?
+2. Use of Meta AI Tooling (25%): how creatively Meta's models are used, beyond a basic integration?
+3. Technical Depth & Execution (20%): is the engineering sound and refined?
+4. Demo (25%): is it working and impressive? Does it hold up live?
+
+OUTPUT
+1. Each score with two or three sentences on why.
+2. Weighted total out of 10: 0.30*Impact + 0.25*Meta + 0.20*Technical + 0.25*Demo.
+3. Would you put it in your track's top 5? Yes or no, and how sure.
+4. The three things that impressed you most, and the three that worried you most.
+5. What the 3-minute video must show for you to score Demo higher.
+```
