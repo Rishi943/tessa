@@ -226,6 +226,30 @@ def funnel() -> None:
     print("gate 2 status, both: " + ", ".join(f"{s} {n}" for s, n in sorted(total.items())) + f"  (total {sum(total.values())})")
     cands = sorted(int(p.stem) for b in ("survey", "batch2") for p in (DATA / "vet" / f"{b}_v10" / "candidates").glob("*.json"))
     print(f"gate 2 candidates (before TRICERATOPS): {len(cands)}: {cands}")
+    # TRICERATOPS on the v10 passes: every fpp_out* run under data/survey_v10, later folders win for a star run twice
+    fpp_rows = {}
+    for res in sorted((DATA / "survey_v10").glob("fpp_out*/results.json")):
+        for r in json.loads(res.read_text(encoding="utf-8")):
+            if r.get("ran") or r["tic"] not in fpp_rows:
+                fpp_rows[r["tic"]] = r | {"from": res.parent.name}
+    if not fpp_rows:
+        print("no TRICERATOPS results under data/survey_v10/fpp_out*")
+        return
+    print(f"\nTRICERATOPS (survey bar FPP < 0.5 and NFPP < 0.1; likely planet NFPP < 0.001):")
+    passed = []
+    for tic in cands:
+        r = fpp_rows.get(tic)
+        if r is None or not r.get("ran"):
+            print(f"  {tic:>10}  no TRICERATOPS result" + (f" ({r.get('why')})" if r else ""))
+            continue
+        ok = r["FPP"] < 0.5 and r["NFPP"] < 0.1
+        tier_ = "likely planet" if ok and r["NFPP"] < 0.001 else "nearby star to rule out" if ok else "FAILS the survey bar"
+        passed += [tic] if ok else []
+        print(f"  {tic:>10}  FPP {r['FPP']:.4f}  NFPP {r['NFPP']:.2e}  {r['class']:28} {tier_}  [{r['from']}]")
+    print(f"pass TRICERATOPS: {len(passed)} of {len(cands)}: {passed}")
+    others = sorted(t for t in fpp_rows if t not in cands)
+    if others:
+        print(f"also run through TRICERATOPS but not gate 2 candidates now: {others}")
 
 
 def xgb_only(out: Path) -> None:
