@@ -20,7 +20,7 @@ Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it wit
 
 **3. Why are Meta's models important to your solution?**
 
-Open weights made the core of Tessa possible: we could train a small model on real outcomes and run it ourselves. Glimmer makes the planet call. It weighs evidence that conflicts and chooses what to measure next, so each decision comes with a reason a person can read and check. On held-out signals whose fate follow-up settled, Tessa with Glimmer making the call passed 3 of 94 false positives against 7 for NASA's ExoMiner++ 2.0 (94% precision against 89%), from full-frame data alone, with a written reason for every call. In the survey, it passed TIC 71503196, which our XGBoost scorer ranked low, and TRICERATOPS backed that call. Glimmer adds what a score can't: an investigator that explains itself, at survey scale, for about $40 of training.
+Open weights made the core of Tessa possible: we could train a small model on real outcomes and run it ourselves. Glimmer makes the planet call. It weighs evidence that conflicts and chooses which measurements to look at. On known TESS candidates our XGBoost scorer is the better pure classifier, and Tessa feeds its rank to Glimmer as evidence. But the survey is new stars, and there Glimmer made the difference: 3 of Tessa's 6 candidates, including one of the 3 likely planets and both that are on no published list, were ranked below XGBoost's cut and would have been thrown away. To keep all six, XGBoost would have had to pass 121 of 190 signals; Glimmer passed 53, with a written reason for every call that a person can read and check. Glimmer v10 cost about $40 to train.
 
 ## Judging process
 

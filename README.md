@@ -41,21 +41,57 @@ reached those independently.
 
 ## How well it works
 
-Tessa end to end, with Glimmer making the call behind the code's hard rows and rank floor, against NASA's ExoMiner++
-2.0 on the held-out test TOIs both scored (`finetune/exo_bench.py`). Test signals were held back from Glimmer's
-training and tuning, their outcomes were settled by follow-up, and Glimmer v10 and its rank floor were frozen on train
-and val before it ran on them. ExoMiner++'s score is its mean over its 2-minute and full-frame runs; Tessa used
-full-frame data only.
+**On the survey, Glimmer found what XGBoost would have thrown away.** Three of the six candidates sit below the cut
+XGBoost (System 1) used on its own in vetting v9, so XGBoost alone would have discarded them: one of the three likely
+planets, and both candidates on no published list (`tools/glimmer_value.py`).
+
+| Candidate | Class | XGBoost rank | XGBoost at its 0.32 cut |
+|---|---|---|---|
+| TIC 71503196 | likely planet | 0.090 | rejects |
+| TIC 321290256 | nearby star to rule out; on no published list | 0.144 | rejects |
+| TIC 61220826 | nearby star to rule out; on no published list | 0.131 | rejects |
+| TIC 116046773, 166321785, 50099421 | | 0.465 to 0.932 | passes |
+
+Glimmer is not just a looser cut. Of the 190 survey signals that reached it, it passed 53 and those hold all six
+candidates. To keep all six, XGBoost would have to pass 121; at 61 it keeps only four.
+
+| XGBoost cut | Survey signals passed | Candidates kept |
+|---|---|---|
+| 0.32 (vetting v9) | 15 | 3 of 6 |
+| 0.144 | 61 | 4 of 6 |
+| 0.090 | 121 | 6 of 6 |
+| **Glimmer v10** | **53** | **6 of 6** |
+
+The candidates come from what Glimmer passed, so this cannot show candidates only XGBoost would have found: at its own
+cut that is 2 signals, which Glimmer did not pass.
+
+**On known TESS candidates, XGBoost is the better pure classifier, and Tessa uses it as evidence.** On the held-out
+test split (signals held back from training and tuning, outcomes settled by follow-up), with XGBoost's cut set on val
+to recover as many planets as Glimmer:
+
+| 297 planets, 282 false positives | Planets passed | False positives passed | Precision |
+|---|---|---|---|
+| Tessa (Glimmer v10 makes the call) | 213 (72%) | 18 (6.4%) | 92% |
+| XGBoost in Glimmer's place, cut matched on val | 211 (71%) | 10 (3.5%) | 95% |
+| XGBoost at its v9 cut (0.32) | 182 (61%) | 6 (2.1%) | 97% |
+
+On the 164 test signals NASA's ExoMiner++ 2.0 also scored (its score is the mean over its 2-minute and full-frame
+runs; Tessa uses full-frame data only):
 
 | 70 planets, 94 false positives | Planets passed | False positives passed | Precision |
 |---|---|---|---|
-| **Tessa (Glimmer v10 makes the call)** | 50 | **3** | **94%** |
-| NASA ExoMiner++ 2.0 at its published 0.5 (2-minute and full-frame) | 55 | 7 | 89% |
+| Tessa (Glimmer v10 makes the call) | 50 | 3 | 94% |
+| XGBoost, cut set on dev | 55 | 4 | 93% |
+| NASA ExoMiner++ 2.0 at 0.5 | 55 | 7 | 89% |
 
-Tessa lets through fewer than half of ExoMiner++'s false positives, and every pass comes with a dossier that says
-why. It works from full-frame data and needs no SPOC data-validation products, so it can vet the 48,945 stars in
-its pool that were never 2-minute targets. In the survey, TRICERATOPS, the season
-test and the novelty check then work on what Glimmer passes.
+So the division of labour is deliberate: XGBoost's rank goes into Glimmer's input and sets a floor under its passes,
+and Glimmer makes the call, explains it, and is willing to pass a signal the rank undervalues. On known TOIs that
+willingness costs it about 8 extra false positives in 282 at near-equal recall; on the survey it is where half the candidates
+came from, and TRICERATOPS, the season test and the novelty check then work on what it passes. Tessa needs no SPOC
+data-validation products, so it can vet the 48,945 stars in its pool that were never 2-minute targets.
+
+Glimmer v10 and its rank floor were frozen on train and val before they ran on test. The XGBoost comparisons above
+were later looks at the same test split, after the v10 run; nothing was changed because of them.
 
 Prompt v11 asked Glimmer to start from XGBoost's rank and overrule it only with named evidence. It failed the bar set
 before it ran (at least 118 of 149 planets and at most 11 of 177 false positives on dev; it got 107 and 14), so it
