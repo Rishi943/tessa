@@ -17,7 +17,8 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Glimmer called a planet | 49 |
 | Passed novelty, testability and season checks | 8 |
 | Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 7 |
-| Candidates | 6: TIC 116046773, 166321785, 321290256, 50099421, 61220826, 71503196 |
+| Likely planets (FPP < 0.5, NFPP < 0.001; Giacalone et al. 2021) | 3: TIC 71503196, 116046773, 166321785 |
+| Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
 Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
@@ -25,8 +26,10 @@ the model, and 1 is a known object. The other 8 are the row above.
 
 For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
 FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it
-on the evidence and TRICERATOPS backed that call. It is one of three candidates that clear the stricter NFPP < 0.001
-bar, with TIC 116046773 and 166321785.
+on the evidence and TRICERATOPS backed that call, placing it in the "likely planet" class.
+
+For the other three, TRICERATOPS does not favour a nearby false positive (NFPP below 0.1), but it cannot yet rule one
+out. Ground photometry that resolves the neighbours during a transit settles it.
 
 A candidate is not a planet. It is a dip the checks could not explain, on none of the TOI, CTOI, confirmed-planet or
 eclipsing-binary lists, that predicts its own next transit closely enough to test.

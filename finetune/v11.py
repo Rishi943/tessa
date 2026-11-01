@@ -1,7 +1,7 @@
 """Prompt v11: Glimmer starts from System 1's rank and overrules it only with named evidence. Dev only; test is a later, single run.
 
 The same fine-tuned adapter and input as v10, only the system prompt changes. Dev is val + the train signals not in Glimmer's
-training rows (finetune/blend.py). The rank line 0.13 is P(planet) 0.6962, set on dev in `python -m finetune.blend scorer`.
+training rows. The rank line 0.13 is P(planet) 0.6962, set on dev.
 Bar, set before any run: at least 118 of 149 planets and at most 11 of 177 FPs on dev.
 
   python -m finetune.v11 oracle            the v11 rule followed exactly, in code: what obeying the prompt would give
