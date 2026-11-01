@@ -135,6 +135,10 @@ runs; Tessa uses full-frame data only):
 | XGBoost, cut set on dev | 55 | 4 | 93% |
 | NASA ExoMiner++ 2.0 at 0.5 | 55 | 7 | 89% |
 
+Against ExoMiner++, Tessa's lower false-positive rate holds up: the 95% paired bootstrap interval for the difference
+is -8.5 to -1.1 points, so it excludes zero. Its 5 fewer planets do not (-20 to +5.7 points). Printed by
+`python -m finetune.exo_bench`, which also reports val and train separately; only test is clean.
+
 Both scorers in Tessa are ours. System 1 is an XGBoost model trained during the hackathon on the same labelled TOIs
 as Glimmer (`finetune/system1.py`): trees chosen by cross-validation grouped by host star, so no star is in two folds;
 a calibration fitted on val; test scored once. Its inputs are the code checks plus a transit fit, Gaia's binarity signs
