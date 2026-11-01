@@ -47,6 +47,46 @@ TIC 321290256 and 61220826 are on no published list we checked. TIC 116046773 an
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
 reached those independently.
 
+## Try it
+
+**Hosted:** https://tessa.braveai.solutions. The 3D map of every star in the survey, a case file for every dip (its
+light curve, every check, Glimmer's dossier, TRICERATOPS, and for candidates the next transits), Ask Tessa, and
+*Search a star*, which runs Tessa's search in your browser on a star nobody has searched.
+
+**From this repo, live, on one star.** Python 3.12 or newer and Node 22 or newer; about 15 minutes, most of it the
+search on CPU and Glimmer waking up. No keys needed.
+
+```sh
+git clone https://github.com/Rishi943/tessa && cd tessa
+python -m venv .venv
+.venv/Scripts/pip install -r requirements.txt     # .venv/bin/pip on Linux and macOS; then use .venv's python below
+npm ci                                            # Node packages for the model's input view
+python -m pytest                                  # 24 tests, offline, about 10 s
+python tools/demo.py                              # TIC 71503196, end to end
+```
+
+`tools/demo.py` runs the survey's own code on TIC 71503196, whose light curves, cutouts and catalogue rows ship in
+`demo/data`:
+
+1. **Search** (about 1 minute on CPU): 221,766 trial periods; it finds the dip every 1.56991 days and clears gate 1.
+2. **Code checks, difference imaging and System 1**: XGBoost ranks it 0.196, below the cut XGBoost used on its own.
+3. **The five measurements** Glimmer may ask for, computed from the bundled data.
+4. **Glimmer makes the call, live**: the fine-tuned Muse Glimmer 30B on Modal, reached through the hosted site
+   (`/api/glimmer`, which holds the key and rate-limits). Its GPU sleeps when idle: the first call wakes it in 3 to 5
+   minutes and the demo waits. It chooses its tools and returns its verdict with a dossier.
+5. **Gate 2**: the catalogues are queried live, the season test reruns the search with each season hidden (about
+   2 minutes), and the next TESS sectors and ground windows are predicted.
+6. **TRICERATOPS**: the survey run's result. It needs its own environment to run (`pipeline/fpp.py`).
+
+`python tools/demo.py 240488148` shows the other outcome: a candidate from the first run that the season test now
+flags. `--replay` uses Glimmer's saved dossier instead of the live call; `--list` shows the bundled stars. To call
+your own Glimmer, set `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY` (`serve/glimmer.py`). If CDS is down, put its mirrors
+first: `TESSA_VIZIER=vizier.idia.ac.za TESSA_SIMBAD=simbad.harvard.edu`.
+
+**The site, locally:** `cd site && npm ci && npm run dev`. With no `data/site` of your own it downloads the same
+export from the hosted site (about 105 MB). Ask Tessa and *Search a star* need the Worker: `npx wrangler dev`, with
+`META_API_KEY` in `site/.dev.vars`.
+
 ## How well it works
 
 **On the survey, Glimmer found what XGBoost would have thrown away.** Three of the six candidates sit below the cut
@@ -181,9 +221,10 @@ Built with Muse Spark Open.
 Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
 in order. XGBoost is not a Meta model: it is a small scorer that gives Glimmer a rank to weigh.
 
-## Run it
+## Run the whole survey
 
-Python 3.12 and Node 22 or newer.
+Python 3.12 and Node 22 or newer. This needs the full data (`data/` is built by these steps, not shipped), GPUs
+for the search, and Glimmer deployed on Modal.
 
 ```sh
 python -m venv .venv && .venv/Scripts/pip install -r requirements.txt   # bin/ on Linux and macOS
