@@ -72,7 +72,8 @@ function verdict(p: StarPage): HTMLElement[] {
   return [el("p", { class: "verdict" }, p.reasons.length ? p.reasons.join("; ") : "Waiting for the agent."), el("p", { class: "verdict-by" }, "From the code checks.")];
 }
 
-const modelName = (m: string) => (m.startsWith("muse-wonder") ? "Muse Wonder 1.0" : m.startsWith("muse-spark-1.3") ? "Muse Spark 1.3" : m);
+export const modelName = (m: string) => (m.startsWith("glimmer") ? "Glimmer, Tessa's fine-tuned Muse Glimmer 30B"
+  : m.startsWith("muse-wonder") ? "Muse Wonder 1.0" : m.startsWith("muse-spark-1.3") ? "Muse Spark 1.3" : m);
 
 function checksPanel(p: StarPage): HTMLElement {
   return el("section", { class: "panel" }, el("h2", {}, "What the checks found"),
@@ -116,9 +117,18 @@ function agentPanel(p: StarPage): HTMLElement {
     box.append(el("h3", { style: "font: 600 1rem var(--sans); margin: 1.5rem 0 0.5rem" }, "What it could not settle"),
       el("ul", {}, ...d.open_questions.map((q) => el("li", {}, q))));
   }
+  if (p.fpp) {
+    const f = p.fpp;
+    const said = f.tier === "likely planet" ? "favours a planet: a nearby star faking the dip is unlikely (NFPP below 0.001)"
+      : f.tier === "nearby star to rule out" ? "does not favour a false positive, but cannot yet rule out a nearby star (NFPP between 0.001 and 0.1)"
+      : "does not clear the bar (FPP below 0.5 and NFPP below 0.1)";
+    box.append(el("div", {}, el("h3", { style: "font: 400 1.3rem var(--serif); margin: 2rem 0 0.4rem" }, "TRICERATOPS"),
+      el("p", { class: "sub" }, `The chance the dip is a false positive, from the light curve, the star and its neighbours: FPP ${f.FPP.toFixed(3)}, `
+        + `NFPP ${f.NFPP.toExponential(1)}. TRICERATOPS ${said}.`)));
+  }
   if (p.audit) {
     box.append(el("div", {}, el("h3", { style: "font: 400 1.3rem var(--serif); margin: 2rem 0 0.4rem" }, "Second opinion"),
-      el("p", { class: "sub" }, `Muse Wonder 1.0 read the same checks without seeing the first verdict, and returned "${p.audit.verdict === "gate2" ? "pass to gate 2" : p.audit.verdict}". Cost: $${p.audit.cost_usd.toFixed(3)}.`),
+      el("p", { class: "sub" }, `In an earlier run, Muse Wonder 1.0 read the same checks without seeing the first verdict, and returned "${p.audit.verdict === "gate2" ? "pass to gate 2" : p.audit.verdict}". Cost: $${p.audit.cost_usd.toFixed(3)}.`),
       p.audit.public_summary ? el("p", { class: "quote" }, p.audit.public_summary) : null,
       p.audit.open_questions?.length ? el("ul", {}, ...p.audit.open_questions.map((q) => el("li", {}, q))) : null));
   }

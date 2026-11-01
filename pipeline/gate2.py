@@ -50,8 +50,8 @@ def prompt_number(version: str | None) -> int:
 def outside_planet_range(c: dict, ev: dict | None = None, version: str | None = None) -> list[str]:
     """Why a signal is not planet-like (vetting v9): empty when System 1's planet rank is PASS_RANK or more and no
     HARD_ROWS row fires; below the rank the first reason is the rank, then the table's rows. With no System 1
-    score the table decides alone, as before v9. From prompt v10 the agent makes the planet call and sees no
-    System 1 output: only the HARD_ROWS stay, at any rank."""
+    score the table decides alone, as before v9. From prompt v10 the agent makes the planet call, with System 1's
+    rank in its input as one piece of evidence: only the HARD_ROWS stay, at any rank, plus the FLOOR_RANK safety net."""
     rows = table_rows(c, ev)
     if prompt_number(version) >= 10:
         # v10: the agent makes the call. Only the HARD_ROWS stand, plus one safety net: a signal the agent passes

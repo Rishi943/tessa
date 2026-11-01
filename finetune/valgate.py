@@ -1,7 +1,8 @@
 """The v10 val gate (#42): does the fine-tuned Glimmer, deciding with tools and XGBoost's rank as evidence,
 pass enough planets and catch enough false positives on the held-out validation signals?
 
-The test split is never read. For every val signal whose follow-up settled it a planet (gate2) or not (reject):
+By default only val is read; `--split test` runs the same frozen setup once on test (the saved verdicts that
+finetune/exo_bench.py and tools/glimmer_value.py report). For every val signal whose follow-up settled it a planet (gate2) or not (reject):
 code's hard junk and rule rejects stand as before; everything else goes to the fine-tuned Glimmer (served on
 Modal, model glimmer-vetter-v10) with the v10 prompt, the XGBoost rank, and the same cached tool answers the
 training used. A signal ends a candidate when Glimmer says gate2 and no HARD_ROWS row fires.

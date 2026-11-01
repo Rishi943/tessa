@@ -60,7 +60,7 @@ const mono = (x: number, y: number, s: string, fill = "#9C9B95", anchor = "start
 function funnel(c: Ctx): HTMLElement {
   const f = facts(c);
   const rows: [number, string][] = [[f.searched, "stars searched"], [f.pass, "dips that cleared the bar"],
-    [f.model, "read by Muse Spark"], [f.found, f.found === 1 ? "candidate" : "candidates"]];
+    [f.model, "read by Glimmer"], [f.found, f.found === 1 ? "candidate" : "candidates"]];
   const top = Math.log10(Math.max(f.searched, 10));
   return svgNode(400, 150, rows.map(([n, label], i) => {
     const w = Math.max((Math.log10(Math.max(n, 1)) / top) * 230, 4), y = 14 + i * 34;
@@ -98,7 +98,7 @@ async function size(tic: number): Promise<HTMLElement | null> {
 function steps(): HTMLElement {
   const S: [string, string][] = [["Pick the stars", "small, cool, nearby, never searched"], ["Search for dips", "hundreds of thousands of orbits a star"],
     ["Beat the bar", "set by searching upside down"], ["Rule out lookalikes", "eclipsing stars, spots, neighbours"],
-    ["Write the case file", "Muse Spark reads every check"], ["Code decides", "a candidate needs a prediction to test"]];
+    ["Make the call", "Glimmer reads every check"], ["Code decides", "a candidate needs a prediction to test"]];
   const row = 38;
   return svgNode(400, 12 + S.length * row, `<line x1="7" y1="14" x2="7" y2="${14 + (S.length - 1) * row}" stroke="#343b5c"/>`
     + S.map(([a, b], i) => `<circle cx="7" cy="${14 + i * row}" r="4" fill="${i === S.length - 1 ? "#5eead4" : "#3f4775"}"/>`

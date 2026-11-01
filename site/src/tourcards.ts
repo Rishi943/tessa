@@ -22,8 +22,9 @@ const GLOSSARY: Record<string, string> = {
   "light curve": "A star's brightness, measured again and again over time.",
   sector: "TESS watches one long strip of sky for about 27 days at a time. Each strip is a sector.",
   candidate: "A signal that passed every check but hasn't been confirmed as a planet yet.",
-  "case file": "Muse Spark's written report on one dip: what each check found, and its verdict.",
-  "Muse Spark": "Meta's AI model. Tessa uses it to read the evidence on each dip and explain it.",
+  "case file": "Glimmer's written report on one dip: what each check found, and its verdict.",
+  "Muse Spark": "Meta's AI model. Tessa uses it to write plain notes for people and to answer questions.",
+  "Glimmer": "Meta's open-weight Muse Glimmer 30B, fine-tuned by Tessa on past TESS signals whose fate is known. It reads the evidence on each dip, makes the call and explains it.",
   GPU: "A graphics chip. It runs thousands of small calculations at once, which suits a planet search.",
   score: "How far the dip stands out from the star's normal flicker. Higher is clearer.",
   TESS: "NASA's Transiting Exoplanet Survey Satellite. Since 2018 it has watched nearly the whole sky for dips.",
@@ -157,7 +158,7 @@ function odds(ctx: Ctx): Show {
     { at: 4.5, text: `A real dip can't show up as a bump. Upside down, this star's best signal [[score|scores]] ${ctx.star!.gate1.flipped_snr.toFixed(1)}; the right way up, ${ctx.star!.gate1.dip_snr.toFixed(1)}.` },
     { at: 9.5, text: `Doing that on every star sets the bar at ${f.floor}.` },
     { at: 14, text: `Of ${int(f.searched)} stars searched, ${f.pass} cleared the bar.` },
-    { at: 19, text: `Code checks ruled out ${f.pass - f.model} of those: stars that eclipse each other, or flicker on their own. ${f.model} went to [[Muse Spark]], and ${f.found === 1 ? "one" : int(f.found)} survived: about ${one} stars.` },
+    { at: 19, text: `Code checks ruled out ${f.pass - f.model} of those: stars that eclipse each other, or flicker on their own. ${f.model} went to [[Glimmer]], and ${f.found === 1 ? "one" : int(f.found)} survived: about ${one} stars.` },
   ], (tt, k) => {
     if (k <= 2) {
       const flip = k === 0 ? smooth(1.5, 3, tt) : 1;
@@ -211,7 +212,7 @@ function odds(ctx: Ctx): Show {
   });
 }
 
-// ---- 5. the case file: the bottleneck, then Muse Spark's checks and verdict
+// ---- 5. the case file: the bottleneck, then Glimmer's checks and verdict
 const PLAIN: [string, string][] = [["odd_even", "odd and even dips match"], ["secondary", "no second, fainter eclipse"],
   ["sectors", "same depth in every sector"], ["size", "planet-sized"], ["duration", "lasts as long as it should"],
   ["known", "not a known star or planet"], ["shape", "flat-bottomed, not V-shaped"], ["neighbours", "on this star, not a neighbour"],
@@ -230,7 +231,7 @@ function casefile(ctx: Ctx): Show {
   const quote = later(el("blockquote", { class: "t-quote" }, d?.public_summary ?? ""), 2);
   return show(el("div", { class: "m-show" }, list, quote), [
     { at: 0, text: `Finding dips is fast. Checking them is the slow part: ${int(f.waiting)} [[TESS]] [[candidate|candidates]] are still waiting for someone to look.` },
-    { at: 5.5, text: "For every dip that survives the code checks, [[Muse Spark]] reads the evidence and writes a [[case file]]." },
+    { at: 5.5, text: "For every dip that survives the code checks, [[Glimmer]] reads the evidence and writes a [[case file]]." },
     { at: 12, text: `Its verdict on ${ctx.host}:` },
     { at: 17, text: `Every number it writes is checked against the data: ${f.exact} of ${f.files} case files were exact, and the slip was caught. Code makes the final call.` },
     { at: 22.5, text: `A case file costs about $${f.perFile.toFixed(4)}. The model work for the whole survey: $${f.bill.toFixed(2)}.` },
@@ -307,16 +308,16 @@ export interface CardOpts {
 export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
   const f = facts(o.ctx);
   const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const head: Record<CardKind, [string, string, boolean]> = {
-    hook: [String(f.found), f.found === 1 ? "possible new world" : "possible new worlds", false],
-    dip: [int(o.ctx.p.counts.by_method.Transit?.planets ?? 0), "planets found this way", false],
-    fold: [o.ctx.host, "", false],
-    odds: [`1 in ${sig2(f.searched / Math.max(f.found, 1))}`, "stars searched gave a candidate", false],
-    casefile: [o.ctx.host, "case file", true],
-    predict: [o.ctx.host, "what to look for next", true],
-    end: ["Your turn", "", false],
+  const head: Record<CardKind, [string, string, string]> = {
+    hook: [String(f.found), f.found === 1 ? "possible new world" : "possible new worlds", ""],
+    dip: [int(o.ctx.p.counts.by_method.Transit?.planets ?? 0), "planets found this way", ""],
+    fold: [o.ctx.host, "", ""],
+    odds: [`1 in ${sig2(f.searched / Math.max(f.found, 1))}`, "stars searched gave a candidate", ""],
+    casefile: [o.ctx.host, "case file", "Glimmer"],
+    predict: [o.ctx.host, "what to look for next", "Muse Spark"],
+    end: ["Your turn", "", ""],
   };
-  const [big, sub, spark] = head[o.kind];
+  const [big, sub, model] = head[o.kind];
   // what each stop is about, named in the header so the reader always knows where they are
   const NAME: Record<CardKind, string> = { hook: "Tessa's find", dip: "How a planet shows itself", fold: "The fold",
     odds: "The odds", casefile: "The case file", predict: "What comes next", end: "Your turn" };
@@ -344,7 +345,7 @@ export function tourCard(o: CardOpts): { node: HTMLElement; dispose(): void } {
         el("div", { class: "t-top" }, el("span", { class: "t-where" }, el("span", { class: "u-dot", style: "background: var(--ok)" }),
           el("span", { class: "u-of" }, `${o.index + 1} of ${o.total}`), el("b", {}, NAME[o.kind])), leave),
         el("div", { class: "t-prog", "aria-hidden": "true" }, ...Array.from({ length: o.total }, (_, i) => el("span", { class: i <= o.index ? "on" : "" })))),
-      el("div", { class: "t-say" }, spark ? el("span", { class: "t-tag", title: "This step is done by Meta's Muse Spark model" }, "Muse Spark") : null, text,
+      el("div", { class: "t-say" }, model ? el("span", { class: "t-tag", title: `This step is done by Meta's ${model === "Glimmer" ? "Muse Glimmer 30B, fine-tuned by Tessa" : "Muse Spark"} model` }, model) : null, text,
         // the first stop shows where to get help with any word, and the button pulses to match
         o.index === 0 ? el("p", { class: "t-hint" }, el("span", { class: "u-dot", style: "background: var(--tessa)" }), "Any word unclear? Ask Tessa on the line below.") : null),
       el("div", { class: "t-stat" }, el("p", { class: "t-big" }, big), sub ? el("p", { class: "t-sub" }, sub) : null, chips),

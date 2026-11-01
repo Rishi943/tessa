@@ -1,5 +1,5 @@
 # QLoRA fine-tune of Muse Glimmer 30B as Tessa's vetter, with Unsloth, on Modal. Settings follow Unsloth's
-# Glimmer guide and its LoRA hyperparameter guide (see FINETUNE.md). Kaggle's 2xT4 tops out near 1,024
+# Glimmer guide and its LoRA hyperparameter guide. Kaggle's 2xT4 tops out near 1,024
 # tokens; a dossier's input alone is ~1,600, so this runs on one H100.
 #   modal run finetune/train.py::download                    # once: the 4-bit base into the weights volume (CPU)
 #   modal run finetune/train.py::train --data data/finetune/sft   # train.jsonl + val.jsonl; adapter into tessa-ft
@@ -75,10 +75,11 @@ def run(train_rows: list[dict], val_rows: list[dict], epochs: float = 2.0, rank:
             output_dir="/out/checkpoints", report_to="none",
         ),
     )
-    # Loss on Tessa's whole turn: the reasoning (to=self) and the dossier (to=user), not the prompt.
+    # Loss on Tessa's whole turn, not the prompt. v10 rows carry tool calls, tool answers and the dossier; reasoning is
+    # stripped in finetune/v10_dataset.py, so none is trained.
     trainer = train_on_responses_only(trainer, instruction_part="<|start|>user<|message|>",
                                       response_part="<|start|>assistant")
-    # Check the mask on one example: the trained part must start at Tessa's reasoning.
+    # Check the mask on one example: the trained part must start at Tessa's turn.
     labels = trainer.train_dataset[0]["labels"]
     first = next(i for i, x in enumerate(labels) if x != -100)
     print("trained part starts:", repr(tokenizer.decode(trainer.train_dataset[0]["input_ids"][first:first + 12])), flush=True)

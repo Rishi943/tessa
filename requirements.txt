@@ -8,3 +8,12 @@ requests==2.34.2
 tess-point==0.9.5.post1
 pytest==9.1.1
 truststore==0.10.5
+# System 1 (pipeline/system1.py, finetune/system1.py) and the benchmarks (finetune/exo_bench.py, tools/glimmer_value.py)
+scikit-learn
+xgboost
+
+# Not needed for the search, vetting or gate 2; each runs in its own environment:
+#   TRICERATOPS (pipeline/fpp.py, pipeline/tri_fast.py, tools/fpp_survivors.py): triceratops, lightkurve, numba
+#   Fine-tune and serving on Modal (finetune/train.py, serve/glimmer.py): modal; Unsloth, TRL and vLLM live in the Modal images
+#   Teacher traces (finetune/teacher.py, finetune/remote_traces.py): httpx, matplotlib
+#   GPU search (pipeline/search.py --gpus N): cupy

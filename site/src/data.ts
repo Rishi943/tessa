@@ -60,6 +60,7 @@ export interface StarPage {
   };
   observing?: { headline: string; next_chances: string[]; telescope: string; refuted_if: string; confirmed_by: string; model: string; cost_usd: number };
   audit?: Dossier;
+  fpp?: { FPP: number; NFPP: number; class: string; tier: "likely planet" | "nearby star to rule out" | "fails" };
 }
 
 // planets.json: kind 0 confirmed, 1 TESS candidate still waiting, 2 Tessa's candidate; method and facility index the lists

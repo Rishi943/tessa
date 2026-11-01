@@ -1,4 +1,5 @@
-"""Pilot for prompt v10: Spark Open makes the planet call and picks its tools, with no System 1 output in its input.
+"""Pilot for prompt v10: Spark Open makes the planet call and picks its tools. With --score, System 1's rank is in its
+input as one piece of evidence (SCORE_NOTE), as in every v10 run after the pilot.
 Train signals only; the test split is never read.
   python -m finetune.pilot run ROUND [--n 20] [--seed S] [--version v10] [--same R] [--score]   fresh signals (8 planets, 8 FPs, 4 APCs), run, report
   python -m finetune.pilot report ROUND                                    the report again from the saved traces

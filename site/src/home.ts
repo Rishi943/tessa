@@ -109,7 +109,8 @@ function candidate(p: StarPage): HTMLElement {
       el("p", { class: "what" }, `A body ${fix(c.size.rp_rearth, 1)} times Earth's size passing in front of a ${spectral(star.teff)} `
         + `${fix(star.distance, 0)} parsecs away, every ${fix(c.signal.period, 3)} days.`),
       p.dossier?.public_summary ? el("blockquote", { class: "said" }, p.dossier.public_summary,
-        el("small", {}, `Muse Spark 1.3, from the checks${p.audit ? "; Muse Wonder 1.0 reached the same verdict on its own" : ""}`)) : null,
+        el("small", {}, `${p.dossier.model?.startsWith("glimmer") ? "Glimmer, Tessa's fine-tuned Muse Glimmer 30B" : "Muse Spark 1.3"}, from the checks`
+          + (p.fpp ? `; TRICERATOPS: ${p.fpp.tier}` : ""))) : null,
       facts,
       el("p", { class: "next" }, ...next),
       el("p", {}, el("a", { href, "data-link": true }, "Open the full case file"))));
@@ -147,28 +148,27 @@ function method(summary: Summary, dips: Dip[], searched: number): HTMLElement {
       "Odd against even dips, a second eclipse, size, length, shape, flicker between dips, and nearby stars that could fake it. For dips that "
       + "survive, TESS's own images show where on the sky the light went missing.",
       "Code", int(codeOut), "explained away"),
-    step("Muse Spark reads each survivor",
-      "Muse Spark 1.3 gets every number from the checks and writes a dossier: what each check shows, what it can't rule out, and a summary "
-      + "anyone can read. It can reject or flag a dip. It cannot call anything a planet.",
-      `Meta Muse Spark 1.3, ${usd(cost.vetting)} for all of them`, int(summary.dossiers), "dossiers", true),
-    step("Muse Spark investigates its own doubts",
-      "For each flag, Muse Spark works as an agent with seven tools: per-sector centroids, depth by data source, depth transit by transit, "
-      + "stellar radius from Gaia, the star's rotation, timing, and catalogue lookups. It picks the tools, up to five calls a star.",
-      `Meta Muse Spark 1.3 with tools, ${usd(cost.investigation)}`, int(summary.investigated), `investigated, ${agentOut} more explained`, true),
+    step("Glimmer makes the call",
+      "Glimmer is Meta's open-weight Muse Glimmer 30B, fine-tuned on investigations by Muse Spark Open of past TESS signals whose fate "
+      + "telescopes settled, and run on Tessa's own GPU. It reads every number from the checks and a planet rank from a separate scorer, "
+      + "names what could explain the dip, chooses which of five measurements to look at, and rejects, flags or passes it with a dossier "
+      + "anyone can read.",
+      "Meta Muse Glimmer 30B, fine-tuned and self-hosted", int(summary.dossiers), `dossiers, ${agentOut} more explained`, true),
     step("Code decides",
-      "A dip becomes a candidate only if nothing explains it, no catalogue of planets, candidates or variable stars already has it, and it "
-      + "predicts its next transit closely enough to test from TESS or the ground.",
-      "Code", int(summary.candidate), `candidates, ${int(summary.flagged)} still unexplained`),
-    step("A second opinion, and notes for people",
-      "Muse Wonder 1.0 audits each candidate from the raw checks without seeing Spark's verdict. Muse Spark writes one plain line for every "
-      + "rejected dip and an observing note for every candidate.",
-      `Meta Muse Wonder 1.0 and Muse Spark 1.3, ${usd(cost.audit + cost.case_closed + cost.observing)}`,
-      int(summary.candidate + summary.rejected), "notes and audits", true));
+      "A pass becomes a candidate only if no catalogue of planets, candidates or variable stars already has it, each observing season "
+      + "predicts the others, it predicts its next transit closely enough to test from TESS or the ground, and TRICERATOPS does not "
+      + "favour a false positive. Code can stop a pass; it cannot make one.",
+      "Code and TRICERATOPS", int(summary.candidate), `candidates, ${int(summary.flagged)} still unexplained`),
+    step("Notes for people",
+      "Muse Spark 1.3 writes one plain line for every rejected dip and an observing note for every candidate. Ask Tessa, below, answers "
+      + "questions from these same files.",
+      `Meta Muse Spark 1.3, ${usd(cost.case_closed + cost.observing)}`,
+      int(summary.candidate + summary.rejected), "notes", true));
   return el("section", { class: "section", id: "method" }, el("div", { class: "inner" },
-    el("h2", {}, "Code keeps the bar; the model explains and doubts"),
+    el("h2", {}, "Glimmer makes the call; code keeps the bar"),
     el("p", { class: "intro" },
-      "Each step below runs on every star that reached it. Code makes every yes; Meta's models read the evidence, chase what doesn't add up, "
-      + "and say it in words. Everything a model writes is checked for numbers it didn't get from the data"
+      "Each step below runs on every star that reached it. A fine-tuned Meta model makes the planet call and says why; code can stop a "
+      + "pass but never make one. Everything a model writes is checked for numbers it didn't get from the data"
       + (summary.invented ? `: so far ${summary.invented.with_invented_numbers} of ${summary.invented.dossiers} dossiers had one, and it is marked.` : ".")),
     steps,
     el("p", { class: "costline" }, `Model cost for the whole search so far: ${usd(total)}, or ${usd((total / searched) * 1000)} per thousand stars searched.`)));
@@ -225,6 +225,8 @@ export function footer(): HTMLElement {
   return el("footer", { class: "foot" }, el("div", { class: "inner" },
     el("p", {}, "Data: NASA TESS light curves from MAST (SPOC, TESS-SPOC and QLP), ESA Gaia DR3, the TESS Input Catalog, ExoFOP TOI and CTOI lists, "
       + "the NASA Exoplanet Archive, the TESS eclipsing binary catalogue, VSX and SIMBAD."),
-    el("p", {}, "Models: Meta Muse Spark 1.3 and Muse Wonder 1.0. Built for the Meta AI Developer Hackathon, October 2026. ",
+    el("p", {}, "Models: Meta Muse Glimmer 30B, fine-tuned on traces from Muse Spark Open; Muse Spark 1.3; Muse Wonder 1.0 for an "
+      + "earlier audit. False-positive probabilities: TRICERATOPS (Giacalone et al. 2021). Built for the Meta AI Developer Hackathon, "
+      + "October 2026. ",
       el("a", { href: "https://github.com/Rishi943/tessa" }, "The code is on GitHub"), ".")));
 }
