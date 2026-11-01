@@ -23,6 +23,8 @@ for (const file of readdirSync(join(dir, "candidates")).filter((f) => f.endsWith
     tic: c.tic, period_d: r(w.ephemeris.period, 5), period_err_d: Number(w.ephemeris.period_err.toPrecision(2)),
     depth_ppm: Math.round(c.signal.depth_ppm), duration_h: r(w.ephemeris.t14_h, 1), planet_radius_earth: r(c.size.rp_rearth, 1),
     star_tmag: r(c.star.tmag, 1), star_teff_k: Math.round(c.star.teff), distance_pc: Math.round(c.star.distance),
+    // named here, not left to the model, which once called a 4,383 K star an M dwarf
+    star_type: c.star.teff < 3900 ? "M dwarf" : c.star.teff < 5300 ? "K dwarf" : "G dwarf",
     timing_err_now_min: w.timing_err_now_min,
     tess_sectors: w.tess_sectors.filter((s) => s.transits && !s.lost).slice(0, 3),
     ground_nights: w.ground.slice(0, 6).map((g) => ({ site: g.site, from_utc: g.from_utc, to_utc: g.to_utc, timing_err_min: g.timing_err_min })),
