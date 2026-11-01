@@ -14,19 +14,25 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Searched | 22,978, ranked by how small a planet each could show |
 | Repeating dips found | 785, with a gate calibrated on upside-down light curves so about 1 star in 100 passes on noise |
 | Sent to Glimmer, the fine-tuned model | 190; code settled the other 595 |
-| Glimmer called a planet | 49 |
+| Glimmer called a planet | 53 |
 | Passed novelty, testability and season checks | 8 |
 | Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 7 |
 | Likely planets (FPP < 0.5, NFPP < 0.001; Giacalone et al. 2021) | 3: TIC 71503196, 116046773, 166321785 |
 | Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
-Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
-the model, and 1 is a known object. The other 8 are the row above.
+Every count above is recomputed from the saved run by `python tools/glimmer_value.py funnel`. TRICERATOPS ran on all
+53 of Glimmer's planet calls and 24 clear its bar. The novelty, testability and season checks pass 8 of the 53, and 7
+of those 8 clear TRICERATOPS (TIC 426450210 fails, FPP 1.0).
+
+Two candidates from an earlier run on the site, TIC 240488148 and 316447391, are no longer candidates: both fail the
+season test (hide one observing season and a blind search of the others must find the same period), and TRICERATOPS
+rates TIC 240488148 a likely nearby false positive (NFPP 0.12).
 
 For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
 FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it
-on the evidence and TRICERATOPS backed that call, placing it in the "likely planet" class.
+on the evidence and TRICERATOPS backed that call. Its FPP and NFPP are below TRICERATOPS's statistical-validation
+thresholds (0.015 and 0.001); validation would also need high-resolution imaging, which it does not have yet.
 
 For the other three, TRICERATOPS does not favour a nearby false positive (NFPP below 0.1), but it cannot yet rule one
 out. Ground photometry that resolves the neighbours during a transit settles it.
