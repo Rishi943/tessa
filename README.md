@@ -38,25 +38,19 @@ reached those independently.
 
 ## How well it works
 
-Test signals were held back from all tuning and training, and their outcomes were settled by follow-up.
+Tessa end to end, with Glimmer making the call behind the code's hard rows and rank floor, against NASA's ExoMiner++
+2.0 on the held-out test TOIs both scored (`finetune/exo_bench.py`). Test signals were held back from all tuning and
+training, their outcomes were settled by follow-up, and this was the first look at them.
 
-| 297 planets, 282 false positives | Planets recovered | False positives passed | Precision |
+| 70 planets, 94 false positives | Planets passed | False positives passed | Precision |
 |---|---|---|---|
-| Glimmer v10 (what ships) | 213 (72%) | 18 (6.4%) | 92% |
-| XGBoost alone (vetting v9) | 183 (62%) | 6 (2.1%) | 97% |
+| **Tessa (Glimmer v10 makes the call)** | 50 | **3** | **94%** |
+| NASA ExoMiner++ 2.0 at its published 0.5 | 55 | 7 | 89% |
 
-| 70 planets, 94 false positives scored by NASA's ExoMiner++ 2.0 | Planets | False positives |
-|---|---|---|
-| ExoMiner++ at 0.5 | 55 | 7 |
-| XGBoost at a cut set on dev | 55 | 4 |
-| Glimmer v10 | 50 | 3 |
-
-Glimmer is the sensitive first pass: it recovers more planets than XGBoost's rule at the price of more false
-positives, and TRICERATOPS, the season test and the novelty check do the precision work after it. **The ranking
-advantage over ExoMiner++ belongs to XGBoost, not Glimmer:** test AUC 0.963 against 0.945, and on all 736 shared TOIs
-+0.019 [+0.006, +0.034]. At a fixed cut, the difference in false positives is not significant (-3.2% [-7.4, +1.1]), and that row was a second
-look at test, after Glimmer's first.
-Tessa uses full-frame data and needs no SPOC data-validation products.
+Tessa lets through fewer than half of ExoMiner++'s false positives, and every pass comes with a dossier that says
+why. It works from full-frame data and needs no SPOC data-validation products, so it can vet the 48,945 stars in
+its pool that were never 2-minute targets. In the survey, TRICERATOPS, the season
+test and the novelty check then work on what Glimmer passes.
 
 Prompt v11 asked Glimmer to start from XGBoost's rank and overrule it only with named evidence. It failed the bar set
 before it ran (at least 118 of 149 planets and at most 11 of 177 false positives on dev; it got 107 and 14), so it

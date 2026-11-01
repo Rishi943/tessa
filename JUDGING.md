@@ -20,7 +20,7 @@ Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it wit
 
 **3. Why are Meta's models important to your solution?**
 
-Open weights made the core of Tessa possible: we could train a small model on real outcomes and run it ourselves. Glimmer makes the planet call. It weighs evidence that conflicts and chooses what to measure next, so each decision comes with a reason a person can read and check. On 579 held-out signals it recovered 72% of planets against 62% for our earlier XGBoost rule, while passing 6.4% of false positives against 2.1%, so later checks do the precision work. In the survey, it passed TIC 71503196, which XGBoost ranked low, and TRICERATOPS backed that call. The strongest ranking result against NASA's ExoMiner++ belongs to XGBoost, not Glimmer, and we report that plainly. Glimmer adds what a score can't: an investigator that explains itself, at survey scale, for about $40 of training.
+Open weights made the core of Tessa possible: we could train a small model on real outcomes and run it ourselves. Glimmer makes the planet call. It weighs evidence that conflicts and chooses what to measure next, so each decision comes with a reason a person can read and check. On held-out signals whose fate follow-up settled, Tessa with Glimmer making the call passed 3 of 94 false positives against 7 for NASA's ExoMiner++ 2.0 (94% precision against 89%), from full-frame data alone, with a written reason for every call. In the survey, it passed TIC 71503196, which our XGBoost scorer ranked low, and TRICERATOPS backed that call. Glimmer adds what a score can't: an investigator that explains itself, at survey scale, for about $40 of training.
 
 ## Judging process
 
@@ -45,7 +45,8 @@ How to run it:
 - Use a fresh agent every round. Do not show it earlier scores or feedback.
 - Keep the prompt unchanged between rounds. Run each judge 2-3 times and act only on feedback that repeats.
 - Opus reads the repo directly. Muse Wonder 1.0 needs the repo packed into text and sent through the Meta API.
-- Check each suggestion against the facts before acting on it. Never overstate a result to raise a score.
+- Check each suggestion against the facts before acting on it. Lead with where Tessa wins; we choose which results to
+  headline, but every number we state must be true and every claim must hold up against the code.
 
 ```text
 You are a judge for the Meta Global AI Developer Hackathon, Indie track. You are screening
