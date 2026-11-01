@@ -143,8 +143,9 @@ def answers(tic: int) -> dict:
 
 
 def lenient(text: str, parse) -> dict | None:
-    """pilot.parse, then again with the opening brace Glimmer sometimes drops between two reasons put back."""
-    return parse(text) or parse(re.sub(r'\}\s*,\s*"check"', '},{"check"', text))
+    """pilot.parse, then again with the brace Glimmer sometimes drops (or doubles) between two reasons repaired."""
+    return (parse(text) or parse(re.sub(r'\}\s*,\s*"check"', '},{"check"', text))
+            or parse(re.sub(r'\}\s*\}\s*,\s*\{\s*"check"', '},{"check"', text)))  # or a doubled one
 
 
 def do_glimmer(jobs: int, limit: int | None) -> None:
@@ -158,24 +159,30 @@ def do_glimmer(jobs: int, limit: int | None) -> None:
     save = WORK / "glimmer"
     save.mkdir(exist_ok=True)
 
+    (DATA / "dossiers").mkdir(parents=True, exist_ok=True)
+
     def work(r):
         tic = r["tic"]
         f = save / f"{tic}.json"
-        if f.exists():
-            return json.loads(f.read_text(encoding="utf-8"))
-        a = answers(tic)
-        try:
-            rec = investigate(prompt, users[tic], specs, a, model="glimmer-vetter")
-        except Exception as e:
-            print(f"{tic}: {str(e)[:200]}", flush=True)
-            return None
-        rec |= {"tic": tic, "user": users[tic], "answers": {k: a[k] for k in set(rec["tools"]) if k in a}}
+        dossier = DATA / "dossiers" / f"{tic}.{MODEL}.v10.json"
+        if f.exists():  # Glimmer already answered: never ask again, but make sure its dossier was written
+            rec = json.loads(f.read_text(encoding="utf-8"))
+            if dossier.exists():
+                return rec
+        else:
+            a = answers(tic)
+            try:
+                rec = investigate(prompt, users[tic], specs, a, model="glimmer-vetter")
+            except Exception as e:
+                print(f"{tic}: {str(e)[:200]}", flush=True)
+                return None
+            rec |= {"tic": tic, "user": users[tic], "answers": {k: a[k] for k in set(rec["tools"]) if k in a}}
+            rec["invented"] = invented(rec, prompt)
+            f.write_text(json.dumps(rec), encoding="utf-8")
         d = lenient(rec["text"], parse)
-        rec["invented"] = invented(rec, prompt)
-        f.write_text(json.dumps(rec), encoding="utf-8")
         if d:
             d["reasons"] = [{"check": "", "why": "", **r} for r in d["reasons"] if isinstance(r, dict)]  # gate2 reads both
-            (DATA / "dossiers" / f"{tic}.{MODEL}.v10.json").write_text(json.dumps(
+            dossier.write_text(json.dumps(
                 {"model": MODEL, "prompt": "v10", "raw": rec["text"], "dossier": {"open_questions": [], "public_summary": "", **d},
                  "invented": rec["invented"], "tools": rec["tools"]}), encoding="utf-8")
         return rec
