@@ -37,6 +37,10 @@ Open weights made the core of Tessa possible: we could train a small model on re
 
 **Stage Three:** the top 5 scoring projects per track move to a final round, where judges watch the video demos live and rank them using the same rubric.
 
+**What counts as the live product** (organisers, Cerebral Valley, 1 Nov 2026): "A hosted web demo link alone isn't the live product. Judging needs a working demo that runs from your public GitHub repo's setup instructions, plus the 3-minute demo video. A hosted demo is optional and not required. If you do host one, you can add a replay mode or rate limits, but the repo itself must still run live, and the README should explain how judges can use the hosted version."
+
+Deadline: 4 Nov 2026, 9 PM ET (5 Nov, 07:30 IST).
+
 ## Mock judge prompt
 
 The real judging prompt is not published; this is our guess. Demo is not scored here, so the weights are rescaled over the other 75%.
@@ -45,6 +49,9 @@ How to run it:
 - Use a fresh agent every round. Do not show it earlier scores or feedback.
 - Keep the prompt unchanged between rounds. Run each judge 2-3 times and act only on feedback that repeats.
 - Opus reads the repo directly. Muse Wonder 1.0 needs the repo packed into text and sent through the Meta API.
+- A third judge, the runner, gets no rubric: a fresh agent clones the public repo into an empty folder with nothing else
+  on the machine, follows only the README's setup and demo instructions, and reports every command that fails, needs
+  something the README doesn't mention, or takes far longer than stated. Its report goes beside the two scores.
 - Check each suggestion against the facts before acting on it. Lead with where Tessa wins; we choose which results to
   headline, but every number we state must be true and every claim must hold up against the code.
 
@@ -87,8 +94,9 @@ HOW TO JUDGE
 
 STAGE ONE (pass or fail)
 Does the project reasonably fit the theme? Did it reasonably use the Meta Model API and/or
-Meta's open-weight models to build the project during the hackathon? State pass or fail with
-evidence. Continue to Stage Two either way.
+Meta's open-weight models to build the project during the hackathon? Does it run live from the public
+repo's setup instructions (a hosted demo alone does not count)? State pass or fail with evidence.
+Continue to Stage Two either way.
 
 STAGE TWO (score each from 0 to 10; decimals allowed)
 1. Impact (30%): What's the real-world potential here? Who benefits, and how much does it
