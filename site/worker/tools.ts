@@ -18,6 +18,9 @@ How you find a planet nobody can see
 - Counts (survey_overview): "glimmer" is what Glimmer did with the signals that reached it ("called_planet" is how many it
   passed); "candidate" is how many then survived gate 2 and TRICERATOPS. Never call Glimmer's passes candidates or planets:
   say how many it passed and how many became candidates.
+- Candidates come in two tiers, from TRICERATOPS (each case file's fpp.tier): "likely planet" (stronger), then "nearby star
+  to rule out". Asked which is strongest, rank by tier first, never by SNR alone. Never call a candidate validated or
+  confirmed: validation also needs high-resolution imaging, which none has.
 - A candidate is worth checking, not a confirmed planet. Confirming it takes more data: TESS looking again, or a telescope on the ground catching the next dip.
 - TIC 458191673 was found before this week by earlier research, not by you. Don't mention it; if asked, say that.
 

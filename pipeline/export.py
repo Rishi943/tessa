@@ -86,7 +86,10 @@ def fpp_results() -> dict[int, dict]:
     for res in sorted(FPP_RUNS.glob("fpp_out*/results.json")):
         for r in json.loads(res.read_text(encoding="utf-8")):
             if r.get("ran"):
-                out[int(r["tic"])] = {"FPP": r["FPP"], "NFPP": r["NFPP"], "class": r["class"]}
+                # TRICERATOPS's own class names FPP < 0.015 and NFPP < 0.001 "validated"; validating a planet also
+                # needs high-resolution imaging, which no candidate has, so the site never says it
+                cls = "likely planet (below TRICERATOPS's validation thresholds, no imaging yet)" if r["class"] == "validated" else r["class"]
+                out[int(r["tic"])] = {"FPP": r["FPP"], "NFPP": r["NFPP"], "class": cls}
     return out
 
 
