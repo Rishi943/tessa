@@ -1,0 +1,104 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 1.0,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 17885,
+    "err_ppm": 1437,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 91,
+    "source": "QLP",
+    "depth_ppm": 17885,
+    "err_ppm": 1437
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 0.405,
+  "signal_period_d": 11.0194,
+  "signal_over_rotation": 27.208395061728393,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 91,
+    "period_d": 0.405,
+    "false_alarm": 0.00019182393907046428,
+    "amplitude_ppm": 17598
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "off_target",
+  "why": "the dip sits 12.5\" from the target (4.9 sigma)",
+  "offset_arcsec": 12.456164446732236,
+  "err_arcsec": 2.5168518798281614,
+  "offset_sigma": 4.949105089006145,
+  "sectors_used": 1,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 6303147463621341568,
+    "sep_arcsec": 79.2,
+    "eclipse_needed": 0.005,
+    "sigma_from_centroid": 28.3
+   },
+   {
+    "source_id": 6303147394901862528,
+    "sep_arcsec": 82.1,
+    "eclipse_needed": 0.0775,
+    "sigma_from_centroid": 31.3
+   },
+   {
+    "source_id": 6303147154383698688,
+    "sep_arcsec": 99.2,
+    "eclipse_needed": 0.0146,
+    "sigma_from_centroid": 44.3
+   },
+   {
+    "source_id": 6303147910297946624,
+    "sep_arcsec": 105.3,
+    "eclipse_needed": 0.0449,
+    "sigma_from_centroid": 46.5
+   },
+   {
+    "source_id": 6303147360542121984,
+    "sep_arcsec": 122.1,
+    "eclipse_needed": 0.2413,
+    "sigma_from_centroid": 46.9
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 3,
+  "mean_depth_ppm": 17885,
+  "chi2": 1.4899093682859808,
+  "dof": 2,
+  "p_consistent": 0.4747558134190134,
+  "share_of_top_3": 1.0,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.376197,
+  "tic_mass": 0.364384,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.376,
+    "mass": 0.364,
+    "duration_ratio": 1.41,
+    "rp_rearth": 5.56
+   }
+  ]
+ }
+}

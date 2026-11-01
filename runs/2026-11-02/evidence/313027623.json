@@ -1,0 +1,102 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 0.8123379985517925,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 9103,
+    "err_ppm": 2002,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 9636,
+    "err_ppm": 1016,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 59,
+    "source": "QLP",
+    "depth_ppm": 9103,
+    "err_ppm": 2002
+   },
+   {
+    "sector": 73,
+    "source": "TESS-SPOC",
+    "depth_ppm": 9636,
+    "err_ppm": 1016
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": null,
+  "signal_period_d": 13.3705,
+  "signal_over_rotation": null,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 19,
+    "period_d": 4.237,
+    "false_alarm": 0.0011277875577376567,
+    "amplitude_ppm": 16601
+   },
+   {
+    "sector": 59,
+    "period_d": 0.727,
+    "false_alarm": 0.802962845128629,
+    "amplitude_ppm": 23365
+   },
+   {
+    "sector": 73,
+    "period_d": 1.444,
+    "false_alarm": 0.0704531295087617,
+    "amplitude_ppm": 12139
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 5,
+  "mean_depth_ppm": 9527,
+  "chi2": 32.748169673155445,
+  "dof": 4,
+  "p_consistent": 1.345015369564648e-06,
+  "share_of_top_3": 0.962,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.34812,
+  "tic_mass": 0.332035,
+  "radius_flame": 0.367334246635437,
+  "mass_flame": null,
+  "radius_gspphot": 0.3758000135421753,
+  "teff_gspphot": 3544.84326171875,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.348,
+    "mass": 0.332,
+    "duration_ratio": 0.92,
+    "rp_rearth": 3.98
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.367,
+    "mass": 0.332,
+    "duration_ratio": 0.87,
+    "rp_rearth": 4.2
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.376,
+    "mass": 0.332,
+    "duration_ratio": 0.85,
+    "rp_rearth": 4.29
+   }
+  ]
+ }
+}

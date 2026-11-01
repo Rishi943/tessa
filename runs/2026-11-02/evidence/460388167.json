@@ -1,0 +1,80 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 1.0,
+  "by_source": [
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 30955,
+    "err_ppm": 1145,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 51,
+    "source": "TESS-SPOC",
+    "depth_ppm": 30955,
+    "err_ppm": 1145
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 0.636,
+  "signal_period_d": 0.63617,
+  "signal_over_rotation": 1.0002672955974843,
+  "signal_at_rotation_multiple": 1,
+  "sectors": [
+   {
+    "sector": 51,
+    "period_d": 0.636,
+    "false_alarm": 4.788475425482295e-25,
+    "amplitude_ppm": 20698
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "off_target",
+  "why": "the dip sits 3.6\" from the target (3.4 sigma)",
+  "offset_arcsec": 3.5763358414112485,
+  "err_arcsec": 1.0473291438217145,
+  "offset_sigma": 3.4147200643736153,
+  "sectors_used": 1,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 1156528044480681856,
+    "sep_arcsec": 80.4,
+    "eclipse_needed": 0.2055,
+    "sigma_from_centroid": 78.5
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 16,
+  "mean_depth_ppm": 30955,
+  "chi2": 49.06121856310609,
+  "dof": 15,
+  "p_consistent": 1.712366542689065e-05,
+  "share_of_top_3": 0.307,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.328356,
+  "tic_mass": 0.309194,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.328,
+    "mass": 0.309,
+    "duration_ratio": 0.65,
+    "rp_rearth": 7.04
+   }
+  ]
+ }
+}

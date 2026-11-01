@@ -1,0 +1,97 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 8.631242295583555e-05,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 662,
+    "err_ppm": 161,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 1361,
+    "err_ppm": 76,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 38,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1361,
+    "err_ppm": 76
+   },
+   {
+    "sector": 65,
+    "source": "QLP",
+    "depth_ppm": 662,
+    "err_ppm": 161
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 3.833,
+  "signal_period_d": 3.81213,
+  "signal_over_rotation": 0.9945551787111921,
+  "signal_at_rotation_multiple": 1,
+  "sectors": [
+   {
+    "sector": 38,
+    "period_d": 3.833,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 69544
+   },
+   {
+    "sector": 65,
+    "period_d": 0.533,
+    "false_alarm": 0.05641159263044609,
+    "amplitude_ppm": 3098
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "inconclusive",
+  "why": "consistent with the target but also with 1 neighbour(s) that could fake it",
+  "offset_arcsec": 1.5244081833257621,
+  "err_arcsec": 1.199481368886712,
+  "offset_sigma": 1.2708894217678661,
+  "sectors_used": 1,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 6206674457977167872,
+    "sep_arcsec": 4.2,
+    "eclipse_needed": 0.1174,
+    "sigma_from_centroid": 2.7
+   },
+   {
+    "source_id": 6206674561058756224,
+    "sep_arcsec": 38.7,
+    "eclipse_needed": 0.0147,
+    "sigma_from_centroid": 31.1
+   },
+   {
+    "source_id": 6206674561057255552,
+    "sep_arcsec": 42.6,
+    "eclipse_needed": 0.2468,
+    "sigma_from_centroid": 34.7
+   },
+   {
+    "source_id": 6206674629776738304,
+    "sep_arcsec": 58.5,
+    "eclipse_needed": 0.2053,
+    "sigma_from_centroid": 47.5
+   },
+   {
+    "source_id": 6206673805143003520,
+    "sep_arcsec": 71.7,
+    "eclipse_needed": 0.0006,
+    "sigma_from_centroid": 60.1
+   }
+  ]
+ }
+}

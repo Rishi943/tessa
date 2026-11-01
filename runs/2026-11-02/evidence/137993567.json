@@ -1,0 +1,108 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 5.340675965834079e-09,
+  "by_source": [
+   {
+    "source": "TESS-SPOC",
+    "sectors": 3,
+    "depth_ppm": 2675,
+    "err_ppm": 266,
+    "p_constant": 5.340675965834079e-09
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 18,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1116,
+    "err_ppm": 368
+   },
+   {
+    "sector": 58,
+    "source": "TESS-SPOC",
+    "depth_ppm": 4153,
+    "err_ppm": 505
+   },
+   {
+    "sector": 85,
+    "source": "TESS-SPOC",
+    "depth_ppm": 4700,
+    "err_ppm": 595
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 9.692,
+  "signal_period_d": 14.8628,
+  "signal_over_rotation": 1.5335121749896823,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 18,
+    "period_d": 15.0,
+    "false_alarm": 1.1790572548027803e-21,
+    "amplitude_ppm": 4917
+   },
+   {
+    "sector": 58,
+    "period_d": 15.0,
+    "false_alarm": 0.12295384009404878,
+    "amplitude_ppm": 4335
+   },
+   {
+    "sector": 85,
+    "period_d": 4.384,
+    "false_alarm": 1.526989210305513e-08,
+    "amplitude_ppm": 4879
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 5,
+  "mean_depth_ppm": 2675,
+  "chi2": 46.28513342474475,
+  "dof": 4,
+  "p_consistent": 2.148297484354036e-09,
+  "share_of_top_3": 0.935,
+  "outliers": [
+   {
+    "epoch": 0,
+    "btjd": 2897.2,
+    "depth_ppm": 5493,
+    "sigma": 4.1
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.489046,
+  "tic_mass": 0.487126,
+  "radius_flame": 0.5000028610229492,
+  "mass_flame": null,
+  "radius_gspphot": 0.5194000005722046,
+  "teff_gspphot": 3884.93359375,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.489,
+    "mass": 0.487,
+    "duration_ratio": 0.9,
+    "rp_rearth": 2.78
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.5,
+    "mass": 0.487,
+    "duration_ratio": 0.88,
+    "rp_rearth": 2.85
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.519,
+    "mass": 0.487,
+    "duration_ratio": 0.85,
+    "rp_rearth": 2.96
+   }
+  ]
+ }
+}

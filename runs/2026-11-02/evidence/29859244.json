@@ -1,0 +1,109 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 0.004214883778867774,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 2201,
+    "err_ppm": 246,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 1247,
+    "err_ppm": 225,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 1,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1247,
+    "err_ppm": 225
+   },
+   {
+    "sector": 92,
+    "source": "QLP",
+    "depth_ppm": 2201,
+    "err_ppm": 246
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 5.8385,
+  "signal_period_d": 12.6284,
+  "signal_over_rotation": 2.1629528132225744,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 1,
+    "period_d": 7.185,
+    "false_alarm": 2.750166121517511e-13,
+    "amplitude_ppm": 2774
+   },
+   {
+    "sector": 28,
+    "period_d": 4.492,
+    "false_alarm": 1.8540035200584455e-09,
+    "amplitude_ppm": 2775
+   },
+   {
+    "sector": 92,
+    "period_d": 14.358,
+    "false_alarm": 0.012726711974084828,
+    "amplitude_ppm": 2960
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 1689,
+  "chi2": 25.654423849577576,
+  "dof": 3,
+  "p_consistent": 1.1265958249735591e-05,
+  "share_of_top_3": 0.989,
+  "outliers": [
+   {
+    "epoch": -59,
+    "btjd": 1340.914,
+    "depth_ppm": 363,
+    "sigma": -4.3
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.633884,
+  "tic_mass": 0.6149,
+  "radius_flame": 0.6526100039482117,
+  "mass_flame": 0.663358747959137,
+  "radius_gspphot": 0.6542999744415283,
+  "teff_gspphot": 4248.88916015625,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.634,
+    "mass": 0.615,
+    "duration_ratio": 0.95,
+    "rp_rearth": 2.91
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.653,
+    "mass": 0.663,
+    "duration_ratio": 0.95,
+    "rp_rearth": 2.99
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.654,
+    "mass": 0.615,
+    "duration_ratio": 0.92,
+    "rp_rearth": 3.0
+   }
+  ]
+ }
+}

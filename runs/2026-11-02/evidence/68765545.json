@@ -1,0 +1,185 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 0.9795283474342873,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 5,
+    "depth_ppm": 5950,
+    "err_ppm": 623,
+    "p_constant": 0.9634662200408741
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 5451,
+    "err_ppm": 1067,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 26,
+    "source": "TESS-SPOC",
+    "depth_ppm": 5451,
+    "err_ppm": 1067
+   },
+   {
+    "sector": 53,
+    "source": "QLP",
+    "depth_ppm": 5669,
+    "err_ppm": 3303
+   },
+   {
+    "sector": 54,
+    "source": "QLP",
+    "depth_ppm": 5704,
+    "err_ppm": 1112
+   },
+   {
+    "sector": 74,
+    "source": "QLP",
+    "depth_ppm": 6370,
+    "err_ppm": 1803
+   },
+   {
+    "sector": 80,
+    "source": "QLP",
+    "depth_ppm": 5478,
+    "err_ppm": 1160
+   },
+   {
+    "sector": 81,
+    "source": "QLP",
+    "depth_ppm": 6666,
+    "err_ppm": 1265
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": null,
+  "signal_period_d": 3.53741,
+  "signal_over_rotation": null,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 26,
+    "period_d": 0.128,
+    "false_alarm": 0.07193991670094461,
+    "amplitude_ppm": 15335
+   },
+   {
+    "sector": 53,
+    "period_d": 0.686,
+    "false_alarm": 0.07841205239434225,
+    "amplitude_ppm": 30902
+   },
+   {
+    "sector": 54,
+    "period_d": 0.355,
+    "false_alarm": 0.015657829349469705,
+    "amplitude_ppm": 17905
+   },
+   {
+    "sector": 74,
+    "period_d": 0.158,
+    "false_alarm": 0.040648965480718814,
+    "amplitude_ppm": 19863
+   },
+   {
+    "sector": 80,
+    "period_d": 0.541,
+    "false_alarm": 0.5449727231674194,
+    "amplitude_ppm": 16564
+   },
+   {
+    "sector": 81,
+    "period_d": 1.767,
+    "false_alarm": 0.004386784260933464,
+    "amplitude_ppm": 16600
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "off_target",
+  "why": "the dip sits 24.7\" from the target (14.1 sigma)",
+  "offset_arcsec": 24.68095248230537,
+  "err_arcsec": 1.7561312632589419,
+  "offset_sigma": 14.05416155310832,
+  "sectors_used": 5,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 2090604296588823808,
+    "sep_arcsec": 32.7,
+    "eclipse_needed": 0.2338,
+    "sigma_from_centroid": 5.6
+   },
+   {
+    "source_id": 2090604300889599232,
+    "sep_arcsec": 41.3,
+    "eclipse_needed": 0.2022,
+    "sigma_from_centroid": 10.3
+   },
+   {
+    "source_id": 2090604300889600128,
+    "sep_arcsec": 44.2,
+    "eclipse_needed": 0.011,
+    "sigma_from_centroid": 13.0
+   },
+   {
+    "source_id": 2090604369609074048,
+    "sep_arcsec": 44.5,
+    "eclipse_needed": 0.1241,
+    "sigma_from_centroid": 13.3
+   },
+   {
+    "source_id": 2090604266524739200,
+    "sep_arcsec": 2.8,
+    "eclipse_needed": 0.0171,
+    "sigma_from_centroid": 14.7
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 38,
+  "mean_depth_ppm": 5834,
+  "chi2": 32.610825311136594,
+  "dof": 37,
+  "p_consistent": 0.6749207637726632,
+  "share_of_top_3": 0.263,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.365833,
+  "tic_mass": 0.352476,
+  "radius_flame": 0.36506763100624084,
+  "mass_flame": null,
+  "radius_gspphot": 0.3783000111579895,
+  "teff_gspphot": 3517.9404296875,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.366,
+    "mass": 0.352,
+    "duration_ratio": 0.87,
+    "rp_rearth": 3.37
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.365,
+    "mass": 0.352,
+    "duration_ratio": 0.87,
+    "rp_rearth": 3.36
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.378,
+    "mass": 0.352,
+    "duration_ratio": 0.84,
+    "rp_rearth": 3.48
+   }
+  ]
+ }
+}

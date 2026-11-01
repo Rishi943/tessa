@@ -1,0 +1,257 @@
+{
+ "tic": 123691315,
+ "star": {
+  "tic": 123691315,
+  "source_id": 4198335483960264704,
+  "tmag": 13.2232,
+  "teff": 3618.0,
+  "rad": 0.421682,
+  "mass": 0.415727,
+  "distance": 94.7546,
+  "contratio": 0.09577278,
+  "ruwe": 1.1539441347122192,
+  "phot_variable_flag": "NOT_AVAILABLE",
+  "non_single_star": 0,
+  "ra": 287.666536435367,
+  "dec": -11.5200953616627,
+  "upcoming_sectors": [
+   132,
+   134
+  ]
+ },
+ "signal": {
+  "period": 13.4827,
+  "t0": 3493.46,
+  "dur": 0.14575875,
+  "depth_ppm": 11520.0,
+  "snr": 12.5808,
+  "dur_h": 3.49821
+ },
+ "refit": {
+  "snr": 12.431229869491107,
+  "period": 13.4827,
+  "t0": 3493.46,
+  "dur_h": 3.49821,
+  "depth_ppm": 11277.03597536302,
+  "transits": 3,
+  "share": 0.41541318914081377
+ },
+ "odd_even": {
+  "depth_odd_ppm": 10851.562609424187,
+  "depth_even_ppm": 12026.450403638217,
+  "red_noise": 1.0400049603726083,
+  "diff_sigma": 0.5718313241373072
+ },
+ "secondary": {
+  "snr": 3.6150349322627773,
+  "phase": 0.332432278957479,
+  "depth_ppm": 2510.393555629759,
+  "snr_at_half": 0.5938192422445782,
+  "best_brightening_snr": 2.779931544746199
+ },
+ "sectors": {
+  "per_sector": [
+   {
+    "sector": 80,
+    "depth_ppm": 12863,
+    "err_ppm": 1904
+   },
+   {
+    "sector": 92,
+    "depth_ppm": 10414,
+    "err_ppm": 1098
+   }
+  ],
+  "chi2": 1.2417262403419642,
+  "dof": 1,
+  "p_constant": 0.26513862440682223
+ },
+ "size": {
+  "undiluted_depth_ppm": 12623.302425599997,
+  "rp_over_rstar": 0.11235347091033725,
+  "rp_rearth": 5.167930753830632
+ },
+ "duration": {
+  "observed_h": 3.49821,
+  "central_h": 2.4413932547167114,
+  "ratio": 1.4328744430015707
+ },
+ "phase_curve": {
+  "amplitude_ppm": 1940.8318561960652,
+  "ratio_to_depth": 0.16847498751701956,
+  "chi2": 22.422076972886693,
+  "dof": 9
+ },
+ "shape": {
+  "best_ingress_fraction": 0.5,
+  "t14_h": 6.296778,
+  "v_sigma": 1.8322980583637625
+ },
+ "neighbours": {
+  "target_found": true,
+  "gaia_stars_within": 914,
+  "radius_arcsec": 150,
+  "could_cause": 140,
+  "could_cause_within_1px": 0,
+  "plausible_within_1px": 0,
+  "closest_that_could": [
+   {
+    "source_id": 4198335483960263808,
+    "sep_arcsec": 21.1,
+    "delta_mag": 3.83,
+    "eclipse_needed": 0.3934
+   },
+   {
+    "source_id": 4198335483960265216,
+    "sep_arcsec": 21.4,
+    "delta_mag": 3.14,
+    "eclipse_needed": 0.2086
+   },
+   {
+    "source_id": 4198335483960265600,
+    "sep_arcsec": 22.6,
+    "delta_mag": 4.07,
+    "eclipse_needed": 0.4899
+   }
+  ]
+ },
+ "gaps": {
+  "transits": 3,
+  "near_gap": 3,
+  "expected_share": 0.2544978737324174,
+  "p_chance": 0.016483615471803107
+ },
+ "known": [],
+ "code_verdict": "reject",
+ "reasons": [
+  "System 1: P(planet) 0.016, below the 0.136 cut (less planet-like than 100% of planets); against it: star-density penalty share 0.136, V-shape (sigma) 1.832, Gaia RV error (km/s) 5.7"
+ ],
+ "centroid": {
+  "verdict": "inconclusive",
+  "why": "no sector with a clear difference image",
+  "sectors": []
+ },
+ "clues": {
+  "fit": {
+   "status": "ok",
+   "k": 0.12556513653045112,
+   "b": 0.8931031790744457,
+   "ars": 10.717343377782266,
+   "dt0_min": -23.544597016947453,
+   "rho_fit": 0.12810472075005933,
+   "rho_star": 7.817576771614045,
+   "rho_ratio": 0.016386755703533738,
+   "t14_h": 6.588031754526077,
+   "grazing": true,
+   "delta_chi2": 157.65164823269365,
+   "chi2_red": 1.2400506058461003,
+   "ars_star": 42.194529876107076,
+   "b_star": 0.00012050785579065656,
+   "k_star": 0.1086334472183786,
+   "star_density_penalty": 21.398940698362566
+  },
+  "gaia": {
+   "4198335483960264704": {
+    "ra": 287.6672113026851,
+    "dec": -11.520124555581479,
+    "radial_velocity_error": 5.700398921966553,
+    "rv_nb_transits": 5.0,
+    "rv_chisq_pvalue": null,
+    "rv_renormalised_gof": null,
+    "rv_amplitude_robust": null,
+    "ipd_frac_multi_peak": 0.0,
+    "ipd_gof_harmonic_amplitude": 0.04836909472942352,
+    "astrometric_excess_noise_sig": 0.7896292209625244,
+    "radius_flame": 0.44697466492652893,
+    "mass_flame": null,
+    "radius_gspphot": 0.453000009059906,
+    "logg_gspphot": 4.764699935913086
+   }
+  },
+  "eb": {},
+  "sector": {
+   "sectors": 1,
+   "oe_max_sigma": 1.3026240130398616,
+   "oe_sectors_over_3": 0,
+   "oe_same_sign_share": 1.0,
+   "sec_half_max_snr": 1.0247503650763832,
+   "sec_half_sectors_over_3": 0,
+   "sec_half_positive_share": 1.0,
+   "per_sector": [
+    {
+     "sector": 92,
+     "oe_sigma": 1.3026240130398616,
+     "oe_sign": -1.0,
+     "sec_snr": 3.0960595458492937,
+     "sec_half_snr": 1.0247503650763832
+    }
+   ]
+  }
+ },
+ "system1": {
+  "p_planet": 0.0163,
+  "cut": 0.1355,
+  "passes": false,
+  "planet_rank": 0.002,
+  "drivers": [
+   {
+    "check": "star_density_penalty_share",
+    "label": "star-density penalty share",
+    "value": 0.136,
+    "log_odds": -0.98
+   },
+   {
+    "check": "v_shape_sigma",
+    "label": "V-shape (sigma)",
+    "value": 1.832,
+    "log_odds": -0.94
+   },
+   {
+    "check": "rv_error",
+    "label": "Gaia RV error (km/s)",
+    "value": 5.7,
+    "log_odds": -0.72
+   },
+   {
+    "check": "sector_sec_half_positive_share",
+    "label": "sector_sec_half_positive_share",
+    "value": 1.0,
+    "log_odds": -0.55
+   }
+  ],
+  "missing": 8,
+  "model": "xgb-clues"
+ },
+ "similar": [
+  {
+   "toi": "643.01",
+   "target": "reject",
+   "reason": "blend",
+   "distance": 0.2149
+  },
+  {
+   "toi": "2015.01",
+   "target": "gate2",
+   "reason": "",
+   "distance": 0.2356
+  },
+  {
+   "toi": "633.01",
+   "target": "reject",
+   "reason": "unknown",
+   "distance": 0.2395
+  },
+  {
+   "toi": "6872.01",
+   "target": "gate2",
+   "reason": "",
+   "distance": 0.2515
+  },
+  {
+   "toi": "6802.01",
+   "target": "flag",
+   "reason": "unknown",
+   "distance": 0.2615
+  }
+ ]
+}

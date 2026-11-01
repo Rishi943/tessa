@@ -1,0 +1,78 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 0.0005367364917599221,
+  "by_source": [
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 2401,
+    "err_ppm": 147,
+    "p_constant": 0.0005367364917599221
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 22,
+    "source": "TESS-SPOC",
+    "depth_ppm": 2687,
+    "err_ppm": 169
+   },
+   {
+    "sector": 49,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1489,
+    "err_ppm": 302
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 2.154,
+  "signal_period_d": 2.15119,
+  "signal_over_rotation": 0.9986954503249769,
+  "signal_at_rotation_multiple": 1,
+  "sectors": [
+   {
+    "sector": 22,
+    "period_d": 2.164,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 38137
+   },
+   {
+    "sector": 49,
+    "period_d": 2.144,
+    "false_alarm": 1.0741124453746999e-184,
+    "amplitude_ppm": 22553
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "off_target",
+  "why": "the dip sits 6.9\" from the target (3.9 sigma)",
+  "offset_arcsec": 6.946517546604695,
+  "err_arcsec": 1.7592608973511243,
+  "offset_sigma": 3.9485431393739807,
+  "sectors_used": 2,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 4030325709167472256,
+    "sep_arcsec": 63.4,
+    "eclipse_needed": 0.0039,
+    "sigma_from_centroid": 33.6
+   },
+   {
+    "source_id": 4030325773591547904,
+    "sep_arcsec": 70.8,
+    "eclipse_needed": 0.0166,
+    "sigma_from_centroid": 40.4
+   },
+   {
+    "source_id": 4030331339869159808,
+    "sep_arcsec": 120.1,
+    "eclipse_needed": 0.153,
+    "sigma_from_centroid": 65.5
+   }
+  ]
+ }
+}

@@ -1,0 +1,131 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 1.0,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 6640,
+    "err_ppm": 464,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 91,
+    "source": "QLP",
+    "depth_ppm": 6640,
+    "err_ppm": 464
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": null,
+  "signal_period_d": 10.8691,
+  "signal_over_rotation": null,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 91,
+    "period_d": 0.362,
+    "false_alarm": 0.7615770756534367,
+    "amplitude_ppm": 6400
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "inconclusive",
+  "why": "consistent with the target but also with 1 neighbour(s) that could fake it",
+  "offset_arcsec": 32.61808267168858,
+  "err_arcsec": 15.219217973752993,
+  "offset_sigma": 2.1432167360991614,
+  "sectors_used": 1,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 6051534054494286592,
+    "sep_arcsec": 69.4,
+    "eclipse_needed": 0.2107,
+    "sigma_from_centroid": 2.6
+   },
+   {
+    "source_id": 6051531065197041408,
+    "sep_arcsec": 19.4,
+    "eclipse_needed": 0.0857,
+    "sigma_from_centroid": 3.0
+   },
+   {
+    "source_id": 6051534123213772800,
+    "sep_arcsec": 82.9,
+    "eclipse_needed": 0.0512,
+    "sigma_from_centroid": 3.4
+   },
+   {
+    "source_id": 6051534123209423232,
+    "sep_arcsec": 83.7,
+    "eclipse_needed": 0.053,
+    "sigma_from_centroid": 3.5
+   },
+   {
+    "source_id": 6051534020134552448,
+    "sep_arcsec": 64.0,
+    "eclipse_needed": 0.1896,
+    "sigma_from_centroid": 4.1
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 3,
+  "mean_depth_ppm": 6640,
+  "chi2": 69.46451693076153,
+  "dof": 2,
+  "p_consistent": 8.240846115123499e-16,
+  "share_of_top_3": 1.0,
+  "outliers": [
+   {
+    "epoch": -1,
+    "btjd": 3777.741,
+    "depth_ppm": 1648,
+    "sigma": -6.6
+   },
+   {
+    "epoch": 1,
+    "btjd": 3799.479,
+    "depth_ppm": 10138,
+    "sigma": 4.2
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.479929,
+  "tic_mass": 0.477873,
+  "radius_flame": 0.5246384143829346,
+  "mass_flame": 0.5329311490058899,
+  "radius_gspphot": 0.524399995803833,
+  "teff_gspphot": 3725.815673828125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.48,
+    "mass": 0.478,
+    "duration_ratio": 1.21,
+    "rp_rearth": 4.57
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.525,
+    "mass": 0.533,
+    "duration_ratio": 1.15,
+    "rp_rearth": 4.99
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.524,
+    "mass": 0.478,
+    "duration_ratio": 1.11,
+    "rp_rearth": 4.99
+   }
+  ]
+ }
+}

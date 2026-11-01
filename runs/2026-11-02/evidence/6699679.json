@@ -1,0 +1,110 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 0.33099722440706003,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 3,
+    "depth_ppm": 11379,
+    "err_ppm": 1106,
+    "p_constant": 0.33099722440706003
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 54,
+    "source": "QLP",
+    "depth_ppm": 7040,
+    "err_ppm": 3764
+   },
+   {
+    "sector": 80,
+    "source": "QLP",
+    "depth_ppm": 12958,
+    "err_ppm": 1773
+   },
+   {
+    "sector": 92,
+    "source": "QLP",
+    "depth_ppm": 10923,
+    "err_ppm": 1526
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": null,
+  "signal_period_d": 11.5407,
+  "signal_over_rotation": null,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 54,
+    "period_d": 0.118,
+    "false_alarm": 0.4758622112095781,
+    "amplitude_ppm": 28598
+   },
+   {
+    "sector": 80,
+    "period_d": 0.582,
+    "false_alarm": 0.001912534418679727,
+    "amplitude_ppm": 17016
+   },
+   {
+    "sector": 92,
+    "period_d": 1.619,
+    "false_alarm": 0.7209273495370365,
+    "amplitude_ppm": 13796
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "inconclusive",
+  "why": "no sector with a clear difference image",
+  "offset_arcsec": null,
+  "err_arcsec": null,
+  "offset_sigma": null,
+  "sectors_used": null,
+  "on_star": null,
+  "suspects": null
+ },
+ "transit_depths": {
+  "transits": 6,
+  "mean_depth_ppm": 11621,
+  "chi2": 74.20486739874974,
+  "dof": 5,
+  "p_consistent": 1.3630816692715465e-14,
+  "share_of_top_3": 0.977,
+  "outliers": [
+   {
+    "epoch": 28,
+    "btjd": 3826.59,
+    "depth_ppm": 1316,
+    "sigma": -4.6
+   },
+   {
+    "epoch": 26,
+    "btjd": 3803.508,
+    "depth_ppm": 23275,
+    "sigma": 4.6
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.329676,
+  "tic_mass": 0.310718,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.33,
+    "mass": 0.311,
+    "duration_ratio": 1.0,
+    "rp_rearth": 4.24
+   }
+  ]
+ }
+}

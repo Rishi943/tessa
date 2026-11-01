@@ -1,0 +1,108 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "differs_by_source",
+  "p_constant_all": 0.00325870066805825,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 18419,
+    "err_ppm": 2197,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 9419,
+    "err_ppm": 1698,
+    "p_constant": 0.3311813114064628
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 23,
+    "source": "TESS-SPOC",
+    "depth_ppm": 7532,
+    "err_ppm": 2579
+   },
+   {
+    "sector": 46,
+    "source": "TESS-SPOC",
+    "depth_ppm": 10861,
+    "err_ppm": 2255
+   },
+   {
+    "sector": 91,
+    "source": "QLP",
+    "depth_ppm": 18419,
+    "err_ppm": 2197
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 2.278,
+  "signal_period_d": 12.7139,
+  "signal_over_rotation": 5.58116769095698,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 23,
+    "period_d": 2.287,
+    "false_alarm": 8.832676792864014e-166,
+    "amplitude_ppm": 34169
+   },
+   {
+    "sector": 46,
+    "period_d": 2.269,
+    "false_alarm": 6.990298835175962e-17,
+    "amplitude_ppm": 24606
+   },
+   {
+    "sector": 91,
+    "period_d": 0.568,
+    "false_alarm": 0.05562696960000667,
+    "amplitude_ppm": 24207
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 12504,
+  "chi2": 13.06358579399502,
+  "dof": 3,
+  "p_consistent": 0.004501095934897839,
+  "share_of_top_3": 0.893,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.347446,
+  "tic_mass": 0.331256,
+  "radius_flame": 0.4029434323310852,
+  "mass_flame": null,
+  "radius_gspphot": 0.41370001435279846,
+  "teff_gspphot": 3365.9892578125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.347,
+    "mass": 0.331,
+    "duration_ratio": 1.41,
+    "rp_rearth": 4.3
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.403,
+    "mass": 0.331,
+    "duration_ratio": 1.22,
+    "rp_rearth": 4.98
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.414,
+    "mass": 0.331,
+    "duration_ratio": 1.18,
+    "rp_rearth": 5.11
+   }
+  ]
+ }
+}

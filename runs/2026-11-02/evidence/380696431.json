@@ -1,0 +1,107 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "differs_by_source",
+  "p_constant_all": 9.879928771546443e-07,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 1743,
+    "err_ppm": 1066,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 8347,
+    "err_ppm": 668,
+    "p_constant": 0.7712209879498362
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 23,
+    "source": "TESS-SPOC",
+    "depth_ppm": 8554,
+    "err_ppm": 975
+   },
+   {
+    "sector": 46,
+    "source": "TESS-SPOC",
+    "depth_ppm": 8165,
+    "err_ppm": 916
+   },
+   {
+    "sector": 91,
+    "source": "QLP",
+    "depth_ppm": 1743,
+    "err_ppm": 1066
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 14.246,
+  "signal_period_d": 12.7142,
+  "signal_over_rotation": 0.8924750807244138,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 23,
+    "period_d": 13.492,
+    "false_alarm": 2.4929342209401495e-14,
+    "amplitude_ppm": 10390
+   },
+   {
+    "sector": 46,
+    "period_d": 1.573,
+    "false_alarm": 0.21209598951093403,
+    "amplitude_ppm": 8507
+   },
+   {
+    "sector": 50,
+    "period_d": 15.0,
+    "false_alarm": 3.2196460224883526e-12,
+    "amplitude_ppm": 9160
+   },
+   {
+    "sector": 91,
+    "period_d": 0.244,
+    "false_alarm": 0.9875127208777491,
+    "amplitude_ppm": 10795
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 6372,
+  "chi2": 42.012031479363735,
+  "dof": 3,
+  "p_consistent": 3.988608947524869e-09,
+  "share_of_top_3": 1.0,
+  "outliers": [
+   {
+    "epoch": 89,
+    "btjd": 3799.454,
+    "depth_ppm": -3592,
+    "sigma": -5.7
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.383893,
+  "tic_mass": 0.373188,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.384,
+    "mass": 0.373,
+    "duration_ratio": 1.33,
+    "rp_rearth": 3.43
+   }
+  ]
+ }
+}

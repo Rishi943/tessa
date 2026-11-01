@@ -1,0 +1,108 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 0.26232062301317605,
+  "by_source": [
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 2123,
+    "err_ppm": 208,
+    "p_constant": 0.26232062301317605
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 56,
+    "source": "TESS-SPOC",
+    "depth_ppm": 2345,
+    "err_ppm": 287
+   },
+   {
+    "sector": 83,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1878,
+    "err_ppm": 302
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 7.084,
+  "signal_period_d": 11.8778,
+  "signal_over_rotation": 1.6767080745341616,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 56,
+    "period_d": 9.859,
+    "false_alarm": 3.38834480803018e-17,
+    "amplitude_ppm": 2666
+   },
+   {
+    "sector": 83,
+    "period_d": 4.309,
+    "false_alarm": 4.774453003339556e-07,
+    "amplitude_ppm": 2447
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 2123,
+  "chi2": 91.84756763053667,
+  "dof": 3,
+  "p_consistent": 8.783781278397755e-20,
+  "share_of_top_3": 1.0,
+  "outliers": [
+   {
+    "epoch": 60,
+    "btjd": 3570.248,
+    "depth_ppm": -239,
+    "sigma": -5.7
+   },
+   {
+    "epoch": 61,
+    "btjd": 3582.126,
+    "depth_ppm": 4297,
+    "sigma": 4.9
+   },
+   {
+    "epoch": -2,
+    "btjd": 2833.824,
+    "depth_ppm": 4028,
+    "sigma": 4.7
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.632722,
+  "tic_mass": 0.65,
+  "radius_flame": 0.6417420506477356,
+  "mass_flame": 0.6650252938270569,
+  "radius_gspphot": 0.641700029373169,
+  "teff_gspphot": 4275.9345703125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.633,
+    "mass": 0.65,
+    "duration_ratio": 0.41,
+    "rp_rearth": 3.33
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.642,
+    "mass": 0.665,
+    "duration_ratio": 0.41,
+    "rp_rearth": 3.38
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.642,
+    "mass": 0.65,
+    "duration_ratio": 0.41,
+    "rp_rearth": 3.38
+   }
+  ]
+ }
+}

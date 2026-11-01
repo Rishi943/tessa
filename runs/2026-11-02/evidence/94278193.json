@@ -1,0 +1,105 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 3.073015867413799e-06,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 7936,
+    "err_ppm": 698,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 4101,
+    "err_ppm": 434,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 18,
+    "source": "TESS-SPOC",
+    "depth_ppm": 4101,
+    "err_ppm": 434
+   },
+   {
+    "sector": 86,
+    "source": "QLP",
+    "depth_ppm": 7936,
+    "err_ppm": 698
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 3.512,
+  "signal_period_d": 13.3485,
+  "signal_over_rotation": 3.8008257403189063,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 18,
+    "period_d": 3.512,
+    "false_alarm": 3.8165919403236476e-08,
+    "amplitude_ppm": 5285
+   },
+   {
+    "sector": 86,
+    "period_d": 0.385,
+    "false_alarm": 0.601807008336627,
+    "amplitude_ppm": 6875
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "inconclusive",
+  "why": "no sector with a clear difference image",
+  "offset_arcsec": null,
+  "err_arcsec": null,
+  "offset_sigma": null,
+  "sectors_used": null,
+  "on_star": null,
+  "suspects": null
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 5286,
+  "chi2": 78.77018429981146,
+  "dof": 3,
+  "p_consistent": 5.633844983983062e-17,
+  "share_of_top_3": 0.989,
+  "outliers": [
+   {
+    "epoch": -139,
+    "btjd": 1795.198,
+    "depth_ppm": 1079,
+    "sigma": -6.8
+   },
+   {
+    "epoch": -1,
+    "btjd": 3637.291,
+    "depth_ppm": 8913,
+    "sigma": 4.2
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.460004,
+  "tic_mass": 0.457177,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.46,
+    "mass": 0.457,
+    "duration_ratio": 0.97,
+    "rp_rearth": 3.83
+   }
+  ]
+ }
+}

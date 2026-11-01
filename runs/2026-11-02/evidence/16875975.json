@@ -1,0 +1,102 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 0.00010718559490562514,
+  "by_source": [
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 2209,
+    "err_ppm": 235,
+    "p_constant": 0.00010718559490562514
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 57,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1464,
+    "err_ppm": 304
+   },
+   {
+    "sector": 84,
+    "source": "TESS-SPOC",
+    "depth_ppm": 3325,
+    "err_ppm": 372
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 7.678,
+  "signal_period_d": 13.7969,
+  "signal_over_rotation": 1.796939307111227,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 17,
+    "period_d": 7.678,
+    "false_alarm": 2.3881834011618293e-130,
+    "amplitude_ppm": 5908
+   },
+   {
+    "sector": 57,
+    "period_d": 9.669,
+    "false_alarm": 1.3617879848909697e-61,
+    "amplitude_ppm": 4014
+   },
+   {
+    "sector": 84,
+    "period_d": 2.951,
+    "false_alarm": 4.159059999407839e-11,
+    "amplitude_ppm": 4229
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 2308,
+  "chi2": 33.9419117813071,
+  "dof": 3,
+  "p_consistent": 2.0379247489064355e-07,
+  "share_of_top_3": 1.0,
+  "outliers": [
+   {
+    "epoch": 0,
+    "btjd": 2881.1,
+    "depth_ppm": 108,
+    "sigma": -4.9
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.582168,
+  "tic_mass": 0.57329,
+  "radius_flame": 0.6050681471824646,
+  "mass_flame": 0.6288241744041443,
+  "radius_gspphot": 0.6108999848365784,
+  "teff_gspphot": 4107.5478515625,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.582,
+    "mass": 0.573,
+    "duration_ratio": 0.66,
+    "rp_rearth": 3.32
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.605,
+    "mass": 0.629,
+    "duration_ratio": 0.65,
+    "rp_rearth": 3.45
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.611,
+    "mass": 0.573,
+    "duration_ratio": 0.62,
+    "rp_rearth": 3.49
+   }
+  ]
+ }
+}
