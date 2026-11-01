@@ -51,8 +51,9 @@ reached those independently.
 
 ## The held-out test
 
-Before any search, 1,000 stars were drawn at random from the survey's first batch and set aside
-(`survey/holdout.txt`). Nothing in Tessa was tuned on them. On 1 November, with everything frozen (the search, the
+Before any search, 1,000 of the survey's fetched stars were drawn uniformly at random across its ranking and set
+aside (`pipeline/holdout.py`); the list was committed then, which timestamps it (`survey/holdout.txt`). Nothing in
+Tessa was tuned on them. On 1 November, with everything frozen (the search, the
 gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched once:
 
 | Held-out stars | |
