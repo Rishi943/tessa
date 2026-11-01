@@ -13,22 +13,54 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
 | Searched | 22,978, ranked by how small a planet each could show |
 | Repeating dips found | 785, with a gate calibrated on upside-down light curves so about 1 star in 100 passes on noise |
-| Explained away | 618, each with a written reason |
-| Still unexplained | 160, flagged with what is left to check |
-| Known planets and candidates found again | 2 |
-| Candidates | 5: TIC 50099421, 166321785, 240488148, 316447391, 61220826 (4 also found by other searches) |
-| Model cost | $1.01 for every dossier, investigation, note and audit |
+| Sent to Glimmer, the fine-tuned model | 190; code settled the other 595 |
+| Glimmer called a planet | 49 |
+| Passed novelty, testability and season checks | 8 |
+| Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 7 |
+| Candidates | 6: TIC 116046773, 166321785, 321290256, 50099421, 61220826, 71503196 |
+| Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
-Each candidate has a case file on the site with its checks, its weak spots and when the next transits can be
-seen. For example, **TIC 240488148**: a 1.4 Earth-radius body every 1.51251 days around a K dwarf 59 pc away,
-depth steady over 6 sectors; a Gaia star 5.4" away is not yet excluded; next TESS look: sector 121, August 2027.
+Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
+the model, and 1 is a known object. The other 8 are the row above.
 
-A candidate is not a planet. It is a dip no check could explain, that no catalogue lists, and that predicts its
-own next transit closely enough to test.
+For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
+FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it
+on the evidence and TRICERATOPS backed that call. It is one of three candidates that clear the stricter NFPP < 0.001
+bar, with TIC 116046773 and 166321785.
 
-TIC 166321785, 240488148, 316447391 and 50099421 were also found independently by
-[eumemic/exoplanets](https://github.com/eumemic/exoplanets) and [RAVEN](https://zenodo.org/records/19661443);
-TIC 61220826 is on no published list.
+A candidate is not a planet. It is a dip the checks could not explain, on none of the TOI, CTOI, confirmed-planet or
+eclipsing-binary lists, that predicts its own next transit closely enough to test.
+
+TIC 321290256 and 61220826 are on no published list we checked. TIC 116046773 and 50099421 are also in
+[RAVEN](https://zenodo.org/records/19661443), TIC 166321785 in
+[eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
+reached those independently.
+
+## How well it works
+
+Test signals were held back from all tuning and training, and their outcomes were settled by follow-up.
+
+| 297 planets, 282 false positives | Planets recovered | False positives passed | Precision |
+|---|---|---|---|
+| Glimmer v10 (what ships) | 213 (72%) | 18 (6.4%) | 92% |
+| XGBoost alone (vetting v9) | 183 (62%) | 6 (2.1%) | 97% |
+
+| 70 planets, 94 false positives scored by NASA's ExoMiner++ 2.0 | Planets | False positives |
+|---|---|---|
+| ExoMiner++ at 0.5 | 55 | 7 |
+| XGBoost at a cut set on dev | 55 | 4 |
+| Glimmer v10 | 50 | 3 |
+
+Glimmer is the sensitive first pass: it recovers more planets than XGBoost's rule at the price of more false
+positives, and TRICERATOPS, the season test and the novelty check do the precision work after it. **The ranking
+advantage over ExoMiner++ belongs to XGBoost, not Glimmer:** test AUC 0.963 against 0.945, and on all 736 shared TOIs
++0.019 [+0.006, +0.034]. At a fixed cut, the difference in false positives is not significant (-3.2% [-7.4, +1.1]), and that row was a second
+look at test, after Glimmer's first.
+Tessa uses full-frame data and needs no SPOC data-validation products.
+
+Prompt v11 asked Glimmer to start from XGBoost's rank and overrule it only with named evidence. It failed the bar set
+before it ran (at least 118 of 149 planets and at most 11 of 177 false positives on dev; it got 107 and 14), so it
+was never run on test and v10 stayed.
 
 ## Built before and during the hackathon
 
@@ -43,7 +75,9 @@ pipeline, not those scripts: agentic, and built to handle far more data. Everyth
   shards on Kaggle
 - a GPU box search over tens of thousands of stars, with a noise floor measured on upside-down light curves
 - the vetting checks, difference-image centroids, gate 2 and the predictions of the next transits
-- Meta's models writing a dossier for every dip and investigating flags with tools, with invented numbers caught
+- Glimmer fine-tuned on tool-calling traces from Muse Spark Open, making the planet call with tools, with invented
+  numbers caught
+- XGBoost System 1 and a faster TRICERATOPS (40 s against 392 s on a laptop, same FPP to 0.0001)
 - the website, its 3D map and case files, Ask Tessa, and searches that run in visitors' browsers
 
 No code was carried over. A line-by-line comparison with the old scripts finds 23 of Tessa's 6,850 lines in
@@ -55,7 +89,8 @@ rediscovery that shows the new pipeline works, not as one of Tessa's candidates.
 
 ## How it works
 
-Code makes every yes. Meta's models read the evidence, chase what doesn't add up, and explain it in words.
+Glimmer, a fine-tuned open-weight Meta model, makes the planet call and picks its own tools. Code can stop a pass,
+but it can't make one.
 
 1. **Choose the stars** (`pipeline/targets.py`). Gaia DR3 within 100 pc, K/M colours, matched to the TESS Input
    Catalog; known planet hosts, TOIs, CTOIs and eclipsing binaries removed. 48,945 of them were never TESS
@@ -66,36 +101,42 @@ Code makes every yes. Meta's models read the evidence, chase what doesn't add up
 3. **Code checks** (`pipeline/vet.py`, `pipeline/centroid.py`). Odd against even depth, secondary eclipse,
    size after dilution, duration for the star, V or flat shape, variability at the period, depth sector by
    sector, Gaia neighbours that could fake the dip, and difference-image centroids from TESS cutouts.
-4. **Muse Spark writes a dossier** (`agent/batch.js`, `agent/prompts/vetting.v5.md`). It sees every number from
-   the checks and must cite them. It may reject or flag; it cannot pass anything as a planet. Any number it
-   writes that is not in its input is caught and counted (`agent/dossier.js`).
-5. **Muse Spark investigates its flags** (`agent/investigate.js`, `pipeline/tools.py`). An agent loop with seven
-   tools: centroid in every sector, depth by data source, depth of each transit, Gaia radius, rotation, timing,
-   catalogue lookup. Up to five calls a star, restricted to the star under review.
-6. **Gate 2 decides** (`pipeline/gate2.py`, `pipeline/novelty.py`, `pipeline/when.py`). Code settles or
-   rejects flags from the tools' evidence, checks the TOI, CTOI, confirmed-planet, TESS EB, VSX, Gaia EB and
-   SIMBAD lists, refits the ephemeris from per-sector transit times and predicts the next TESS sectors and the
-   ground windows at six Las Cumbres Observatory sites, with the SNR one transit would give on 0.4, 1 and 2 m
-   telescopes. No testable prediction, no candidate.
-7. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
-   every rejected dip and an observing note for every candidate. Muse Wonder 1.0 audits each candidate from the
-   raw checks without seeing Spark's verdict.
+4. **System 1 scores it** (`pipeline/system1.py`). An XGBoost model trained on TESS candidates whose fate follow-up
+   settled gives a planet rank. Glimmer gets the rank as one piece of evidence, not as a verdict.
+5. **Glimmer makes the call** (`tools/survey_v10.py`, `agent/prompts/vetting.v10.md`, `pipeline/tools.py`). It names
+   the live explanations, calls only the tools that separate them (centroid in every sector, depth by data source,
+   depth of each transit, Gaia radius, rotation), and returns reject, flag or gate2 with a dossier. Any number it
+   writes that is not in its input is caught and counted. Survey tool answers are measured ahead of time and returned
+   when it calls.
+6. **Gate 2 can stop it** (`pipeline/gate2.py`, `pipeline/novelty.py`, `pipeline/when.py`). Hard rows and a safety
+   net hold any pass whose System 1 rank is in the bottom 5%. Code checks the TOI, CTOI, confirmed-planet, TESS EB, VSX,
+   Gaia EB and SIMBAD lists, tests that each observing season predicts the others, refits the ephemeris and predicts
+   the next TESS sectors and the ground windows at six Las Cumbres Observatory sites, with the SNR one transit would
+   give on 0.4, 1 and 2 m telescopes. No testable prediction, no candidate.
+7. **TRICERATOPS** (`pipeline/fpp.py`, `pipeline/tri_fast.py`). Scores the chance the dip is a false positive from the
+   light curve, the star and its neighbours: FPP below 0.5 and NFPP below 0.1 to stay a candidate.
+8. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
+   rejected dips and an observing note for candidates. Muse Wonder 1.0 audited candidates from an earlier run from the
+   raw checks; TIC 116046773, 321290256 and 71503196 have no Wonder audit yet.
 
 The ephemeris code was checked against known planets: it predicts GJ 357 b and HD 73583 b within 2 and 4
 minutes of their published times.
 
 ## Meta models
 
-| Step | Model | Cost, first batch |
+Built with Muse Spark Open.
+
+| Step | Model | Note |
 |---|---|---|
-| Dossiers for 34 dips | Muse Spark 1.3 | $0.047 |
-| Investigating 32 flags with tools | Muse Spark 1.3 | $0.044 |
-| Case-closed lines and observing notes | Muse Spark 1.3 | $0.011 |
-| Independent audit of the candidates | Muse Wonder 1.0 | $0.131 |
+| Teacher: tool-calling traces on about 1,008 training signals | Muse Spark Open (Baseten) | about $32 |
+| Fine-tune: 745 traces that reached the true outcome with no invented numbers | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
+| The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10` |
+| Case-closed lines and observing notes | Muse Spark 1.3 | |
+| Audit of candidates from an earlier run | Muse Wonder 1.0 | |
 | Ask Tessa on the site | Muse Spark 1.3 | per question |
 
-Prompts are versioned in `agent/prompts/`; v1 to v4 of the vetting prompt are kept to show how it was tuned on
-known planets and binaries before the bulk run.
+Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
+in order. XGBoost is not a Meta model: it is a small scorer that gives Glimmer a rank to weigh.
 
 ## Run it
 
@@ -111,9 +152,11 @@ python -m pipeline.holdout                      # freeze the 1,000 held-back sta
 python -m pipeline.fetch --targets data/survey_order.txt --out data/cache/lc
 python -m pipeline.search --lc data/cache/lc --stars data/survey_stars.txt --skip survey/holdout.txt --out data/survey
 python -m pipeline.vet --all data/vet/survey --results data/survey_results.csv
-node agent/batch.js data/vet/survey             # dossiers
-python -m pipeline.gate2 data/vet/survey --results data/survey_results.csv
-node agent/investigate.js data/vet/survey       # the agent with tools
+python tools/survey_v10.py select               # which signals reach Glimmer
+python tools/survey_v10.py tools                # measure the tool answers
+python tools/survey_v10.py glimmer              # the planet call (Glimmer on Modal)
+python tools/survey_v10.py gate2                # novelty, testability, seasons
+python tools/survey_v10_fpp.py data/survey_v10/fpp_in   # fold passes for TRICERATOPS (tools/fpp_survivors.py)
 node agent/caseclosed.js data/vet/survey
 node agent/observing.js data/vet/survey
 python -m pipeline.export                       # data/site for the website
@@ -126,7 +169,10 @@ Each module's docstring gives its exact arguments. Tests: `python -m pytest test
 ## Layout
 
 - `pipeline/`: target selection, fetching, search, vetting, centroids, tools, gate 2, predictions, export
-- `agent/`: the Muse model calls, the investigator agent and the prompts
+- `agent/`: the Muse model calls and the prompts
+- `finetune/`: System 1, the traces, the fine-tune, the val and test gates, the ExoMiner++ benchmark
+- `serve/`: Glimmer on Modal
+- `tools/`: the v10 survey run, TRICERATOPS runs, benchmarks
 - `site/`: the website (Vite, Three.js, no framework) and the Cloudflare Worker behind Ask Tessa
 - `survey/holdout.txt`: 1,000 stars drawn at random before any search and never searched, so the candidate
   rate can be tested on stars the method was not tuned on
