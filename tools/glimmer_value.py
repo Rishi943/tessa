@@ -27,7 +27,7 @@ sys.path.insert(0, str(ROOT))
 from finetune.exo_bench import SAVED, SEED, ci, tier  # noqa: E402
 from finetune.valgate import val_signals  # noqa: E402
 from pipeline import gate2  # noqa: E402
-from pipeline.paths import DATA  # noqa: E402
+from pipeline.paths import DATA, batches  # noqa: E402
 
 CANDIDATES = {71503196: "likely", 116046773: "likely", 166321785: "likely",
               321290256: "nearby open", 50099421: "nearby open", 61220826: "nearby open"}
@@ -213,7 +213,7 @@ def funnel() -> None:
     print(f"Glimmer verdicts: gate2 {v.count('gate2')}, flag {v.count('flag')}, reject {v.count('reject')}, none {v.count(None)}")
     print(f"gate2 and no hard row / rank floor (a Tessa pass): {sum(r['passes'] for r in rows)}")
     total = {}
-    for batch in ("survey", "batch2"):
+    for batch in batches():
         f = DATA / "vet" / f"{batch}_v10" / "status.csv"
         if not f.exists():
             print(f"{f} missing: run `python tools/survey_v10.py gate2`")
@@ -224,7 +224,7 @@ def funnel() -> None:
             total[s] = total.get(s, 0) + st.count(s)
         print(f"gate 2 status, {batch}_v10: " + ", ".join(f"{s} {st.count(s)}" for s in sorted(set(st))))
     print("gate 2 status, both: " + ", ".join(f"{s} {n}" for s, n in sorted(total.items())) + f"  (total {sum(total.values())})")
-    cands = sorted(int(p.stem) for b in ("survey", "batch2") for p in (DATA / "vet" / f"{b}_v10" / "candidates").glob("*.json"))
+    cands = sorted(int(p.stem) for b in batches() for p in (DATA / "vet" / f"{b}_v10" / "candidates").glob("*.json"))
     print(f"gate 2 candidates (before TRICERATOPS): {len(cands)}: {cands}")
     # TRICERATOPS on the v10 passes: every fpp_out* run under data/survey_v10, later folders win for a star run twice
     fpp_rows = {}
@@ -255,7 +255,7 @@ def funnel() -> None:
     print(f"\nall TRICERATOPS runs: {len(fpp_rows)} stars, {len(ran)} ran, {len(ok)} pass the survey bar")
     # stars the README, form or old site name: their TRICERATOPS result and current gate 2 status with its reason
     status = {}
-    for batch in ("survey", "batch2"):
+    for batch in batches():
         f = DATA / "vet" / f"{batch}_v10" / "status.csv"
         if f.exists():
             with open(f, encoding="utf-8") as fh:
@@ -274,8 +274,8 @@ def xgb_only(out: Path) -> None:
     from pipeline.paths import CACHE
     from pipeline.search import detrend
     from pipeline.vet import load_lc, signal_from_results
-    lc_dir = {"survey": CACHE / "lc", "batch2": CACHE / "lc_batch2"}
-    results = {"survey": DATA / "survey_results.csv", "batch2": DATA / "batch2_results.csv"}
+    lc_dir = {name: lc for name, (_, lc) in batches().items()}
+    results = {name: res for name, (res, _) in batches().items()}
     picks = [r for r in survey_rows() if r["rank"] >= gate2.PASS_RANK and not r["passes"]]
     print(f"{len(picks)} signals XGBoost at {gate2.PASS_RANK} passes and Glimmer did not")
     out.mkdir(parents=True, exist_ok=True)

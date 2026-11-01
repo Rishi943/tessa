@@ -20,7 +20,7 @@ import numpy as np
 import pandas as pd
 
 from . import catalogs
-from .paths import CACHE, DATA
+from .paths import CACHE, DATA, ROOT
 
 MAX_DISTANCE_PC = 100
 MAX_GAIA_G = 15.5
@@ -271,10 +271,31 @@ def write_survey(df: pd.DataFrame) -> None:
     write(df[df["two_min_sectors"] == 1].head(BATCH3_FETCH), "batch3")
 
 
+def next_batch(name: str, n: int) -> None:
+    """The next n never-2-minute stars in rank order that no earlier batch, the held-back set or the visitors' batch3
+    has: NAME_order.txt and NAME_stars.txt, from the pool already built (no catalogue queries)."""
+    df = pd.read_parquet(DATA / "targets.parquet").sort_values("rank")
+    taken = set()
+    for f in [*DATA.glob("*_order.txt"), ROOT / "survey" / "holdout.txt"]:
+        if f.name != f"{name}_order.txt" and f.exists():
+            taken |= {int(t) for t in f.read_text(encoding="utf-8").split()}
+    never = df[df["two_min_sectors"] == 0]
+    stars = never[~never["tic"].isin(taken)].head(n)
+    (DATA / f"{name}_order.txt").write_text("\n".join(map(str, stars["tic"])) + "\n", encoding="utf-8")
+    stars[["tic", "rad", "mass"]].to_csv(DATA / f"{name}_stars.txt", sep=" ", index=False, float_format="%.4f")
+    print(f"{name}: {len(stars)} stars, ranks {stars['rank'].min()} to {stars['rank'].max()} "
+          f"({len(taken)} already taken); {len(set(never['tic']) - taken)} never-2-minute stars were left before it")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--trace", type=int, nargs="*", default=[], help="TIC IDs to follow through the funnel")
+    ap.add_argument("--next", metavar="NAME", help="only write the next batch's star list (e.g. batch4), from targets.parquet")
+    ap.add_argument("--n", type=int, default=10000, help="with --next: how many stars")
     args = ap.parse_args()
+    if args.next:
+        next_batch(args.next, args.n)
+        return
     df = build(list(args.trace))
     for tic in args.trace:
         row = df[df["tic"] == tic]

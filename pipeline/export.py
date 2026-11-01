@@ -19,13 +19,12 @@ import numpy as np
 import pandas as pd
 
 from . import catalogs
-from .paths import CACHE, DATA, ROOT
+from .paths import CACHE, DATA, ROOT, batches
 from .search import detrend
 from .vet import load_lc, phase_offset
 
 # (name, search results, vetting folder, light-curve shards) for each searched batch; v10 vets in VET_DIR_v10
-RUNS = [("survey", DATA / "survey_results.csv", DATA / "vet" / "survey", CACHE / "lc"),
-        ("batch2", DATA / "batch2_results.csv", DATA / "vet" / "batch2", CACHE / "lc_batch2")]
+RUNS = [(name, res, DATA / "vet" / name, lc) for name, (res, lc) in batches().items()]
 # TRICERATOPS on v10's passes (tools/fpp_survivors.py); a gate 2 candidate must clear FPP < 0.5 and NFPP < 0.1
 FPP_RUNS = DATA / "survey_v10"
 FPP_MAX, NFPP_MAX, NFPP_LIKELY = 0.5, 0.1, 0.001

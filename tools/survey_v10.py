@@ -24,10 +24,10 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline import gate2, system1, tools  # noqa: E402
-from pipeline.paths import DATA  # noqa: E402
+from pipeline.paths import DATA, batches  # noqa: E402
 
 WORK = DATA / "survey_v10"
-BATCHES = {"survey": ("survey_results.csv", "lc"), "batch2": ("batch2_results.csv", "lc_batch2")}
+BATCHES = {name: (res.name, lc.name) for name, (res, lc) in batches().items()}  # name -> (results csv, light-curve folder)
 MODEL = "glimmer-vetter-v10"
 FOUR = ("sector_depths_by_source", "rotation", "transit_depths", "stellar_radius")
 

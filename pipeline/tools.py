@@ -13,12 +13,12 @@ from pathlib import Path
 import numpy as np
 from scipy import stats
 
-from .paths import CACHE, DATA
+from .paths import CACHE, DATA, batches
 from .search import central_duration, detrend
 from .vet import R_EARTH_PER_RSUN, box_depth, load_lc, phase_offset, red_noise
 
 # Where each batch's vetting and light curves live
-BATCHES = {"survey": (DATA / "vet" / "survey", CACHE / "lc"), "batch2": (DATA / "vet" / "batch2", CACHE / "lc_batch2"),
+BATCHES = {**{name: (DATA / "vet" / name, lc) for name, (_, lc) in batches().items()},
            "labelled": (DATA / "vet" / "labelled", CACHE / "lc_labelled")}
 SOURCE_NAMES = {0: "SPOC 2-min", 1: "TESS-SPOC", 2: "QLP"}
 EVIDENCE = DATA / "evidence"

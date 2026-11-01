@@ -13,11 +13,11 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
 from pipeline import fpp, gate2  # noqa: E402
-from pipeline.paths import CACHE, DATA  # noqa: E402
+from pipeline.paths import CACHE, DATA, batches  # noqa: E402
 from pipeline.search import detrend  # noqa: E402
 from pipeline.vet import load_lc  # noqa: E402
 
-LC = {"survey": CACHE / "lc", "batch2": CACHE / "lc_batch2"}
+LC = {name: lc for name, (_, lc) in batches().items()}
 
 
 def main() -> None:
