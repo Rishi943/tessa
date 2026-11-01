@@ -125,6 +125,7 @@ def views(rs: list[dict], score: bool = True) -> dict[int, str]:
         x.update(system1.clue_features({"checks": c}, clue, clue.get("gaia") or {}, clue.get("eb") or {}, system1.CLUE_GROUPS))
         extra = {k: v for k, v in x.items() if EXTRA.match(k)}
         jobs.append({"toi": str(r["tic"]), "checks": c, "extra": extra, "score": round(c["system1"]["planet_rank"], 2)})
+    WORK.mkdir(parents=True, exist_ok=True)  # a fresh data folder (tools/demo.py's bundle) has none yet
     path = WORK / "view_jobs.json"
     path.write_text(re.sub(r"\bNaN\b|-?\bInfinity\b", "null", json.dumps(jobs, default=float)), encoding="utf-8")
     res = subprocess.run(["node", "finetune/pilot_view.js", "v10", str(path)], capture_output=True, text=True, encoding="utf-8", cwd=ROOT)
