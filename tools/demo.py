@@ -182,6 +182,13 @@ def run(tic: int, replay: bool, data: Path) -> dict:
 
     say("6. Gate 2: catalogues (live), the season test, the next transits")
     status, reasons, extra = gate2.decide(checks, {"prompt": "v10", "dossier": d}, sig, lc_dir)
+    if any(r.startswith("novelty:") for r in reasons) and not (extra.get("novelty") or {}).get("complete", True):
+        # a catalogue server didn't answer (CDS has outages): say so, and try once more with its mirrors first
+        line(f"a catalogue didn't answer ({reasons[0][:120]}); trying again with the mirrors first ...")
+        from pipeline import novelty
+        novelty.VIZIER_SERVERS = ("vizier.idia.ac.za", "vizier.nao.ac.jp", "vizier.cds.unistra.fr")
+        novelty.SIMBAD_SERVERS = ("simbad.harvard.edu", "simbad.cds.unistra.fr")
+        status, reasons, extra = gate2.decide(checks, {"prompt": "v10", "dossier": d}, sig, lc_dir)
     nov = extra.get("novelty") or {}
     if nov:
         line(f"novelty: {'new' if nov.get('new') else 'known' if nov.get('complete') else 'incomplete'}"
