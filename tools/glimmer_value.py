@@ -133,6 +133,16 @@ def part2() -> None:
     print(f"run set {len(rows)}: Glimmer passed {len(gp)} ({sum(r['rank'] < gate2.PASS_RANK for r in gp)} of them below the "
           f"v9 cut); XGBoost at {gate2.PASS_RANK} would pass {len(xp)}; both {sum(r['passes'] for r in xp)}; "
           f"no Glimmer verdict {sum(r['glimmer'] is None for r in rows)}")
+    # Is Glimmer just a looser cut? The XGBoost cut that keeps every candidate, and how many signals it then passes.
+    kept = [by[t]["rank"] for t in CANDIDATES if t in by]
+    if kept:
+        need = min(kept)
+        n = sum(r["rank"] >= need for r in rows)
+        print(f"to keep all {len(kept)} candidates XGBoost needs rank >= {need:.3f}: it then passes {n} of {len(rows)} "
+              f"signals; Glimmer passed {len(gp)} and kept all {sum(by[t]['passes'] for t in CANDIDATES if t in by)}")
+        for k in sorted(kept, reverse=True):
+            print(f"  XGBoost >= {k:.3f}: passes {sum(r['rank'] >= k for r in rows):>3} signals, "
+                  f"keeps {sum(x >= k for x in kept)} of {len(kept)} candidates")
 
 
 def part3() -> None:
