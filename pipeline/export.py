@@ -173,6 +173,7 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
     dips, ours = [], []
     costs = {"vetting": 0.0, "investigation": 0.0, "case_closed": 0.0, "observing": 0.0, "audit": 0.0}
     invented = {"dossiers": 0, "with_invented_numbers": 0}  # numbers a model wrote that were not in its input
+    glimmer = {}  # v10: Glimmer's verdicts on the signals that reached it (gate2 = it called a planet)
     for name, results, vet_dir, lc_dir in RUNS:
         vet_dir = vet_dir.with_name(f"{vet_dir.name}_v10") if v10 else vet_dir
         if not results.exists():
@@ -220,6 +221,8 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
             if tic in fpp:
                 page["fpp"] = {**fpp[tic], "tier": fpp_tier(fpp[tic])}
             if v10 and page["dossier"]:  # Glimmer's dossiers carry their own check (finetune/pilot.py invented)
+                verdict = page["dossier"].get("verdict")
+                glimmer[verdict] = glimmer.get(verdict, 0) + 1
                 invented["dossiers"] += 1
                 invented["with_invented_numbers"] += bool(page["dossier"].get("invented"))
             ev = DATA / "evidence" / f"{tic}.json"
@@ -263,6 +266,8 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
     summary = {"pool": len(pool), "funnel": json.loads((DATA / "targets_funnel.json").read_text(encoding="utf-8")),
                "held_back": len(held), "by_status": {k: int((sky["status"] == v).sum()) for k, v in STATUS.items()},
                "costs_usd": {k: round(v, 4) for k, v in costs.items()}, "invented": invented,
+               "glimmer": {"reached": sum(glimmer.values()), "called_planet": glimmer.get("gate2", 0),
+                           "flagged": glimmer.get("flag", 0), "rejected": glimmer.get("reject", 0)} if glimmer else None,
                "dossiers": sum(d["dossier"] for d in dips), "investigated": sum(d["tools"] > 0 for d in dips),
                "universe": universe(out, ours), **counts,
                # every batch together, for the tour's numbers

@@ -22,7 +22,9 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
 Of the 785 dips, 656 were rejected, 46 are flagged with what is left to check, 74 were held by code without reaching
-the model, and 1 is a known object; the other 8 passed gate 2. Every count above is recomputed from the saved run
+the model, and 1 is a known object; the other 8 passed gate 2. The site counts the 8 after TRICERATOPS: TIC 426450210
+(which fails it) as flagged and TIC 458191673 (found before the hackathon) as known, so it shows 47 flagged, 2 known
+and 6 candidates. Every count above is recomputed from the saved run
 by `python tools/glimmer_value.py funnel`. TRICERATOPS ran on all
 53 of Glimmer's planet calls and 24 clear its bar. The novelty, testability and season checks pass 8 of the 53, and 7
 of those 8 clear TRICERATOPS (TIC 426450210 fails, FPP 1.0).
@@ -115,9 +117,8 @@ candidates. To keep all six, XGBoost would have to pass 121; at 61 it keeps only
 The candidates come from what Glimmer passed, so this cannot show candidates only XGBoost would have found: at its own
 cut that is 2 signals, which Glimmer did not pass.
 
-**On known TESS candidates, XGBoost is the better pure classifier, and Tessa uses it as evidence.** On the held-out
-test split (signals held back from training and tuning, outcomes settled by follow-up), with XGBoost's cut set on val
-to recover as many planets as Glimmer:
+**On known TESS candidates.** The held-out test split (signals held back from training and tuning, outcomes settled
+by follow-up), with Tessa against XGBoost alone, its cut set on val to recover as many planets as Glimmer:
 
 | 297 planets, 282 false positives | Planets passed | False positives passed | Precision |
 |---|---|---|---|
