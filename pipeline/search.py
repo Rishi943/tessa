@@ -150,6 +150,10 @@ def detrend(t: np.ndarray, flux: np.ndarray, sector: np.ndarray) -> dict[str, np
     scatter (FFI pipeline errors are not trusted), and the time each point covers."""
     order = np.argsort(t, kind="stable")
     t, flux, sector = t[order], flux[order].astype(np.float64), sector[order]
+    if not len(t):  # nothing left (the season test hides a star's only season): an empty light curve
+        empty = np.empty(0)
+        return {"t": empty, "y": empty, "w": empty, "span": empty, "sector": sector.astype(np.int16),
+                "noise_ppm": float("nan"), "n_flare": 0}
 
     cadence = np.empty_like(t)
     for s in np.unique(sector):
