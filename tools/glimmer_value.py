@@ -3,7 +3,7 @@
 1. Matched recall on the full test split. Tessa (Glimmer v10 + hard rows + rank floor) against the same pipeline with an
    XGBoost rank cut in Glimmer's place: if the cut is set so XGBoost passes as many planets as Glimmer, how many false
    positives does it let through? Two cuts: matched on test itself (descriptive), and matched on val, then applied to test.
-2. The survey. For the six candidates and every signal Glimmer passed: System 1's rank, and whether XGBoost at its v9
+2. The survey. For the seven candidates and every signal Glimmer passed: System 1's rank, and whether XGBoost at its v9
    cut (PASS_RANK) would have passed it. Also how far the two agree across the run set.
 3. Triage on the ExoMiner++-shared TOIs (finetune/exo_bench.json): System 1 settles the clear cases, Glimmer the band
    between two cuts chosen on dev (val + train signals Glimmer did not train on), test scored once.
@@ -29,7 +29,7 @@ from finetune.valgate import val_signals  # noqa: E402
 from pipeline import gate2  # noqa: E402
 from pipeline.paths import DATA, batches  # noqa: E402
 
-CANDIDATES = {71503196: "likely", 116046773: "likely", 166321785: "likely",
+CANDIDATES = {71503196: "likely", 116046773: "likely", 166321785: "likely", 9066956: "likely",
               321290256: "nearby open", 50099421: "nearby open", 61220826: "nearby open"}
 
 

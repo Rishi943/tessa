@@ -30,7 +30,7 @@ export function transitView(page: StarPage): HTMLElement | null {
   const play = el("button", { type: "button", class: "chip" }, "Pause");
   const box = el("div", { class: "chart transit" }, canvas,
     el("div", { class: "transit-bar" }, play, el("span", { class: "cap" },
-      `Drawn to scale: the planet is ${fix(k * 100, 1)}% of the star's width and crosses in ${fix(t14, 1)} hours. `
+      `Drawn to scale: the planet is ${fix(k * 100, 1)}% of the star's width and crosses in ${fix(t14, 1)} hours, from the transit fit. `
       + `The dots are the real data, ${int(depth)} ppm deep.`)));
 
   let t = xlo, running = !matchMedia("(prefers-reduced-motion: reduce)").matches, last = performance.now(), raf = 0;

@@ -51,7 +51,7 @@ export function plainChecks(page: StarPage): Line[] {
   const du = c.duration;
   if (du?.ratio != null) {
     out.push({ name: "Length of the dip", state: du.ratio > MAX_DURATION_RATIO ? "fail" : du.ratio > 1.5 ? "concern" : "pass",
-      says: `The dip lasts ${fix(du.observed_h, 1)} hours; a planet crossing the middle of this star on this orbit would take ${fix(du.central_h, 1)}.`
+      says: `The search's box for the dip lasts ${fix(du.observed_h, 1)} hours (the fitted transit, below, can differ a little); a planet crossing the middle of this star on this orbit would take ${fix(du.central_h, 1)}.`
         + (du.ratio > 1.5 ? " Too long for this star, unless the star is bigger than the catalogue says." : "") });
   }
   const sh = c.shape;
