@@ -18,6 +18,7 @@ import json
 import os
 import sys
 import time
+import urllib.error
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -36,26 +37,53 @@ sys.exit(subprocess.call([sys.executable, "-u"] + {cmd!r}))
 '''
 
 
+KAGGLE_DIRS = (Path.home() / ".kaggle", Path.home() / ".config" / "kaggle")
+
+
 def credentials() -> tuple[str, str] | None:
-    """KAGGLE_USERNAME/KAGGLE_KEY, else the kaggle.json Kaggle's own CLI uses; None when a proxy adds them."""
+    """(username, key) from KAGGLE_USERNAME/KAGGLE_KEY or kaggle.json (a legacy key, sent as Basic), or ("", token)
+    for one of Kaggle's newer API tokens (KGAT_..., from KAGGLE_API_TOKEN, ~/.kaggle/access_token or a kaggle.json key;
+    sent as Bearer). None when a proxy adds them."""
+    if os.environ.get("KAGGLE_API_TOKEN"):
+        return "", os.environ["KAGGLE_API_TOKEN"].strip()
     if os.environ.get("KAGGLE_KEY"):
-        return os.environ.get("KAGGLE_USERNAME", USER), os.environ["KAGGLE_KEY"]
-    for f in (Path.home() / ".kaggle" / "kaggle.json", Path.home() / ".config" / "kaggle" / "kaggle.json"):
-        if f.exists():
-            c = json.loads(f.read_text(encoding="utf-8"))
+        return os.environ.get("KAGGLE_USERNAME", USER), os.environ["KAGGLE_KEY"].strip()
+    for d in KAGGLE_DIRS:
+        if (d / "access_token").exists():
+            return "", (d / "access_token").read_text(encoding="utf-8").strip()
+        if (d / "kaggle.json").exists():
+            c = json.loads((d / "kaggle.json").read_text(encoding="utf-8"))
             if c.get("key") and c.get("key") != "proxy-injects-auth":
-                return c["username"], c["key"]
+                return c.get("username", USER), c["key"].strip()
     return None
+
+
+def auth_header(cred: tuple[str, str]) -> str:
+    user, key = cred
+    if not user or key.startswith("KGAT_"):
+        return "Bearer " + key
+    return "Basic " + base64.b64encode(f"{user}:{key}".encode()).decode()
 
 
 def call(path: str, body: dict | None = None) -> dict:
     headers = {"Content-Type": "application/json", "User-Agent": "tessa-kaggle-job/1.0"}
     cred = credentials()
     if cred:
-        headers["Authorization"] = "Basic " + base64.b64encode(f"{cred[0]}:{cred[1]}".encode()).decode()
+        headers["Authorization"] = auth_header(cred)
     req = urllib.request.Request(f"{API}/{path}", json.dumps(body).encode() if body is not None else None, headers)
-    with urllib.request.urlopen(req, timeout=120) as r:
-        return json.loads(r.read() or b"{}")
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return json.loads(r.read() or b"{}")
+    except urllib.error.HTTPError as e:
+        if e.code in (401, 403):
+            who = "no credentials found" if not cred else (
+                f"user {cred[0]!r}, legacy key" if cred[0] and not cred[1].startswith("KGAT_") else "an API token")
+            raise SystemExit(
+                f"Kaggle refused {path.split('?')[0]} (HTTP {e.code}; {who}). The notebooks belong to {USER}: put "
+                f"that account's key in {KAGGLE_DIRS[0] / 'kaggle.json'} as {{\"username\":\"{USER}\",\"key\":\"...\"}} "
+                f"(Kaggle > Settings > API > Create Legacy API Key), or set KAGGLE_API_TOKEN to a KGAT_ token. "
+                f"Kaggle said: {e.read()[:300].decode(errors='replace')}") from None
+        raise
 
 
 def pack(files: list[str], root: Path) -> str:

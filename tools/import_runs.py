@@ -9,10 +9,14 @@ TRICERATOPS results and the light curves too big for git are not in it. This scr
   3. downloads the gate 1 passes' light curves of each batch searched on Kaggle (runs.json names the notebooks) into
      data/cache/lc_BATCH, with tools/kaggle_job.py and this machine's kaggle.json;
   4. takes the held-out stars out of the visitors' search (data/site/search/stars.json): the pipeline has searched them.
+If the Kaggle API refuses this machine's key, download each notebook's output from its page instead (kaggle.com/code/
+braveai/tessa-search-holdout > Output > Download) and pass it: python tools/import_runs.py RUNS_DIR holdout=PATH ...,
+where PATH is the zip or the folder it unpacks to.
 Then: python tools/glimmer_value.py funnel, python -m pipeline.export, and deploy the site.
 """
 import json
 import shutil
+import zipfile
 import sys
 from pathlib import Path
 
@@ -47,6 +51,7 @@ def main() -> None:
     print(f"run set: {len(old)} signals here + {len(merged) - len(old)} new = {len(merged)}")
 
     import kaggle_job
+    given = dict(a.split("=", 1) for a in sys.argv[2:])  # batch=zip or folder downloaded by hand
     meta = json.loads((runs / "runs.json").read_text(encoding="utf-8"))
     for batch, slug in meta.get("kaggle_passes", {}).items():
         dest = DATA / "cache" / f"lc_{batch}"
@@ -54,12 +59,20 @@ def main() -> None:
             print(f"{batch}: light curves already in {dest}")
             continue
         tmp = DATA / "cache" / f"_dl_{slug}"
-        print(f"{batch}: downloading {slug}'s output from Kaggle ...", flush=True)
-        kaggle_job.output(slug, tmp)
+        if batch in given:
+            src = Path(given[batch])
+            if src.suffix == ".zip":
+                zipfile.ZipFile(src).extractall(tmp)
+                src = tmp
+        else:
+            print(f"{batch}: downloading {slug}'s output from Kaggle ...", flush=True)
+            kaggle_job.output(slug, tmp)
+            src = tmp
+        passes = next(p.parent for p in src.rglob("manifest.csv") if p.parent.name == "passes")
         dest.mkdir(parents=True, exist_ok=True)
-        for f in (tmp / "passes").iterdir():
-            shutil.move(str(f), dest / f.name)
-        shutil.rmtree(tmp)
+        for f in passes.iterdir():
+            shutil.copy2(f, dest / f.name)
+        shutil.rmtree(tmp, ignore_errors=True)
         print(f"{batch}: gate 1 passes' light curves in {dest}")
 
     stars = DATA / "site" / "search" / "stars.json"
