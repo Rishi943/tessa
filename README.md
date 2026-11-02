@@ -66,7 +66,8 @@ gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched on
 |---|---|
 | Searched (999 had data) | 999 |
 | Passed gate 1 at the survey's bar | 23; the same search on the flipped light curves passes 9, the noise expected |
-| Settled by code (binaries, spotted stars, System 1) | 18, one of them set aside with a System 1 rank of 0.04 |
+| Rejected by code (binaries, spotted stars, System 1) | 17 |
+| Set aside (System 1 rank in its bottom 5%, so not sent to Glimmer) | 1 |
 | Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
 | Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
 
