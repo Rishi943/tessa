@@ -34,7 +34,7 @@ export const STATUS: Record<Status, { label: string; short: string; color: strin
   flagged: { label: "Unexplained", short: "dips Tessa can't explain yet", color: "var(--flagged)", shape: "triangle" },
   rejected: { label: "Explained away", short: "dips explained away, each with a reason", color: "var(--rejected)", shape: "cross" },
   known: { label: "Already known", short: "already known", color: "var(--searched)", shape: "square" },
-  "awaiting agent": { label: "Waiting for the agent", short: "waiting for the agent", color: "var(--searched)", shape: "ring" },
+  "awaiting agent": { label: "Set aside", short: "dips set aside, each with a reason", color: "var(--searched)", shape: "ring" },
   searched: { label: "Searched, no dip", short: "searched, no dip worth a look", color: "var(--searched)", shape: "dot" },
   "held back": { label: "Held back", short: "held back to test the method", color: "var(--pool)", shape: "hollow" },
   pool: { label: "Not searched yet", short: "nearby red stars not searched yet", color: "var(--pool)", shape: "hollow" },

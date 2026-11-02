@@ -208,6 +208,11 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
             status[tic] = STATUS[st["status"]]
             counts[st["status"]] = counts.get(st["status"], 0) + 1
             checks = json.loads((vet_dir / f"{tic}.json").read_text(encoding="utf-8"))
+            if v10 and st["status"] == "awaiting agent" and not st["reasons"]:  # set aside: say why
+                from .gate2 import evidence, outside_planet_range
+                why = outside_planet_range(checks, evidence(tic), "v10")
+                st = {**st, "reasons": "; ".join(why) if why else
+                      "Glimmer answered, but its reply could not be read, so it made no call"}
             sig = {k: checks["signal"][k] for k in ("period", "t0", "dur")}
             cand = vet_dir / "candidates" / f"{tic}.json"
             c = json.loads(cand.read_text(encoding="utf-8")) if cand.exists() else {}

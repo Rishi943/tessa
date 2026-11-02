@@ -23,8 +23,9 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 
 The search ran in five batches: the survey (4,997 stars), batch 2 (17,981), the 1,000 held-out stars (below), and
 batches 4 and 5 (12,449 and 12,341), which finished the pool on 2 November (`runs/2026-11-02`). Of the 1,728 dips, 1,394
-were rejected, 113 are flagged with what is left to check, 208 were held by code without reaching the model, and 4
-are known objects; the other 9 passed gate 2. TRICERATOPS ran on all 115 of Glimmer's planet calls and 54 clear its
+were rejected, 113 are flagged with what is left to check, 208 are set aside (200 by code before the model, almost
+all with a System 1 rank in its bottom 5%; 8 because Glimmer's reply could not be read, 6 of them plain rejects
+with broken JSON), and 4 are known objects; the other 9 passed gate 2. TRICERATOPS ran on all 115 of Glimmer's planet calls and 54 clear its
 bar; 8 of the 9 that passed gate 2 clear it (TIC 426450210 fails, FPP 1.0). The site counts TIC 426450210 as flagged
 and TIC 458191673 (found before the hackathon) as known. Every count is recomputed from the saved runs by
 `python tools/glimmer_value.py funnel`.
