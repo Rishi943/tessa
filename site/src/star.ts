@@ -128,7 +128,7 @@ function agentPanel(p: StarPage): HTMLElement {
   }
   if (p.audit) {
     box.append(el("div", {}, el("h3", { style: "font: 400 1.3rem var(--serif); margin: 2rem 0 0.4rem" }, "Second opinion"),
-      el("p", { class: "sub" }, `In an earlier run, Muse Wonder 1.0 read the same checks without seeing the first verdict, and returned "${p.audit.verdict === "gate2" ? "pass to gate 2" : p.audit.verdict}". Cost: $${p.audit.cost_usd.toFixed(3)}.`),
+      el("p", { class: "sub" }, `As a second opinion that changes nothing, Muse Wonder 1.0 read the same code checks without seeing Glimmer's verdict or tools, and returned "${p.audit.verdict === "gate2" ? "pass to gate 2" : p.audit.verdict}". Cost: $${p.audit.cost_usd.toFixed(3)}.`),
       p.audit.public_summary ? el("p", { class: "quote" }, p.audit.public_summary) : null,
       p.audit.open_questions?.length ? el("ul", {}, ...p.audit.open_questions.map((q) => el("li", {}, q))) : null));
   }

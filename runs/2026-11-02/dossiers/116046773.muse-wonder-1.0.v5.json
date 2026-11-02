@@ -1,0 +1,32 @@
+{
+ "model": "muse-wonder-1.0",
+ "prompt": "v5",
+ "ms": 40099,
+ "tokens": {
+  "input": 2921,
+  "cached": 0,
+  "output": 4842
+ },
+ "cost": 0.10852400000000001,
+ "raw": "{\"verdict\": \"flag\", \"reasons\": [{\"check\": \"sectors.p_constant\", \"value\": \"0.001583\", \"why\": \"This is in the flag range for depth steadiness across sectors; for example, sector 25 has depth_ppm 528 while sector 26 has depth_ppm 1091. A human should re-measure the depths sector by sector with a consistent method and check for changing contamination or systematics.\"}, {\"check\": \"neighbours.plausible_within_1px\", \"value\": \"1\", \"why\": \"One plausible neighbour lies within one pixel while centroid.verdict is inconclusive, not on_target. The closest suspect is 9 arcsec away, has eclipse_needed 0.1034, and lies 1.5 sigma_from_centroid, so it is not ruled out; a human should localise the dip with sharper difference imaging or resolved follow-up photometry of the target and that neighbour.\"}], \"open_questions\": [\"neighbours.could_cause is 23 in total; stars beyond the plausible within-one-pixel set would need deep eclipses, so they are noted here rather than driving the verdict.\"], \"public_summary\": \"A possible planet signal repeats every 5.65 days around this star, with an inferred radius of 2.231 Earth radii. It is being held for human review because its depth varies between sectors and the dip has not been pinpointed only on the target, with a suspect star 9 arcsec away still possible. Sharper localisation and a re-check of the sector depths could settle whether it should move forward.\"}",
+ "dossier": {
+  "verdict": "flag",
+  "reasons": [
+   {
+    "check": "sectors.p_constant",
+    "value": "0.001583",
+    "why": "This is in the flag range for depth steadiness across sectors; for example, sector 25 has depth_ppm 528 while sector 26 has depth_ppm 1091. A human should re-measure the depths sector by sector with a consistent method and check for changing contamination or systematics."
+   },
+   {
+    "check": "neighbours.plausible_within_1px",
+    "value": "1",
+    "why": "One plausible neighbour lies within one pixel while centroid.verdict is inconclusive, not on_target. The closest suspect is 9 arcsec away, has eclipse_needed 0.1034, and lies 1.5 sigma_from_centroid, so it is not ruled out; a human should localise the dip with sharper difference imaging or resolved follow-up photometry of the target and that neighbour."
+   }
+  ],
+  "open_questions": [
+   "neighbours.could_cause is 23 in total; stars beyond the plausible within-one-pixel set would need deep eclipses, so they are noted here rather than driving the verdict."
+  ],
+  "public_summary": "A possible planet signal repeats every 5.65 days around this star, with an inferred radius of 2.231 Earth radii. It is being held for human review because its depth varies between sectors and the dip has not been pinpointed only on the target, with a suspect star 9 arcsec away still possible. Sharper localisation and a re-check of the sector depths could settle whether it should move forward."
+ },
+ "invented": []
+}

@@ -70,8 +70,8 @@ gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched on
 | Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
 | Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
 
-The survey's rate, 6 candidates in about 23,000 stars, predicts about 0.3 in 1,000 stars, so none is the most likely
-outcome (about 75%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
+The survey's rate, 7 candidates in 48,766 stars, predicts about 0.14 in 1,000 stars, so none is the most likely
+outcome (about 87%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
 on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
 spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise.
 
@@ -144,6 +144,7 @@ candidates. To keep all seven, XGBoost would have to pass 264; at 142 it keeps s
 Does XGBoost alone find candidates that Glimmer missed? At its own cut, 11 signals pass XGBoost and not Glimmer. The 9
 in batches 4 and 5 were run through gate 2 as if passed (`tools/glimmer_value.py xgb-only`), and none becomes a
 candidate: 4 fail the season test, 4 cannot be timed well enough to predict a transit, and 1 is a known variable star.
+The other 2, from the survey and batch 2, have not been run through gate 2 this way yet.
 
 **On known TESS candidates.** The held-out test split (signals held back from training and tuning, outcomes settled
 by follow-up), with Tessa against XGBoost alone, its cut set on val to recover as many planets as Glimmer:
@@ -240,8 +241,10 @@ but it can't make one.
 7. **TRICERATOPS** (`pipeline/fpp.py`, `pipeline/tri_fast.py`). Scores the chance the dip is a false positive from the
    light curve, the star and its neighbours: FPP below 0.5 and NFPP below 0.1 to stay a candidate.
 8. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
-   rejected dips and an observing note for candidates. Muse Wonder 1.0 audited candidates from an earlier run from the
-   raw checks; TIC 116046773, 321290256 and 71503196 have no Wonder audit yet.
+   rejected dips and an observing note for candidates. Muse Wonder 1.0 audits every candidate from the raw checks, as a
+   second opinion that changes nothing: it passes four and flags three, each for something still open (a neighbour
+   within one pixel not ruled out for TIC 71503196 and 321290256; depths that differ between sectors 25 and 26 for
+   TIC 116046773).
 
 The ephemeris code was checked against known planets: it predicts GJ 357 b and HD 73583 b within 2 and 4
 minutes of their published times.
@@ -256,7 +259,7 @@ Built with Muse Spark Open.
 | Fine-tune: 745 traces that reached the true outcome with no invented numbers | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
 | The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10` |
 | Case-closed lines and observing notes | Muse Spark 1.3 | |
-| Audit of candidates from an earlier run | Muse Wonder 1.0 | |
+| A second opinion on every candidate | Muse Wonder 1.0 | about $0.09 a candidate |
 | Ask Tessa on the site | Muse Spark 1.3 | per question |
 
 Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
@@ -299,8 +302,8 @@ Each module's docstring gives its exact arguments. Tests: `python -m pytest test
 - `serve/`: Glimmer on Modal
 - `tools/`: the v10 survey run, TRICERATOPS runs, benchmarks
 - `site/`: the website (Vite, Three.js, no framework) and the Cloudflare Worker behind Ask Tessa
-- `survey/holdout.txt`: 1,000 stars drawn at random before any search and never searched, so the candidate
-  rate can be tested on stars the method was not tuned on
+- `survey/holdout.txt`: 1,000 stars drawn at random before any search and set aside, then searched once with
+  everything frozen, so the candidate rate could be tested on stars the method was not tuned on
 - `tests/`
 
 ## Data

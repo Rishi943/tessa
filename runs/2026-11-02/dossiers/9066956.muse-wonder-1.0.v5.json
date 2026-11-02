@@ -1,0 +1,77 @@
+{
+ "model": "muse-wonder-1.0",
+ "prompt": "v5",
+ "ms": 15938,
+ "tokens": {
+  "input": 3043,
+  "cached": 0,
+  "output": 2395
+ },
+ "cost": 0.060072,
+ "raw": "{\"verdict\": \"gate2\", \"reasons\": [{\"check\": \"odd_even.diff_sigma\", \"value\": \"0.7169\", \"why\": \"Below 3, so odd and even dips do not differ significantly.\"}, {\"check\": \"secondary\", \"value\": \"snr 2.188, best_brightening_snr 3.172\", \"why\": \"Below 7 and below 1.5 times the brightening signal, so the secondary indication is noise-like.\"}, {\"check\": \"sectors.p_constant\", \"value\": \"0.9083\", \"why\": \"0.01 or more, so the depth is steady across sectors.\"}, {\"check\": \"size.rp_rearth\", \"value\": \"2.723\", \"why\": \"Below 10, in the planet-sized range.\"}, {\"check\": \"duration.ratio\", \"value\": \"0.5895\", \"why\": \"Up to 1.5, consistent with a transit duration; shorter can mean off-centre.\"}, {\"check\": \"known\", \"value\": \"[]\", \"why\": \"Empty, with no match at this period or a harmonic.\"}, {\"check\": \"shape.v_sigma\", \"value\": \"-1.968\", \"why\": \"Below 3, so there is no significant preference for a V shape.\"}, {\"check\": \"neighbours.plausible_within_1px\", \"value\": \"0\", \"why\": \"No nearby star within one pixel would need an eclipse of 25% or less to cause this.\"}, {\"check\": \"centroid.verdict\", \"value\": \"on_target, offset_sigma 0.4458\", \"why\": \"The dip sits on the target and on none of the stars that could fake it; listed suspects are 48.1 sigma or more from the centroid.\"}, {\"check\": \"phase_curve\", \"value\": \"ratio_to_depth 0.1026, chi2 9.033\", \"why\": \"Ratio below 0.3 and chi2 below 50, so no significant out-of-dip swing at this period.\"}, {\"check\": \"refit.transits\", \"value\": \"174\", \"why\": \"3 or more transits in the refit.\"}], \"open_questions\": [\"neighbours.could_cause is 8, but neighbours.plausible_within_1px is 0; the closest star that could cause it is 12.8 arcsec away with eclipse_needed 0.2801, so fainter neighbours needing deep eclipses remain for later gates, not this verdict.\"], \"public_summary\": \"A dip repeating every 0.7134 days has been located on the target star, with no sign of a second dip or alternating depths. Its size implies 2.723 Earth radii if it is a planet, so it should pass to gate 2 for further checks.\"}",
+ "dossier": {
+  "verdict": "gate2",
+  "reasons": [
+   {
+    "check": "odd_even.diff_sigma",
+    "value": "0.7169",
+    "why": "Below 3, so odd and even dips do not differ significantly."
+   },
+   {
+    "check": "secondary",
+    "value": "snr 2.188, best_brightening_snr 3.172",
+    "why": "Below 7 and below 1.5 times the brightening signal, so the secondary indication is noise-like."
+   },
+   {
+    "check": "sectors.p_constant",
+    "value": "0.9083",
+    "why": "0.01 or more, so the depth is steady across sectors."
+   },
+   {
+    "check": "size.rp_rearth",
+    "value": "2.723",
+    "why": "Below 10, in the planet-sized range."
+   },
+   {
+    "check": "duration.ratio",
+    "value": "0.5895",
+    "why": "Up to 1.5, consistent with a transit duration; shorter can mean off-centre."
+   },
+   {
+    "check": "known",
+    "value": "[]",
+    "why": "Empty, with no match at this period or a harmonic."
+   },
+   {
+    "check": "shape.v_sigma",
+    "value": "-1.968",
+    "why": "Below 3, so there is no significant preference for a V shape."
+   },
+   {
+    "check": "neighbours.plausible_within_1px",
+    "value": "0",
+    "why": "No nearby star within one pixel would need an eclipse of 25% or less to cause this."
+   },
+   {
+    "check": "centroid.verdict",
+    "value": "on_target, offset_sigma 0.4458",
+    "why": "The dip sits on the target and on none of the stars that could fake it; listed suspects are 48.1 sigma or more from the centroid."
+   },
+   {
+    "check": "phase_curve",
+    "value": "ratio_to_depth 0.1026, chi2 9.033",
+    "why": "Ratio below 0.3 and chi2 below 50, so no significant out-of-dip swing at this period."
+   },
+   {
+    "check": "refit.transits",
+    "value": "174",
+    "why": "3 or more transits in the refit."
+   }
+  ],
+  "open_questions": [
+   "neighbours.could_cause is 8, but neighbours.plausible_within_1px is 0; the closest star that could cause it is 12.8 arcsec away with eclipse_needed 0.2801, so fainter neighbours needing deep eclipses remain for later gates, not this verdict."
+  ],
+  "public_summary": "A dip repeating every 0.7134 days has been located on the target star, with no sign of a second dip or alternating depths. Its size implies 2.723 Earth radii if it is a planet, so it should pass to gate 2 for further checks."
+ },
+ "invented": []
+}

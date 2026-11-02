@@ -1,0 +1,77 @@
+{
+ "model": "muse-wonder-1.0",
+ "prompt": "v5",
+ "ms": 30579,
+ "tokens": {
+  "input": 2881,
+  "cached": 0,
+  "output": 4251
+ },
+ "cost": 0.09654400000000002,
+ "raw": "{\"verdict\": \"flag\", \"reasons\": [{\"check\": \"neighbours.plausible_within_1px\", \"value\": \"2\", \"why\": \"This is in the flag column because centroid.verdict is not on_target. A human can settle it with spatially resolved follow-up photometry or a close review of the difference images to separate the target from the plausible neighbours.\"}, {\"check\": \"centroid.verdict\", \"value\": \"inconclusive\", \"why\": \"The measured offset is 4.092 arcsec with err_arcsec 2.76 and offset_sigma 1.483. One suspect is 1.8 sigma_from_centroid, so it is not ruled out; another suspect is 5.7 sigma_from_centroid, so that one is ruled out.\"}, {\"check\": \"odd_even.diff_sigma\", \"value\": \"1.945\", \"why\": \"Below 3, so odd and even dips are planet-like in this check.\"}, {\"check\": \"secondary.snr\", \"value\": \"2.722\", \"why\": \"Below 7 and below 1.5 x best_brightening_snr 3.122, so the secondary signal is treated as noise.\"}, {\"check\": \"sectors.p_constant\", \"value\": \"0.3606\", \"why\": \"0.01 or more, so the depth is steady enough across sectors for this check.\"}, {\"check\": \"size.rp_rearth\", \"value\": \"2.186\", \"why\": \"Below 10, so the inferred size is planet-like in this check.\"}, {\"check\": \"duration.ratio\", \"value\": \"0.6932\", \"why\": \"Up to 1.5, so the duration is planet-like in this check.\"}, {\"check\": \"known\", \"value\": \"[]\", \"why\": \"Empty, so there is no known match at this period or a harmonic.\"}, {\"check\": \"shape.v_sigma\", \"value\": \"-6.506\", \"why\": \"Below 3, so the shape does not favour a V in this check.\"}, {\"check\": \"phase_curve.ratio_to_depth\", \"value\": \"0.169\", \"why\": \"Below 0.3, so this check is planet-like even though chi2 is 55.79.\"}, {\"check\": \"refit.transits\", \"value\": \"46\", \"why\": \"3 or more, so there are enough refit transits for this check.\"}], \"open_questions\": [\"neighbours.could_cause is 8 while neighbours.plausible_within_1px is 2; fainter stars counted in could_cause that would need deep eclipses remain an open question, not the flag reason.\"], \"public_summary\": \"This star shows repeated dips every 2.332 days, and most checks look planet-like. The dip has not yet been located solely on the target star, because a close neighbour could also explain it. A human needs to check the dip location more closely before it can move on.\"}",
+ "dossier": {
+  "verdict": "flag",
+  "reasons": [
+   {
+    "check": "neighbours.plausible_within_1px",
+    "value": "2",
+    "why": "This is in the flag column because centroid.verdict is not on_target. A human can settle it with spatially resolved follow-up photometry or a close review of the difference images to separate the target from the plausible neighbours."
+   },
+   {
+    "check": "centroid.verdict",
+    "value": "inconclusive",
+    "why": "The measured offset is 4.092 arcsec with err_arcsec 2.76 and offset_sigma 1.483. One suspect is 1.8 sigma_from_centroid, so it is not ruled out; another suspect is 5.7 sigma_from_centroid, so that one is ruled out."
+   },
+   {
+    "check": "odd_even.diff_sigma",
+    "value": "1.945",
+    "why": "Below 3, so odd and even dips are planet-like in this check."
+   },
+   {
+    "check": "secondary.snr",
+    "value": "2.722",
+    "why": "Below 7 and below 1.5 x best_brightening_snr 3.122, so the secondary signal is treated as noise."
+   },
+   {
+    "check": "sectors.p_constant",
+    "value": "0.3606",
+    "why": "0.01 or more, so the depth is steady enough across sectors for this check."
+   },
+   {
+    "check": "size.rp_rearth",
+    "value": "2.186",
+    "why": "Below 10, so the inferred size is planet-like in this check."
+   },
+   {
+    "check": "duration.ratio",
+    "value": "0.6932",
+    "why": "Up to 1.5, so the duration is planet-like in this check."
+   },
+   {
+    "check": "known",
+    "value": "[]",
+    "why": "Empty, so there is no known match at this period or a harmonic."
+   },
+   {
+    "check": "shape.v_sigma",
+    "value": "-6.506",
+    "why": "Below 3, so the shape does not favour a V in this check."
+   },
+   {
+    "check": "phase_curve.ratio_to_depth",
+    "value": "0.169",
+    "why": "Below 0.3, so this check is planet-like even though chi2 is 55.79."
+   },
+   {
+    "check": "refit.transits",
+    "value": "46",
+    "why": "3 or more, so there are enough refit transits for this check."
+   }
+  ],
+  "open_questions": [
+   "neighbours.could_cause is 8 while neighbours.plausible_within_1px is 2; fainter stars counted in could_cause that would need deep eclipses remain an open question, not the flag reason."
+  ],
+  "public_summary": "This star shows repeated dips every 2.332 days, and most checks look planet-like. The dip has not yet been located solely on the target star, because a close neighbour could also explain it. A human needs to check the dip location more closely before it can move on."
+ },
+ "invented": []
+}

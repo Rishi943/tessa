@@ -1,0 +1,78 @@
+{
+ "model": "muse-wonder-1.0",
+ "prompt": "v5",
+ "ms": 36158,
+ "tokens": {
+  "input": 2670,
+  "cached": 0,
+  "output": 4178
+ },
+ "cost": 0.09424,
+ "raw": "{\"verdict\": \"flag\", \"reasons\": [{\"check\": \"neighbours.plausible_within_1px\", \"value\": \"2, with centroid.verdict inconclusive\", \"why\": \"A star within one TESS pixel could cause this dip with an eclipse of 25% or less, and the location measurement does not rule it out. The closest suspect needs an eclipse_needed of 0.1315 and lies 2.5 sigma_from_centroid, so resolved follow-up photometry watching the target and neighbour separately during a dip could settle which star dims.\"}, {\"check\": \"centroid.verdict\", \"value\": \"inconclusive, offset_sigma 1.289\", \"why\": \"The dip is not shown to be off_target, but it is also not uniquely on_target, so the neighbours check decides and it raises the flag above.\"}, {\"check\": \"odd_even.diff_sigma\", \"value\": \"0.6201\", \"why\": \"Odd and even dips match, within the planet-like range.\"}, {\"check\": \"secondary\", \"value\": \"snr 2.228, best_brightening_snr 1.964\", \"why\": \"No convincing second dip elsewhere in the orbit; this low value is treated as noise.\"}, {\"check\": \"sectors.p_constant\", \"value\": \"0.02265\", \"why\": \"The depth is steady enough across sectors.\"}, {\"check\": \"size.rp_rearth\", \"value\": \"2.895\", \"why\": \"The inferred size is in the planet-like range.\"}, {\"check\": \"duration.ratio\", \"value\": \"0.9758\", \"why\": \"The dip lasts about as long as expected for a central crossing.\"}, {\"check\": \"known\", \"value\": \"[]\", \"why\": \"No known match at this period or a harmonic.\"}, {\"check\": \"shape.v_sigma\", \"value\": \"-2.196\", \"why\": \"The shape does not favour a V over a flat bottom.\"}, {\"check\": \"phase_curve\", \"value\": \"ratio_to_depth 0.1324, chi2 17.13\", \"why\": \"No large swing outside the dip that would suggest rotation or a contact binary.\"}, {\"check\": \"refit.transits\", \"value\": \"36\", \"why\": \"Many repeated dips were refitted.\"}], \"open_questions\": [\"Do any of the fainter stars included in neighbours.could_cause (55 within radius_arcsec 150), but not in plausible_within_1px, need checking for very deep eclipses over 25%? They are not the reason for this flag.\", \"Could data from upcoming sectors 116 and 134 improve the difference-image location enough to separate the target from the nearby suspect?\"], \"public_summary\": \"This star shows a regular, planet-sized dip that passes the other checks, but the view is too blurry to tell it apart from a nearby star that could be eclipsing instead. A sharper follow-up look at the two stars separately is needed before it can move forward.\"}",
+ "dossier": {
+  "verdict": "flag",
+  "reasons": [
+   {
+    "check": "neighbours.plausible_within_1px",
+    "value": "2, with centroid.verdict inconclusive",
+    "why": "A star within one TESS pixel could cause this dip with an eclipse of 25% or less, and the location measurement does not rule it out. The closest suspect needs an eclipse_needed of 0.1315 and lies 2.5 sigma_from_centroid, so resolved follow-up photometry watching the target and neighbour separately during a dip could settle which star dims."
+   },
+   {
+    "check": "centroid.verdict",
+    "value": "inconclusive, offset_sigma 1.289",
+    "why": "The dip is not shown to be off_target, but it is also not uniquely on_target, so the neighbours check decides and it raises the flag above."
+   },
+   {
+    "check": "odd_even.diff_sigma",
+    "value": "0.6201",
+    "why": "Odd and even dips match, within the planet-like range."
+   },
+   {
+    "check": "secondary",
+    "value": "snr 2.228, best_brightening_snr 1.964",
+    "why": "No convincing second dip elsewhere in the orbit; this low value is treated as noise."
+   },
+   {
+    "check": "sectors.p_constant",
+    "value": "0.02265",
+    "why": "The depth is steady enough across sectors."
+   },
+   {
+    "check": "size.rp_rearth",
+    "value": "2.895",
+    "why": "The inferred size is in the planet-like range."
+   },
+   {
+    "check": "duration.ratio",
+    "value": "0.9758",
+    "why": "The dip lasts about as long as expected for a central crossing."
+   },
+   {
+    "check": "known",
+    "value": "[]",
+    "why": "No known match at this period or a harmonic."
+   },
+   {
+    "check": "shape.v_sigma",
+    "value": "-2.196",
+    "why": "The shape does not favour a V over a flat bottom."
+   },
+   {
+    "check": "phase_curve",
+    "value": "ratio_to_depth 0.1324, chi2 17.13",
+    "why": "No large swing outside the dip that would suggest rotation or a contact binary."
+   },
+   {
+    "check": "refit.transits",
+    "value": "36",
+    "why": "Many repeated dips were refitted."
+   }
+  ],
+  "open_questions": [
+   "Do any of the fainter stars included in neighbours.could_cause (55 within radius_arcsec 150), but not in plausible_within_1px, need checking for very deep eclipses over 25%? They are not the reason for this flag.",
+   "Could data from upcoming sectors 116 and 134 improve the difference-image location enough to separate the target from the nearby suspect?"
+  ],
+  "public_summary": "This star shows a regular, planet-sized dip that passes the other checks, but the view is too blurry to tell it apart from a nearby star that could be eclipsing instead. A sharper follow-up look at the two stars separately is needed before it can move forward."
+ },
+ "invented": []
+}

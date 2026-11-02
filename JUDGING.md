@@ -16,7 +16,7 @@ Tessa is an AI agent that hunts for planets around nearby red stars in public NA
 
 **2. Describe your use of Meta products to build the submitted project**
 
-Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it with QLoRA into Glimmer v10 on 745 tool-calling investigations and self-hosted it on Modal. Those investigations came from Muse Spark Open, which worked through about 1,008 past TESS signals whose real outcome is known by telescope follow-up; we kept only those that reached the true outcome with no invented numbers. In the survey, Glimmer reads the code's checks, names the possible explanations, chooses which of five measurement tools to call, and returns reject, flag or pass with a dossier. Muse Spark 1.3 writes the plain-language notes for people and powers Ask Tessa. Muse Wonder 1.0 audited candidates from an earlier run. Built with Muse Spark Open.
+Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it with QLoRA into Glimmer v10 on 745 tool-calling investigations and self-hosted it on Modal. Those investigations came from Muse Spark Open, which worked through about 1,008 past TESS signals whose real outcome is known by telescope follow-up; we kept only those that reached the true outcome with no invented numbers. In the survey, Glimmer reads the code's checks, names the possible explanations, chooses which of five measurement tools to call, and returns reject, flag or pass with a dossier. Muse Spark 1.3 writes the plain-language notes for people and powers Ask Tessa. Muse Wonder 1.0 gives every candidate a second opinion from the raw checks. Built with Muse Spark Open.
 
 **3. Why are Meta's models important to your solution?**
 
