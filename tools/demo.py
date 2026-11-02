@@ -127,6 +127,9 @@ def run(tic: int, replay: bool, data: Path) -> dict:
     rank = s1.get("planet_rank")
     line(f"System 1 (XGBoost) planet rank {f(rank, '.3f')}: "
          f"{'below' if (rank or 0) < gate2.PASS_RANK else 'above'} the {gate2.PASS_RANK} cut XGBoost used on its own")
+    if meta.get("survey_rank") is not None:
+        line(f"  the survey run ranked it {meta['survey_rank']:.3f}, the number on its case file: there, difference imaging had not "
+             f"run when System 1 scored it, and the GPU search fitted the transit a little differently (README, Try it)")
     reaches = checks["code_verdict"] == "agent" or (checks["code_verdict"] == "reject" and checks["reasons"]
                                                      and all("System 1" in r for r in checks["reasons"]))
     line(f"code: {checks['code_verdict']}" + (f" ({'; '.join(checks['reasons'])})" if checks["reasons"] else ""))

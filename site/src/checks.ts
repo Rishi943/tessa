@@ -68,7 +68,10 @@ export function plainChecks(page: StarPage): Line[] {
     const big = pc.ratio_to_depth >= VARIABILITY_RATIO, sig = pc.chi2 >= VARIABILITY_CHI2;
     out.push({ name: "Brightness between dips", state: big && sig ? "fail" : big || sig ? "concern" : "pass",
       says: `Outside the dip the star swings by ${int(pc.amplitude_ppm)} ppm at this period, ${fix(pc.ratio_to_depth, 2)} times the dip. `
-        + (big && sig ? "Spots turning with the star, or a stretched binary, do that." : "Small enough not to explain the dip.") });
+        + (big && sig ? "Spots turning with the star, or a stretched binary, do that."
+          : big ? "That is large next to the dip, but the pattern is not clearly above the noise, so it is a concern, not a verdict."
+            : sig ? "That pattern is clearly real but small next to the dip, so it is a concern, not a verdict."
+              : "Small next to the dip and within the noise, so it does not explain the dip.") });
   }
   const sd = c.sectors;
   if (sd?.per_sector?.length > 1) {

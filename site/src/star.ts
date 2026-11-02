@@ -98,7 +98,7 @@ function agentPanel(p: StarPage): HTMLElement {
   box.append(el("p", { class: "sub" },
     `${modelName(d.model)} read the checks and returned "${d.verdict === "gate2" ? "pass to gate 2" : d.verdict}"`
     + (tools.length ? `, after calling ${tools.length} tool${tools.length > 1 ? "s" : ""} to test its doubts.` : ".")
-    + ` Cost: $${d.cost_usd.toFixed(4)}.`));
+    + (d.model?.startsWith("glimmer") ? " It runs on Tessa's own rented GPU, paid by the hour, not per call." : ` Cost: $${d.cost_usd.toFixed(4)}.`)));
   if (tools.length) {
     box.append(el("ul", { class: "tools", "aria-label": "Tools the agent called" }, ...tools.map((t) => el("li", {}, TOOL_NAMES[t] ?? t))));
     for (const t of tools) {
@@ -146,7 +146,7 @@ function evidenceLine(tool: string, e: Checks | undefined): string | null {
       return `${String(e.verdict).replaceAll("_", " ")}. `
         + (e.by_source ?? []).map((b: Checks) => `${b.source}: ${int(b.depth_ppm)} ± ${int(b.err_ppm)} ppm over ${b.sectors} sector${b.sectors === 1 ? "" : "s"}`).join("; ") + ".";
     case "transit_depths":
-      return `${e.transits} transits averaging ${int(e.mean_depth_ppm)} ppm; the chance they share one depth is ${pct(e.p_consistent)}; `
+      return `${e.transits} transits with any data inside the dip (the search counts only well-covered ones) averaging ${int(e.mean_depth_ppm)} ppm; the chance they share one depth is ${pct(e.p_consistent)}; `
         + `the three deepest carry ${fix(e.share_of_top_3 * 100, 0)}% of the signal.`;
     case "stellar_radius":
       return (e.options ?? []).map((o: Checks) => `from ${o.radius_from}: ${fix(o.rad, 2)} solar radii, planet ${fix(o.rp_rearth, 1)} Earths, duration ratio ${fix(o.duration_ratio, 1)}`).join("; ") + ".";
