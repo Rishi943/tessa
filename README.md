@@ -193,7 +193,8 @@ was never run on test and v10 stayed.
 candidate, TIC 458191673.01 (2.57-day orbit around a K dwarf 66 pc away). A preprint and a TESS observing request
 followed.
 
-**During:** Tessa, built from scratch in this repo (first commit 27 October 2026, after the kickoff). It is a new
+**During:** Tessa, built from scratch in this repo (first commit 27 October 2026, 21:47 IST, the day after the kickoff livestream ended on 26 October at about
+22:00 IST; it holds that first day's work, committed together). It is a new
 pipeline, not those scripts: agentic, and built to handle far more data. Everything here is new work:
 
 - a target pool of 99,461 nearby K and M dwarfs from Gaia DR3 and the TIC, and light curves fetched in compact
