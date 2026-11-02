@@ -190,7 +190,7 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
         if (vet_dir / "caseclosed.meta.json").exists():
             costs["case_closed"] += json.loads((vet_dir / "caseclosed.meta.json").read_text(encoding="utf-8"))["cost_usd"]
         res = pd.read_csv(results)
-        status[status.index.isin(res["tic"])] = STATUS["searched"]
+        status[status.index.isin(res.loc[res["n_points"].fillna(0) > 0, "tic"])] = STATUS["searched"]
         final = {}
         closed = json.loads((vet_dir / "caseclosed.json").read_text(encoding="utf-8"))             if (vet_dir / "caseclosed.json").exists() else {}
         if (vet_dir / "status.csv").exists():
@@ -247,7 +247,7 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
             if page["status"] == "candidate":
                 ours.append(page)
         gate = vet_dir.parent.parent / f"{name}_gate1.json"
-        counts[f"{name}_searched"] = int(len(res))
+        counts[f"{name}_searched"] = int((res["n_points"].fillna(0) > 0).sum())  # a star with no light curve was not searched
         if gate.exists():
             counts[f"{name}_gate1"] = json.loads(gate.read_text(encoding="utf-8"))
 

@@ -29,7 +29,7 @@ export function leaveHome() {
 export async function home(main: HTMLElement) {
   const mine = visit;
   const [summary, dips] = await Promise.all([getSummary(), getDips()]);
-  const searched = Number(summary.survey_searched ?? 0) + Number(summary.batch2_searched ?? 0);
+  const searched = Number(summary.searched_total ?? Number(summary.survey_searched ?? 0) + Number(summary.batch2_searched ?? 0));
   const n = summary.by_status;
 
   // Hero: the sky, the claim, and the legend that is also the funnel

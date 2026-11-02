@@ -33,7 +33,7 @@ export async function starPage(main: HTMLElement, tic: number) {
       el("a", { href: "/survey#dips", "data-link": true }, "Every dip"), ` / TIC ${tic}`),
     el("div", { class: "star-head" },
       el("div", {}, el("h1", {}, `TIC ${tic}`),
-        el("p", { class: "about" }, `A ${spectral(s.teff)} of ${int(s.teff)} K, ${fix(s.distance, 1)} parsecs away, TESS magnitude ${fix(s.tmag, 1)}. `
+        el("p", { class: "about" }, `${/^[AEIOUM]/.test(spectral(s.teff)) ? "An" : "A"} ${spectral(s.teff)} of ${int(s.teff)} K, ${fix(s.distance, 1)} parsecs away, TESS magnitude ${fix(s.tmag, 1)}. `
           + `Right ascension ${fix(s.ra, 4)}°, declination ${fix(s.dec, 4)}°.`)),
       el("div", {}, badge(p.status))),
     ...verdict(p),
