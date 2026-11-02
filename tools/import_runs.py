@@ -4,7 +4,8 @@
 
 RUNS_DIR mirrors data/: results and gate 1 files, vet folders, Glimmer's dossiers and raw answers, the tools' evidence,
 TRICERATOPS results and the light curves too big for git are not in it. This script
-  1. copies every file into data/, never overwriting one that is already there (this machine's own runs win);
+  1. copies every file into data/, never overwriting one that is already there (this machine's own runs win), except
+     those runs.json lists under "replace" (notes written after an earlier import);
   2. merges RUNS_DIR/survey_v10/runset.json into data/survey_v10/runset.json, so the recount sees every batch;
   3. downloads the gate 1 passes' light curves of each batch searched on Kaggle (runs.json names the notebooks) into
      data/cache/lc_BATCH, with tools/kaggle_job.py and this machine's kaggle.json;
@@ -27,13 +28,15 @@ DATA = ROOT / "data"
 
 def main() -> None:
     runs = Path(sys.argv[1]).resolve()
+    meta = json.loads((runs / "runs.json").read_text(encoding="utf-8"))
+    replace = set(meta.get("replace", []))  # files regenerated after an earlier import: these do overwrite
     copied = kept = 0
     for src in sorted(p for p in runs.rglob("*") if p.is_file()):
         rel = src.relative_to(runs)
         if rel.name == "runs.json" or rel == Path("survey_v10/runset.json"):
             continue
         dest = DATA / rel
-        if dest.exists():
+        if dest.exists() and rel.as_posix() not in replace:
             kept += 1
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -52,7 +55,6 @@ def main() -> None:
 
     import kaggle_job
     given = dict(a.split("=", 1) for a in sys.argv[2:])  # batch=zip or folder downloaded by hand
-    meta = json.loads((runs / "runs.json").read_text(encoding="utf-8"))
     for batch, slug in meta.get("kaggle_passes", {}).items():
         dest = DATA / "cache" / f"lc_{batch}"
         if (dest / "manifest.csv").exists():
