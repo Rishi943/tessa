@@ -11,7 +11,7 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | | |
 |---|---|
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
-| Searched | 48,767: every one of the pool's 48,945 stars that never had 2-minute data, except 178 with no usable light curve |
+| Searched | 48,766: every one of the pool's 48,945 stars that never had 2-minute data, except 179 with no usable light curve |
 | Repeating dips found | 1,728, with each batch's bar set on upside-down light curves so about 1 star in 100 passes on noise (476 expected) |
 | Sent to Glimmer, the fine-tuned model | 432; code settled the other 1,296 |
 | Glimmer called a planet | 115 |
@@ -21,7 +21,7 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
 | Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
 
-The search ran in five batches: the survey (4,997 stars), batch 2 (17,981), the 1,000 held-out stars (below), and
+The search ran in five batches: the survey (4,997 stars), batch 2 (17,980), the 1,000 held-out stars (below), and
 batches 4 and 5 (12,449 and 12,341), which finished the pool on 2 November (`runs/2026-11-02`). Of the 1,728 dips, 1,394
 were rejected, 113 are flagged with what is left to check, 208 are set aside (200 by code before the model, almost
 all with a System 1 rank in its bottom 5%; 8 because Glimmer's reply could not be read, 6 of them plain rejects
