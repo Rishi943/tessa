@@ -1,5 +1,7 @@
 // The "how to check" note for every candidate gate 2 found: next chances, telescope size, what
-// would prove it wrong. Run: node agent/observing.js VET_DIR [--model muse-spark-1.3-contributor]
+// would prove it wrong. Run: node agent/observing.js VET_DIR [--model muse-spark-1.3-contributor] [--after YYYY-MM-DD]
+//   --after: only nights that start after this UTC date (default now), so a note read later does not lead with
+//   nights already gone.
 //   Reads VET_DIR/candidates/TIC.json (pipeline/gate2.py) and adds an "observing" note to each.
 import { readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -11,6 +13,8 @@ import { logUsage } from "./usage.js";
 const args = process.argv.slice(2);
 const at = args.indexOf("--model");
 const model = at >= 0 ? args.splice(at, 2)[1] : "muse-spark-1.3-contributor";
+const af = args.indexOf("--after");
+const after = af >= 0 ? args.splice(af, 2)[1] : new Date().toISOString().slice(0, 16).replace("T", " ");
 const [dir] = args;
 const prompt = readFileSync(new URL("./prompts/observing.v1.md", import.meta.url), "utf8");
 
@@ -27,7 +31,7 @@ for (const file of readdirSync(join(dir, "candidates")).filter((f) => f.endsWith
     star_type: c.star.teff < 3900 ? "M dwarf" : c.star.teff < 5300 ? "K dwarf" : "G dwarf",
     timing_err_now_min: w.timing_err_now_min,
     tess_sectors: w.tess_sectors.filter((s) => s.transits && !s.lost).slice(0, 3),
-    ground_nights: w.ground.slice(0, 6).map((g) => ({ site: g.site, from_utc: g.from_utc, to_utc: g.to_utc, timing_err_min: g.timing_err_min })),
+    ground_nights: w.ground.filter((g) => g.from_utc > after).slice(0, 6).map((g) => ({ site: g.site, from_utc: g.from_utc, to_utc: g.to_utc, timing_err_min: g.timing_err_min })),
     ground_nights_in_90_days: w.ground_nights, ground_snr_per_transit: w.ground_snr_per_transit,
   };
   const msg = await complete(MODELS[model], { systemPrompt: prompt, tools: [],

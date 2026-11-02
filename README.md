@@ -35,8 +35,8 @@ rates TIC 240488148 a likely nearby false positive (NFPP 0.12).
 
 The newest, from batch 4: **TIC 9066956**, a 2.7 Earth-radius body every 0.713 days (17 hours) around an M dwarf
 (3,300 K) 90 pc away, 174 transits over six sectors, on target in difference imaging, every season predicting the
-others, FPP 0.050 and NFPP 1e-9. It is on no published list we checked, and its short period gives 34 nights in the
-next 90 days when a ground telescope can catch a transit.
+others, FPP 0.050 and NFPP 1e-9. It is on no published list we checked, and its short period gives 29 nights from 5 November
+to mid-December when a ground telescope can catch a transit.
 
 For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
 FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it

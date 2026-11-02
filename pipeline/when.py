@@ -211,7 +211,7 @@ def when(tic: int, sig: dict, lc_dir: Path, days: float = 90, now: Time | None =
             "timing_err_now_min": round(float(err_now[0]) * 1440, 1),
             "testable": bool(not lost and (next_tess or ground)),
             "next_tess": next_tess, "tess_sectors": tess,
-            "ground_nights": len(ground), "ground": ground[:20],
+            "ground_nights": len(ground), "ground": ground[:60],  # 60: a short-period planet uses 20 up in two weeks
             "ground_snr_per_transit": {f"{a:g} m": round(ground_snr(star["tmag"], sig["depth_ppm"], eph["t14_h"], a), 1)
                                        for a in APERTURES_M}}
 
