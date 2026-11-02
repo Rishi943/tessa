@@ -1,3 +1,19 @@
-{"made": "2026-11-02, in a cloud session: Kaggle GPU search, then vetting, Glimmer v10 (live), gate 2 and TRICERATOPS",
- "kaggle_passes": {"holdout": "tessa-search-holdout", "batch4": "tessa-search-batch4", "batch5": "tessa-search-batch5"},
- "gate1": "each batch's own bar from its flipped light curves (pipeline/search.py calibrate); the held-out stars use the survey's (14.3), being a random sample of its stars"}
+{
+ "made": "2026-11-02, in a cloud session: Kaggle GPU search, then vetting, Glimmer v10 (live), gate 2 and TRICERATOPS",
+ "kaggle_passes": {
+  "holdout": "tessa-search-holdout",
+  "batch4": "tessa-search-batch4",
+  "batch5": "tessa-search-batch5"
+ },
+ "gate1": "each batch's own bar from its flipped light curves (pipeline/search.py calibrate); the held-out stars use the survey's (14.3), being a random sample of its stars",
+ "replace": [
+  "vet/batch4_v10/candidates/9066956.json",
+  "vet/holdout_v10/caseclosed.json",
+  "vet/holdout_v10/caseclosed.meta.json",
+  "vet/batch4_v10/caseclosed.json",
+  "vet/batch4_v10/caseclosed.meta.json",
+  "vet/batch5_v10/caseclosed.json",
+  "vet/batch5_v10/caseclosed.meta.json"
+ ],
+ "notes": "case-closed notes (agent/caseclosed.js) and TIC 9066956's observing note (agent/observing.js), Muse Spark 1.3, written 2026-11-02 after the first import"
+}
