@@ -69,7 +69,7 @@ function verdict(p: StarPage): HTMLElement[] {
     return [el("p", { class: "verdict" }, d.public_summary),
       el("p", { class: "verdict-by" }, `Summary by ${modelName(d.model)}. ${p.status === "flagged" ? `Still open: ${p.reasons.join("; ")}.` : ""}`)];
   }
-  return [el("p", { class: "verdict" }, p.reasons.length ? p.reasons.join("; ") : "Set aside."), el("p", { class: "verdict-by" }, "From the code checks.")];
+  return [el("p", { class: "verdict" }, p.reasons.length ? p.reasons.join("; ") : "Set aside."), el("p", { class: "verdict-by" }, p.reasons.some((r) => r.startsWith("Glimmer")) ? "From the pipeline's record of Glimmer's run." : "From the code checks.")];
 }
 
 export const modelName = (m: string) => (m.startsWith("glimmer") ? "Glimmer, Tessa's fine-tuned Muse Glimmer 30B"

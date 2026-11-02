@@ -45,7 +45,7 @@ export function lightCurve(page: StarPage): HTMLElement {
   const canvas = el("canvas", { role: "img", "aria-label": `Brightness of TIC ${page.tic} over ${blocks.length} TESS sectors, in parts per million` });
   const tip = el("div", { class: "tip", hidden: true });
   box.append(canvas, tip, el("p", { class: "cap" },
-    `Brightness in parts per million, 30-minute bins, ${blocks.length} sectors of about 27 days each. Ticks mark where the dip should fall every ${fix(period, 4)} days; bins inside a dip are coloured.`));
+    `Brightness in parts per million, 30-minute bins, ${blocks.length === 1 ? "1 sector" : `${blocks.length} sectors`} of about 27 days each. Ticks mark where the dip should fall every ${fix(period, 4)} days; bins inside a dip are coloured.`));
 
   const H = 260, padL = 44, padR = 8, padT = 10, padB = 34, GAP = 10;
   let xs: Float32Array = new Float32Array(0);
