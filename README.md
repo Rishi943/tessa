@@ -141,10 +141,18 @@ candidates. To keep all seven, XGBoost would have to pass 264; at 142 it keeps s
 | 0.090 | 264 | 7 of 7 |
 | **Glimmer v10** | **115** | **7 of 7** |
 
-Does XGBoost alone find candidates that Glimmer missed? At its own cut, 11 signals pass XGBoost and not Glimmer. The 9
-in batches 4 and 5 were run through gate 2 as if passed (`tools/glimmer_value.py xgb-only`), and none becomes a
-candidate: 4 fail the season test, 4 cannot be timed well enough to predict a transit, and 1 is a known variable star.
-The other 2, from the survey and batch 2, have not been run through gate 2 this way yet.
+**Through the whole chain, XGBoost in Glimmer's place finds fewer candidates and none that Glimmer missed.** On the
+same 432 signals, XGBoost made the call instead and its passes went through the identical gate 2 and TRICERATOPS
+(`tools/xgb_chain.py`):
+
+| Who makes the call | Passes | Candidates at the end |
+|---|---|---|
+| **Glimmer v10** | **115** | **7** |
+| XGBoost, cut matched on val to Glimmer's planet recall (0.234) | 59 | 4, all Glimmer's; it loses TIC 71503196, 321290256 and 61220826 |
+| XGBoost at its own cut (0.32) | 36 | the same 4 |
+| XGBoost at the cut that keeps all seven (0.090) | 264 | the same 7; the 10 gate 2 passes Glimmer did not make fail TRICERATOPS (9, FPP above 0.999) or cannot be scored (1) |
+
+This ran after the survey, on the signals of the first 48,766 stars; nothing was changed because of it.
 
 **On known TESS candidates.** The held-out test split (signals held back from training and tuning, outcomes settled
 by follow-up), with Tessa against XGBoost alone, its cut set on val to recover as many planets as Glimmer:
