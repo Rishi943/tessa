@@ -1,0 +1,158 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "differs_by_source",
+  "p_constant_all": 1.3608686035636544e-97,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 1669,
+    "err_ppm": 57,
+    "p_constant": 1.0
+   },
+   {
+    "source": "SPOC 2-min",
+    "sectors": 2,
+    "depth_ppm": 273,
+    "err_ppm": 35,
+    "p_constant": 0.18933606512207388
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 447,
+    "err_ppm": 47,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 9,
+    "source": "TESS-SPOC",
+    "depth_ppm": 447,
+    "err_ppm": 47
+   },
+   {
+    "sector": 36,
+    "source": "SPOC 2-min",
+    "depth_ppm": 232,
+    "err_ppm": 47
+   },
+   {
+    "sector": 63,
+    "source": "SPOC 2-min",
+    "depth_ppm": 324,
+    "err_ppm": 52
+   },
+   {
+    "sector": 90,
+    "source": "QLP",
+    "depth_ppm": 1669,
+    "err_ppm": 57
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 6.9135,
+  "signal_period_d": 2.56252,
+  "signal_over_rotation": 0.37065451652563824,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 9,
+    "period_d": 6.961,
+    "false_alarm": 8.247571059350661e-119,
+    "amplitude_ppm": 2674
+   },
+   {
+    "sector": 36,
+    "period_d": 6.866,
+    "false_alarm": 1.1325255181616463e-119,
+    "amplitude_ppm": 2712
+   },
+   {
+    "sector": 63,
+    "period_d": 7.478,
+    "false_alarm": 7.915732600203588e-172,
+    "amplitude_ppm": 2919
+   },
+   {
+    "sector": 90,
+    "period_d": 0.427,
+    "false_alarm": 1.1082460287734338e-10,
+    "amplitude_ppm": 1007
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 38,
+  "mean_depth_ppm": 635,
+  "chi2": 640.9890949736047,
+  "dof": 37,
+  "p_consistent": 3.2468501486940276e-111,
+  "share_of_top_3": 0.338,
+  "outliers": [
+   {
+    "epoch": 288,
+    "btjd": 3763.716,
+    "depth_ppm": 1934,
+    "sigma": 8.2
+   },
+   {
+    "epoch": 290,
+    "btjd": 3768.841,
+    "depth_ppm": 1873,
+    "sigma": 7.8
+   },
+   {
+    "epoch": 291,
+    "btjd": 3771.403,
+    "depth_ppm": 1806,
+    "sigma": 7.8
+   },
+   {
+    "epoch": 289,
+    "btjd": 3766.278,
+    "depth_ppm": 1754,
+    "sigma": 7.1
+   },
+   {
+    "epoch": -285,
+    "btjd": 2295.392,
+    "depth_ppm": -397,
+    "sigma": -6.8
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.652565,
+  "tic_mass": 0.63,
+  "radius_flame": 0.6683778166770935,
+  "mass_flame": 0.6402257084846497,
+  "radius_gspphot": 0.6657999753952026,
+  "teff_gspphot": 3916.4033203125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.653,
+    "mass": 0.63,
+    "duration_ratio": 0.92,
+    "rp_rearth": 1.82
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.668,
+    "mass": 0.64,
+    "duration_ratio": 0.9,
+    "rp_rearth": 1.86
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.666,
+    "mass": 0.63,
+    "duration_ratio": 0.9,
+    "rp_rearth": 1.86
+   }
+  ]
+ }
+}

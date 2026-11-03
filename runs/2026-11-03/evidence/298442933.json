@@ -1,0 +1,204 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 0.0,
+  "by_source": [
+   {
+    "source": "SPOC 2-min",
+    "sectors": 4,
+    "depth_ppm": 2533,
+    "err_ppm": 24,
+    "p_constant": 0.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 2,
+    "depth_ppm": 2348,
+    "err_ppm": 28,
+    "p_constant": 1.147416082696611e-58
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 25,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1154,
+    "err_ppm": 74
+   },
+   {
+    "sector": 26,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1283,
+    "err_ppm": 43
+   },
+   {
+    "sector": 52,
+    "source": "SPOC 2-min",
+    "depth_ppm": 2876,
+    "err_ppm": 53
+   },
+   {
+    "sector": 53,
+    "source": "SPOC 2-min",
+    "depth_ppm": 3758,
+    "err_ppm": 39
+   },
+   {
+    "sector": 79,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1925,
+    "err_ppm": 38
+   },
+   {
+    "sector": 80,
+    "source": "TESS-SPOC",
+    "depth_ppm": 2816,
+    "err_ppm": 40
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 1.2679999999999998,
+  "signal_period_d": 1.2684,
+  "signal_over_rotation": 1.0003154574132493,
+  "signal_at_rotation_multiple": 1,
+  "sectors": [
+   {
+    "sector": 25,
+    "period_d": 1.286,
+    "false_alarm": 6.80968275487427e-233,
+    "amplitude_ppm": 23110
+   },
+   {
+    "sector": 26,
+    "period_d": 1.271,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 40391
+   },
+   {
+    "sector": 52,
+    "period_d": 1.257,
+    "false_alarm": 1.2748105471860067e-267,
+    "amplitude_ppm": 49672
+   },
+   {
+    "sector": 53,
+    "period_d": 1.265,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 67704
+   },
+   {
+    "sector": 79,
+    "period_d": 1.272,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 32185
+   },
+   {
+    "sector": 80,
+    "period_d": 1.263,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 51492
+   }
+  ]
+ },
+ "centroid_all": {
+  "verdict": "inconclusive",
+  "why": "consistent with the target but also with 1 neighbour(s) that could fake it",
+  "offset_arcsec": 0.9617174786544375,
+  "err_arcsec": 1.0858276867050338,
+  "offset_sigma": 0.8856999047176525,
+  "sectors_used": 6,
+  "on_star": null,
+  "suspects": [
+   {
+    "source_id": 4595344874753023488,
+    "sep_arcsec": 1.6,
+    "eclipse_needed": 0.1408,
+    "sigma_from_centroid": 2.3
+   },
+   {
+    "source_id": 4595344634236763392,
+    "sep_arcsec": 118.5,
+    "eclipse_needed": 0.03,
+    "sigma_from_centroid": 108.2
+   },
+   {
+    "source_id": 4595347417375584768,
+    "sep_arcsec": 135.0,
+    "eclipse_needed": 0.1199,
+    "sigma_from_centroid": 124.7
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 82,
+  "mean_depth_ppm": 2197,
+  "chi2": 7284.135579629464,
+  "dof": 81,
+  "p_consistent": 0.0,
+  "share_of_top_3": 0.155,
+  "outliers": [
+   {
+    "epoch": 22,
+    "btjd": 2768.775,
+    "depth_ppm": 6365,
+    "sigma": 26.2
+   },
+   {
+    "epoch": 21,
+    "btjd": 2767.506,
+    "depth_ppm": 5722,
+    "sigma": 22.2
+   },
+   {
+    "epoch": -592,
+    "btjd": 1989.977,
+    "depth_ppm": -476,
+    "sigma": -20.8
+   },
+   {
+    "epoch": -594,
+    "btjd": 1987.44,
+    "depth_ppm": -522,
+    "sigma": -20.8
+   },
+   {
+    "epoch": -593,
+    "btjd": 1988.709,
+    "depth_ppm": -374,
+    "sigma": -19.8
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.844597,
+  "tic_mass": 0.84,
+  "radius_flame": 0.8086801171302795,
+  "mass_flame": null,
+  "radius_gspphot": 0.8140000104904175,
+  "teff_gspphot": 5392.0283203125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.845,
+    "mass": 0.84,
+    "duration_ratio": 1.41,
+    "rp_rearth": 4.61
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.809,
+    "mass": 0.84,
+    "duration_ratio": 1.47,
+    "rp_rearth": 4.42
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.814,
+    "mass": 0.84,
+    "duration_ratio": 1.46,
+    "rp_rearth": 4.45
+   }
+  ]
+ }
+}

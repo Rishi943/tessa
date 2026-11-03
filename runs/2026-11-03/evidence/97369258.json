@@ -1,0 +1,113 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "differs_by_source",
+  "p_constant_all": 3.9839279559069244e-08,
+  "by_source": [
+   {
+    "source": "SPOC 2-min",
+    "sectors": 2,
+    "depth_ppm": 1135,
+    "err_ppm": 90,
+    "p_constant": 0.21313981070743393
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 467,
+    "err_ppm": 75,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 42,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1298,
+    "err_ppm": 159
+   },
+   {
+    "sector": 43,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1058,
+    "err_ppm": 109
+   },
+   {
+    "sector": 71,
+    "source": "TESS-SPOC",
+    "depth_ppm": 467,
+    "err_ppm": 75
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 4.309,
+  "signal_period_d": 13.9081,
+  "signal_over_rotation": 3.2276862381062887,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 42,
+    "period_d": 12.26,
+    "false_alarm": 3.734252216024529e-105,
+    "amplitude_ppm": 1669
+   },
+   {
+    "sector": 43,
+    "period_d": 0.12,
+    "false_alarm": 0.08543439972383439,
+    "amplitude_ppm": 1005
+   },
+   {
+    "sector": 70,
+    "period_d": 2.746,
+    "false_alarm": 3.0626111549746394e-15,
+    "amplitude_ppm": 1558
+   },
+   {
+    "sector": 71,
+    "period_d": 4.309,
+    "false_alarm": 6.784520175331026e-35,
+    "amplitude_ppm": 1577
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 4,
+  "mean_depth_ppm": 724,
+  "chi2": 67.70973918901642,
+  "dof": 3,
+  "p_consistent": 1.3199583869150061e-14,
+  "share_of_top_3": 0.989,
+  "outliers": [
+   {
+    "epoch": 3,
+    "btjd": 3249.404,
+    "depth_ppm": 151,
+    "sigma": -6.3
+   },
+   {
+    "epoch": -53,
+    "btjd": 2470.551,
+    "depth_ppm": 1298,
+    "sigma": 4.2
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.700503,
+  "tic_mass": 0.63,
+  "radius_flame": null,
+  "mass_flame": null,
+  "radius_gspphot": null,
+  "teff_gspphot": null,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.701,
+    "mass": 0.63,
+    "duration_ratio": 1.4,
+    "rp_rearth": 2.11
+   }
+  ]
+ }
+}

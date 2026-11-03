@@ -1,0 +1,134 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "changes_within_a_source",
+  "p_constant_all": 1.8514450857768983e-06,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 588,
+    "err_ppm": 114,
+    "p_constant": 1.0
+   },
+   {
+    "source": "SPOC 2-min",
+    "sectors": 1,
+    "depth_ppm": 1196,
+    "err_ppm": 216,
+    "p_constant": 1.0
+   },
+   {
+    "source": "TESS-SPOC",
+    "sectors": 1,
+    "depth_ppm": 1485,
+    "err_ppm": 137,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 10,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1196,
+    "err_ppm": 216
+   },
+   {
+    "sector": 63,
+    "source": "TESS-SPOC",
+    "depth_ppm": 1485,
+    "err_ppm": 137
+   },
+   {
+    "sector": 90,
+    "source": "QLP",
+    "depth_ppm": 588,
+    "err_ppm": 114
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 5.4885,
+  "signal_period_d": 12.7574,
+  "signal_over_rotation": 2.3243873553794296,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 10,
+    "period_d": 3.741,
+    "false_alarm": 1.3691566675988134e-169,
+    "amplitude_ppm": 13183
+   },
+   {
+    "sector": 36,
+    "period_d": 7.62,
+    "false_alarm": 1.3941693949885935e-250,
+    "amplitude_ppm": 37634
+   },
+   {
+    "sector": 63,
+    "period_d": 7.236,
+    "false_alarm": 0.0,
+    "amplitude_ppm": 21517
+   },
+   {
+    "sector": 90,
+    "period_d": 1.195,
+    "false_alarm": 2.580353155053899e-06,
+    "amplitude_ppm": 1311
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 5,
+  "mean_depth_ppm": 1012,
+  "chi2": 71.28230264539766,
+  "dof": 4,
+  "p_consistent": 1.2167847647005875e-14,
+  "share_of_top_3": 0.924,
+  "outliers": [
+   {
+    "epoch": 57,
+    "btjd": 3748.482,
+    "depth_ppm": 180,
+    "sigma": -5.7
+   },
+   {
+    "epoch": -113,
+    "btjd": 1579.724,
+    "depth_ppm": 1723,
+    "sigma": 5.0
+   }
+  ]
+ },
+ "stellar_radius": {
+  "tic_radius": 0.822186,
+  "tic_mass": 0.91,
+  "radius_flame": 0.8081312775611877,
+  "mass_flame": null,
+  "radius_gspphot": 0.8079000115394592,
+  "teff_gspphot": 5390.2763671875,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.822,
+    "mass": 0.91,
+    "duration_ratio": 0.97,
+    "rp_rearth": 3.04
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.808,
+    "mass": 0.91,
+    "duration_ratio": 0.99,
+    "rp_rearth": 2.98
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.808,
+    "mass": 0.91,
+    "duration_ratio": 0.99,
+    "rp_rearth": 2.98
+   }
+  ]
+ }
+}

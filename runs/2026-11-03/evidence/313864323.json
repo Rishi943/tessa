@@ -1,0 +1,102 @@
+{
+ "sector_depths_by_source": {
+  "verdict": "steady",
+  "p_constant_all": 0.26767098416602547,
+  "by_source": [
+   {
+    "source": "QLP",
+    "sectors": 1,
+    "depth_ppm": 1592,
+    "err_ppm": 295,
+    "p_constant": 1.0
+   },
+   {
+    "source": "SPOC 2-min",
+    "sectors": 1,
+    "depth_ppm": 1953,
+    "err_ppm": 138,
+    "p_constant": 1.0
+   }
+  ],
+  "per_sector": [
+   {
+    "sector": 42,
+    "source": "SPOC 2-min",
+    "depth_ppm": 1953,
+    "err_ppm": 138
+   },
+   {
+    "sector": 92,
+    "source": "QLP",
+    "depth_ppm": 1592,
+    "err_ppm": 295
+   }
+  ]
+ },
+ "rotation": {
+  "rotation_d": 7.3004999999999995,
+  "signal_period_d": 13.5579,
+  "signal_over_rotation": 1.8571193753852477,
+  "signal_at_rotation_multiple": null,
+  "sectors": [
+   {
+    "sector": 42,
+    "period_d": 5.069,
+    "false_alarm": 1.759087943486861e-215,
+    "amplitude_ppm": 12357
+   },
+   {
+    "sector": 70,
+    "period_d": 9.532,
+    "false_alarm": 4.5420734157722434e-129,
+    "amplitude_ppm": 19880
+   },
+   {
+    "sector": 92,
+    "period_d": 1.285,
+    "false_alarm": 0.4016362530800681,
+    "amplitude_ppm": 2034
+   }
+  ]
+ },
+ "transit_depths": {
+  "transits": 3,
+  "mean_depth_ppm": 1902,
+  "chi2": 1.2184742198338838,
+  "dof": 2,
+  "p_consistent": 0.5437655442198039,
+  "share_of_top_3": 1.0,
+  "outliers": []
+ },
+ "stellar_radius": {
+  "tic_radius": 0.734805,
+  "tic_mass": 0.8,
+  "radius_flame": 0.7500706911087036,
+  "mass_flame": 0.7716010212898254,
+  "radius_gspphot": 0.7506999969482422,
+  "teff_gspphot": 4836.03564453125,
+  "options": [
+   {
+    "radius_from": "TIC",
+    "rad": 0.735,
+    "mass": 0.8,
+    "duration_ratio": 1.02,
+    "rp_rearth": 3.51
+   },
+   {
+    "radius_from": "Gaia FLAME",
+    "rad": 0.75,
+    "mass": 0.772,
+    "duration_ratio": 0.99,
+    "rp_rearth": 3.58
+   },
+   {
+    "radius_from": "Gaia GSP-Phot",
+    "rad": 0.751,
+    "mass": 0.8,
+    "duration_ratio": 1.0,
+    "rp_rearth": 3.58
+   }
+  ]
+ }
+}
