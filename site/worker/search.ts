@@ -78,6 +78,18 @@ export async function search(request: Request, env: SearchEnv): Promise<Response
     ]);
     return json({ ok: true, first, ...(await stats(env, all.length)) });
   }
+  // an email for a star that cleared the bar, left within an hour of its search; stored, never shown or read back
+  if (url.pathname === "/api/search/follow" && request.method === "POST") {
+    let b: Record<string, unknown>;
+    try { b = await request.json(); } catch { return json({ error: "bad json" }, 400); }
+    const tic = Number(b.tic);
+    const email = typeof b.email === "string" ? b.email.trim().toLowerCase() : "";
+    if (email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return json({ error: "that doesn't look like an email" }, 400);
+    const r = await env.DB.prepare("SELECT at FROM results WHERE tic = ? AND pass = 1").bind(tic).first<{ at: string }>();
+    if (!r || Date.now() - Date.parse(r.at) > 3600_000) return json({ error: "not a star that just cleared the bar" }, 400);
+    await env.DB.prepare("INSERT OR IGNORE INTO follow (tic, email, at) VALUES (?, ?, ?)").bind(tic, email, new Date().toISOString()).run();
+    return json({ ok: true });
+  }
   return json({ error: "not found" }, 404);
 }
 

@@ -1,15 +1,12 @@
 // tessa.braveai.solutions: the static site comes straight from the assets; this Worker only answers
 // /api/ask, where Muse Spark answers questions about the survey with tools over the exported files, and
 // /api/search/*, which hands visitors a star to search in their browser and records what they found, and
-// /api/glimmer/*, the fine-tuned Glimmer for the repo's demo (worker/glimmer.ts).
-import { glimmer } from "./glimmer";
-import type { GlimmerEnv } from "./glimmer";
 import { poolSize, search } from "./search";
 import type { SearchEnv } from "./search";
 import { SYSTEM, TOOLS, runTool, stepText } from "./tools";
 
 interface RateLimit { limit(o: { key: string }): Promise<{ success: boolean }> }
-export interface Env extends SearchEnv, GlimmerEnv {
+export interface Env extends SearchEnv {
   ASSETS: Fetcher;
   META_API_KEY: string;
   ASK_LIMIT: RateLimit;  // per visitor
@@ -30,7 +27,6 @@ export default {
     const url = new URL(request.url);
     if (url.pathname === "/api/ask" && request.method === "POST") return ask(request, env, ctx);
     if (url.pathname.startsWith("/api/search/")) return search(request, env);
-    if (url.pathname.startsWith("/api/glimmer/")) return glimmer(request, env);
     if (url.pathname.startsWith("/api/")) return new Response("not found", { status: 404 });
     return env.ASSETS.fetch(request);
   },
@@ -66,7 +62,7 @@ async function ask(request: Request, env: Env, ctx: ExecutionContext): Promise<R
   ctx.waitUntil((async () => {
     try {
       const messages: Msg[] = [{ role: "system", content: `${SYSTEM}\n\nThe reader is on the page ${page}.\n`
-        + `The reader's search: ${reader || "none running"}` }, ...turns];
+        + `The reader's search, or the run of the whole pipeline on their own machine (the /run page of a local copy): ${reader || "none running"}` }, ...turns];
       for (let round = 0; round < MAX_ROUNDS; round++) {
         const last = round === MAX_ROUNDS - 1;
         const res = await fetch(META_URL, {

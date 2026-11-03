@@ -1,6 +1,7 @@
 import "./style.css";
 import { openAsk, setupAsk } from "./ask";
 import { home, leaveHome } from "./home";
+import { runPage } from "./run";
 import { starPage } from "./star";
 import { leaveUniverse, universe } from "./universe";
 import { el, navigate } from "./util";
@@ -13,13 +14,15 @@ async function route() {
   leaveUniverse();
   const star = location.pathname.match(/^\/star\/(\d+)\/?$/);
   const survey = /^\/survey\/?$/.test(location.pathname);
+  const run = location.pathname.match(/^\/run(?:\/(\d+))?\/?$/);
   // The universe is the window; the survey and the case files are the layer for scientists
-  const world = !star && !survey;
+  const world = !star && !survey && !run;
   document.body.classList.toggle("world", world);
   main.replaceChildren(el("p", { class: "loading" }, world ? "" : "Loading the survey"));
   const view = el("div");
   try {
     if (star) await starPage(view, Number(star[1]));
+    else if (run) await runPage(view, run[1] ? Number(run[1]) : null);
     else {
       document.title = TITLE;
       await (survey ? home(view) : universe(view));

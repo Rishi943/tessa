@@ -7,6 +7,7 @@ import { getStar } from "./data";
 import { explainFigure } from "./explain";
 import type { Topic } from "./explain";
 import { flyTo } from "./home";
+import { runState } from "./run";
 import { searchState } from "./search/card";
 import { flyToTic, startSearch } from "./universe";
 import { el, navigate } from "./util";
@@ -42,8 +43,15 @@ export function setupAsk() {
   });
   input.addEventListener("input", () => { input.style.height = "auto"; input.style.height = `${input.scrollHeight}px`; });
   // the starters offer themselves when the line is empty and nothing has been asked yet
-  input.addEventListener("focus", () => { starters.hidden = history.length > 0 || !talk.hidden; });
-  root.addEventListener("focusout", (e) => { if (!root.contains(e.relatedTarget as Node)) starters.hidden = true; });
+  input.addEventListener("focus", () => {
+    starters.hidden = history.length > 0 || !talk.hidden;
+    document.body.classList.toggle("peeking", !starters.hidden);
+  });
+  root.addEventListener("focusout", (e) => {
+    if (root.contains(e.relatedTarget as Node)) return;
+    starters.hidden = true;
+    document.body.classList.remove("peeking");
+  });
   log.addEventListener("click", (e) => {
     const a = (e.target as HTMLElement).closest("a");
     if (a?.getAttribute("href")?.startsWith("/")) {
@@ -159,7 +167,7 @@ async function ask(question: string) {
   log.scrollTop = log.scrollHeight;
   try {
     const res = await fetch("/api/ask", { method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ messages: history.slice(-8), page: location.pathname, search: searchState() }) });
+      body: JSON.stringify({ messages: history.slice(-8), page: location.pathname, search: runState() ?? searchState() }) });
     if (res.status === 429) throw new Error("I'm answering a lot of questions right now. Try again in a minute.");
     if (!res.ok || !res.body) throw new Error(`I couldn't answer that (error ${res.status}). Try again.`);
     const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();

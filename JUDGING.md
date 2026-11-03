@@ -16,7 +16,7 @@ Tessa is an AI agent that hunts for planets around nearby red stars in public NA
 
 **2. Describe your use of Meta products to build the submitted project**
 
-Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it with QLoRA into Glimmer v10 on 745 tool-calling investigations and self-hosted it on Modal. Those investigations came from Muse Spark Open, which worked through about 1,008 past TESS signals whose real outcome is known by telescope follow-up; we kept only those that reached the true outcome with no invented numbers. In the survey, Glimmer reads the code's checks, names the possible explanations, chooses which of five measurement tools to call, and returns reject, flag or pass with a dossier. Muse Spark 1.3 (its contributor tier) writes the plain-language notes for people and powers Ask Tessa. Muse Wonder 1.0 gives every candidate a second opinion from the raw checks. Built with Muse Spark Open.
+Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it with QLoRA into Glimmer v10 on 745 tool-calling investigations and self-hosted it on Modal; its weights and training data are public on Hugging Face (huggingface.co/rushi-brave/glimmer-vetter-v10). Those investigations came from Muse Spark Open, which worked through about 1,008 past TESS signals whose real outcome is known by telescope follow-up; we kept only those that reached the true outcome with no invented numbers. In the survey, Glimmer reads the code's checks, names the possible explanations, chooses which of five measurement tools to call, and returns reject, flag or pass with a dossier. Muse Spark 1.3 (its contributor tier) writes the plain-language notes for people and powers Ask Tessa. Muse Wonder 1.0 gives every candidate a second opinion from the raw checks. Built with Muse Spark Open.
 
 **3. Why are Meta's models important to your solution?**
 
@@ -38,6 +38,8 @@ Open weights made the core of Tessa possible: we could train a small model on re
 **Stage Three:** the top 5 scoring projects per track move to a final round, where judges watch the video demos live and rank them using the same rubric.
 
 **What counts as the live product** (organisers, Cerebral Valley, 1 Nov 2026): "A hosted web demo link alone isn't the live product. Judging needs a working demo that runs from your public GitHub repo's setup instructions, plus the 3-minute demo video. A hosted demo is optional and not required. If you do host one, you can add a replay mode or rate limits, but the repo itself must still run live, and the README should explain how judges can use the hosted version."
+
+**Organisers' answer to us (3 Nov 2026):** "A labelled replay is the safer default. [...] judges must be able to run the full demo shown in the video, so a live call to your own hosted endpoint that judges can't reproduce doesn't meet that. [...] Keep the video showing a live Meta model call, and label any replay clearly. Also, a fine-tuned model has to be open source and its weights published, since everything the demo depends on must be open." So: `tools/demo.py` replays Glimmer by default (`--live` for your own deployment), the public `/api/glimmer` route is gone, and Glimmer v10's weights go on Hugging Face.
 
 Deadline: 4 Nov 2026, 9 PM ET (5 Nov, 07:30 IST).
 

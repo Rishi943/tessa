@@ -82,8 +82,21 @@ spot signals for that reason, and gate 2 refused what it could not test. Tessa d
 light curve, every check, Glimmer's dossier, TRICERATOPS, and for candidates the next transits), Ask Tessa, and
 *Search a star*, which runs Tessa's search in your browser on a star nobody has searched.
 
-**From this repo, live, on one star.** Python 3.12 or newer and Node 22 or newer; about 15 minutes, most of it the
-search on CPU and Glimmer waking up. No keys needed.
+What runs where on the hosted site:
+
+| Step | Where it runs |
+|---|---|
+| The map, case files, every number on the site | Static files exported from the pipeline's runs (`pipeline/export.py`); they change only when we export and deploy |
+| Ask Tessa | Live: Muse Spark 1.3 through the Meta API, from a Cloudflare Worker; it reads those files and the visitors' searches |
+| *Search a star*: the search for a repeating dip and gate 1 | Live, in the visitor's browser (WebGPU), on a star nobody has searched |
+| Everything after gate 1 for a visitor's star: code checks, Glimmer, gate 2, TRICERATOPS | Not on the site. A star that clears the bar is recorded with the searcher's name; we run the rest of the pipeline on it by hand, then export and deploy. The visitor may leave an email to hear back; a candidate's page credits them |
+
+The site does not run the whole pipeline: only the search does, in the browser. Running the code checks there too
+(the same Python, through WebAssembly) is the next step; Glimmer's call and TRICERATOPS would stay on a server.
+
+**From this repo, on one star.** Python 3.12 or newer and Node 22 or newer; about 10 minutes, most of it the search
+on CPU. No keys and no sign-in needed. Every step runs live on your machine except Glimmer's call, which is a
+**labelled replay** of its recorded answer from the survey run (see step 4).
 
 ```sh
 git clone https://github.com/Rishi943/tessa && cd tessa
@@ -102,21 +115,34 @@ python tools/demo.py                              # TIC 71503196, end to end
    own. The survey's rank was 0.090: there, difference imaging had not run when System 1 scored the star (its
    centroid input was missing), and the GPU search fitted the transit a little differently. Same model, same verdict.
 3. **The five measurements** Glimmer may ask for, computed from the bundled data.
-4. **Glimmer makes the call, live**: the fine-tuned Muse Glimmer 30B on Modal, reached through the hosted site
-   (`/api/glimmer`, which holds the key and rate-limits). Its GPU sleeps when idle: the first call wakes it in 3 to 5
-   minutes and the demo waits. It chooses its tools and returns its verdict with a dossier.
+4. **Glimmer makes the call**: the fine-tuned Muse Glimmer 30B. By default the demo **replays** its recorded answer
+   for this star from the survey run, and says so on screen: the tools it chose and its verdict with a dossier. To
+   call it live, serve the [published weights](https://huggingface.co/rushi-brave/glimmer-vetter-v10) yourself
+   (`modal run serve/glimmer.py::adapter --repo rushi-brave/glimmer-vetter-v10`, then `modal deploy serve/glimmer.py`)
+   and run `tools/demo.py --live`
+   with `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY` set; a sleeping GPU takes 3 to 5 minutes to wake.
 5. **Gate 2**: the catalogues are queried live, the season test reruns the search with each season hidden (about
    2 minutes), and the next TESS sectors and ground windows are predicted.
-6. **TRICERATOPS**: the survey run's result. It needs its own environment to run (`pipeline/fpp.py`).
+6. **TRICERATOPS**, live (about 2 minutes: the star's pixels and every neighbour within 10 pixels from MAST and Gaia,
+   then our faster TRICERATOPS) when its own environment exists; TRICERATOPS needs Python 3.13 and leaves out one
+   package it never uses: `uv venv --python 3.13 tri-venv`, `uv pip install --python tri-venv --no-deps triceratops==1.1.0`, then
+   `uv pip install --python tri-venv pandas matplotlib astropy astroquery pytransit==2.2 mechanicalsoup emcee seaborn numba pyrr lightkurve arviz corner beautifulsoup4 "setuptools<81" pyarrow`.
+   Without it, the demo shows the survey run's result and says so.
 
 `python tools/demo.py 240488148` shows the other outcome: a candidate from the first run that the season test now
-flags. `--replay` uses Glimmer's saved dossier instead of the live call; `--list` shows the bundled stars. To call
-your own Glimmer, set `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY` (`serve/glimmer.py`). If CDS is down, put its mirrors
+flags. `--list` shows the bundled stars. If CDS is down, put its mirrors
 first: `TESSA_VIZIER=vizier.idia.ac.za TESSA_SIMBAD=simbad.harvard.edu`.
 
 **The site, locally:** `cd site && npm ci && npm run dev`. With no `data/site` of your own it downloads the same
 export from the hosted site (about 105 MB). Ask Tessa and *Search a star* need the Worker: `npx wrangler dev`, with
 `META_API_KEY` in `site/.dev.vars`.
+
+**The whole pipeline in the site's own interface:** `cd site && npm run local` starts the site, the Worker and
+`tools/local_run.py` together; open http://localhost:5173/run. *Run a star* streams `tools/demo.py`'s steps onto the
+page as they happen: the light curve and fold, the code checks and XGBoost's rank, each tool Glimmer asks for (open
+one to see the answer it got back), its verdict and dossier, gate 2, and TRICERATOPS. Badges at the top say what is
+live: Glimmer is called live when `.env` has `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY`, and otherwise replays its
+recorded answer, labelled as a replay. The hosted site has no such server and says so on that page.
 
 ## How well it works
 
@@ -267,7 +293,7 @@ Built with Muse Spark Open.
 |---|---|---|
 | Teacher: tool-calling traces on about 1,008 training signals | Muse Spark Open (Baseten) | about $32 |
 | Fine-tune: 745 traces that reached the true outcome with no invented numbers | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
-| The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10` |
+| The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10`, [weights on Hugging Face](https://huggingface.co/rushi-brave/glimmer-vetter-v10) |
 | Case-closed lines and observing notes | Muse Spark 1.3 | |
 | A second opinion on every candidate | Muse Wonder 1.0 | about $0.09 a candidate |
 | Ask Tessa on the site | Muse Spark 1.3 | per question |

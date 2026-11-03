@@ -246,7 +246,17 @@ footer.foot p { margin: 0; max-width: var(--read); }
 .ask-talk[hidden], .ask-starters[hidden] { display: none; }
 /* the fade a conversation sits on, rising from the line */
 body.asking::after { content: ""; position: fixed; z-index: 39; inset: 0; pointer-events: none;
-  background: linear-gradient(0deg, rgba(11, 11, 10, 0.95) 0%, rgba(11, 11, 10, 0.88) 50%, rgba(11, 11, 10, 0.35) 85%, rgba(11, 11, 10, 0) 100%); }
+  background: linear-gradient(0deg, rgba(11, 11, 10, 0.98) 0%, rgba(11, 11, 10, 0.96) 60%, rgba(11, 11, 10, 0.85) 88%, rgba(11, 11, 10, 0.6) 100%); }
+/* the starters alone get a lower fade, so the page's own text never runs under them */
+body.peeking:not(.asking)::after { content: ""; position: fixed; z-index: 39; left: 0; right: 0; bottom: 0; height: 22rem; pointer-events: none;
+  background: linear-gradient(0deg, rgba(11, 11, 10, 0.98) 0%, rgba(11, 11, 10, 0.95) 55%, rgba(11, 11, 10, 0) 100%); }
+body.asking .s-col, body.asking .t-stat, body.asking .t-ctrl { opacity: 0.08; transition: opacity 0.2s; }
+.ask .log { scrollbar-width: thin; scrollbar-color: rgba(94, 234, 212, 0.35) transparent; }
+.ask .log::-webkit-scrollbar { width: 6px; }
+.ask .log::-webkit-scrollbar-track { background: transparent; }
+.ask .log::-webkit-scrollbar-thumb { background: rgba(94, 234, 212, 0.3); border-radius: 3px; }
+.ask .log::-webkit-scrollbar-thumb:hover { background: rgba(94, 234, 212, 0.6); }
+.ask .log::-webkit-scrollbar-button { display: none; height: 0; }
 /* on the reading pages the line keeps a band of page under it */
 body:not(.world)::before { content: ""; position: fixed; z-index: 39; left: 0; right: 0; bottom: 0; height: 6.5rem; pointer-events: none;
   background: linear-gradient(0deg, var(--page) 62%, rgba(11, 11, 10, 0)); }
@@ -618,4 +628,81 @@ button.u-btn { background: none; font: inherit; font-weight: 500; cursor: pointe
   .s-full .t-stat .t-big { font-size: 1.9rem; margin-bottom: 0.4rem; }
   .s-step { grid-template-columns: 1fr; padding: 0.7rem 0; }
   .s-say { font-size: 1.05rem; }
+}
+
+/* after a star clears the bar: an optional email for when Tessa's own checks have run */
+.s-follow { display: flex; gap: 0.5rem; margin-top: 0.9rem; max-width: 30rem; }
+.s-follow .s-handle { flex: 1; min-width: 0; width: auto; }
+.s-fine { margin: 0.5rem 0 0; font: 400 0.75rem/1.4 var(--mono); color: var(--muted); max-width: 46ch; }
+
+/* Run a star (local copies only): the pipeline's steps as they happen */
+.run .run-modes { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 0 0 1rem; }
+.run-mode { font: 400 0.75rem/1 var(--mono); padding: 0.4rem 0.6rem; border: 1px solid var(--hair); color: var(--muted); }
+.run-mode.on { border-color: rgba(94, 234, 212, 0.45); color: var(--tessa); }
+.run-mode.rec { border-color: #e0b04a; color: #e0b04a; display: inline-block; }
+.run-pick { font-size: 0.9rem; color: var(--muted); display: flex; gap: 1rem; flex-wrap: wrap; }
+.run-pick a.here { color: var(--ink); text-decoration: none; font-weight: 500; }
+.run-go { margin: 0.5rem 1rem 1.5rem 0; }
+.run-clock { font: 400 0.9rem var(--mono); color: var(--muted); }
+.run-log { list-style: none; padding: 0; margin: 0; counter-reset: step; }
+.run-step { counter-increment: step; display: grid; grid-template-columns: 2.5rem minmax(0, 1fr); padding: 1.25rem 0; border-top: 1px solid var(--hair); animation: run-in 0.35s ease-out; }
+.run-step::before { content: counter(step); font: 400 0.9rem var(--mono); color: var(--tessa); padding-top: 0.3rem; }
+.run-step h2 { grid-column: 2; margin: 0 0 0.5rem; font: 400 1.25rem/1.3 var(--sans); }
+.run-body { grid-column: 2; min-width: 0; }
+.run-line { margin: 0.15rem 0; font: 400 0.85rem/1.5 var(--mono); color: var(--ink-2); white-space: pre-wrap; overflow-wrap: anywhere; }
+.run-line.live::before { content: "● "; color: var(--tessa); animation: ask-pulse 1.6s ease-in-out infinite; }
+.run-charts { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 1.5rem; margin: 1rem 0; }
+.run-verdict { margin: 0.75rem 0 0; font: 500 1rem var(--sans); }
+.run-verdict.ok { color: var(--tessa); }
+.run-verdict.no { color: var(--ink-2); }
+.run-tools { display: grid; gap: 0.35rem; margin: 0.5rem 0; }
+.run-tool { border-left: 2px solid var(--tessa); padding: 0.2rem 0 0.2rem 0.7rem; animation: run-in 0.35s ease-out; }
+.run-tool summary { cursor: pointer; font-size: 0.95rem; }
+.run-tool pre { font: 400 0.72rem/1.4 var(--mono); color: var(--muted); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0.4rem 0 0; }
+.run-reasons { margin: 0.75rem 0 0; padding-left: 1.1rem; color: var(--ink-2); font-size: 0.92rem; }
+.run-reasons b { font-weight: 500; color: var(--ink); }
+.run-final { font: 400 1.6rem/1.3 var(--serif); margin: 1rem 0; }
+@keyframes run-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (max-width: 720px) { .run-charts { grid-template-columns: 1fr; } }
+.run-fpp { display: grid; gap: 0.2rem; margin: 0.75rem 0 0; }
+.run-fpp p { margin: 0; color: var(--ink-2); }
+.run-fpp b { font: 400 1.4rem var(--serif); color: var(--ink); margin-right: 0.3rem; }
+
+/* How accurate is Tessa: a waffle of her planet calls, and the false alarms against ExoMiner++ */
+.acc { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: clamp(2rem, 5vw, 4.5rem); align-items: start; }
+.acc-hero { display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin: 0 0 1.25rem; }
+.acc-hero b { font: 400 clamp(4rem, 9vw, 6.5rem)/0.9 var(--serif); color: var(--ink); letter-spacing: -0.03em; }
+.acc-hero span { color: var(--ink-2); font-size: 1.15rem; max-width: 16ch; line-height: 1.3; }
+.acc-waffle { display: grid; grid-template-columns: repeat(21, 1fr); gap: 2px; max-width: 34rem; }
+.acc-waffle i, .acc-key i, .acc-dots i { display: block; aspect-ratio: 1; border-radius: 2px; background: var(--tessa); }
+.acc-waffle i.fp, .acc-key i.fp, .acc-dots i.fp { background: var(--rejected); }
+.acc-waffle i { opacity: 0.12; transform: scale(0.6); transition: opacity 0.35s ease-out, transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); transition-delay: calc(var(--i) * 4ms); }
+#accuracy.in .acc-waffle i { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .acc-waffle i { opacity: 1; transform: none; transition: none; } }
+.acc-keys { display: flex; gap: 1.25rem; margin: 0.9rem 0 0; color: var(--ink-2); font-size: 0.9rem; }
+.acc-key { display: inline-flex; align-items: center; gap: 0.45rem; }
+.acc-key i { width: 0.8rem; }
+.acc-note { color: var(--muted); font-size: 0.92rem; max-width: 36rem; margin: 1rem 0 0; }
+.acc-vs h3 { font: 600 1.15rem/1.3 var(--sans); margin: 0 0 0.35rem; }
+.acc-sub { color: var(--ink-2); margin: 0 0 1.4rem; font-size: 0.95rem; }
+.acc-head, .acc-row { display: grid; grid-template-columns: 7.5rem minmax(0, 1fr) 8.5rem; gap: 1rem; align-items: center; }
+.acc-head span, .acc-pl { white-space: nowrap; }
+.acc-head span:last-child { text-align: right; }
+.acc-head { font: 400 0.78rem/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-bottom: 0.6rem; }
+.acc-row { padding: 0.95rem 0; border-top: 1px solid var(--hair); }
+.acc-who { font-weight: 600; }
+.acc-row:not(.ours) .acc-who { color: var(--ink-2); font-weight: 400; }
+.acc-dots { display: flex; align-items: center; gap: 4px; }
+.acc-dots i { width: 1.05rem; border-radius: 50%; }
+.acc-dots b { margin-left: 0.6rem; font: 400 1.5rem/1 var(--serif); }
+.acc-pl { font-family: var(--mono); color: var(--ink-2); text-align: right; }
+@media (max-width: 760px) {
+  .acc { grid-template-columns: 1fr; }
+  .acc-head, .acc-row { grid-template-columns: 5.8rem minmax(0, 1fr) 4.6rem; gap: 0.5rem; }
+  .acc-dots { gap: 3px; }
+  .acc-dots i { width: 0.62rem; }
+  .acc-dots b { margin-left: 0.35rem; font-size: 1.2rem; }
+  .acc-pl { font-size: 0.85rem; }
+  .acc-head span:last-child { font-size: 0.7rem; white-space: normal; }
+  .acc-pl { font-size: 0.8rem; }
 }

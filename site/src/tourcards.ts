@@ -155,7 +155,7 @@ function odds(ctx: Ctx): Show {
   const one = `1 in ${sig2(f.searched / Math.max(f.found, 1))}`;
   return show(el("div", { class: "m-show" }, c), [
     { at: 0, text: "Noise can fake a dip. So Tessa also searches every light curve upside down." },
-    { at: 4.5, text: `A real dip can't show up as a bump. Upside down, this star's best signal [[score|scores]] ${ctx.star!.gate1.flipped_snr.toFixed(1)}; the right way up, ${ctx.star!.gate1.dip_snr.toFixed(1)}.` },
+    { at: 4.5, text: `Flipped, a real dip becomes a bump, and the search only looks for dips. Noise finds a fake dip either way. This star [[score|scores]] ${ctx.star!.gate1.dip_snr.toFixed(1)} the right way up, ${ctx.star!.gate1.flipped_snr.toFixed(1)} upside down.` },
     { at: 9.5, text: `Doing that on every star sets the bar at ${f.floor}.` },
     { at: 14, text: `Of ${int(f.searched)} stars searched, ${f.pass} cleared the bar.` },
     { at: 19, text: `Code checks ruled out ${f.pass - f.model} of those: stars that eclipse each other, or flicker on their own. ${f.model} went to [[Glimmer]], and ${f.found === 1 ? "one" : int(f.found)} survived: about ${one} stars.` },
@@ -233,8 +233,7 @@ function casefile(ctx: Ctx): Show {
     { at: 0, text: `Finding dips is fast. Checking them is the slow part: ${int(f.waiting)} [[TESS]] [[candidate|candidates]] are still waiting for someone to look.` },
     { at: 5.5, text: "For every dip that survives the code checks, [[Glimmer]] reads the evidence and writes a [[case file]]." },
     { at: 12, text: `Its verdict on ${ctx.host}:` },
-    { at: 17, text: `Every number it writes is checked against the data: ${f.exact} of ${f.files} case files were exact, and the slip was caught. Code makes the final call.` },
-    { at: 22.5, text: `A case file costs about $${f.perFile.toFixed(4)}. The model work for the whole survey: $${f.bill.toFixed(2)}.` },
+    { at: 17, text: `Glimmer runs on its own GPU, not a pay-per-call API. Every other model call in the survey cost $${f.bill.toFixed(2)} in total.` },
   ], (tt, k) => {
     rows.forEach((r, i) => r.classList.toggle("on", k >= 1 && tt >= 5.9 + i * 0.55));
   });

@@ -118,10 +118,32 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     if (n > 1 && done && !err) {
       const secs = (performance.now() - t0) / 1000;
       say(found.length
-        ? `Done: you searched ${stars(done)} in ${mins(secs)}, and ${found.length === 1 ? "one cleared" : `${found.length} cleared`} [[bar|the bar]]: ${found.map((t) => `TIC ${t}`).join(", ")}. Tessa checks ${found.length === 1 ? "it" : "them"} next${who ? `, crediting ${who}` : ""}.`
+        ? `Done: you searched ${stars(done)} in ${mins(secs)}, and ${found.length === 1 ? "one cleared" : `${found.length} cleared`} [[bar|the bar]]: ${found.map((t) => `TIC ${t}`).join(", ")}. The rest of Tessa's checks run on our side${who ? `, crediting ${who}` : ""}.`
         : `Done: you searched ${stars(done)} in ${mins(secs)}. None cleared [[bar|the bar]] this time, which is what most stars do: ${done} fewer to go.`);
     }
+    if (found.length) follow(found, who);
     ctrl.replaceChildren(again(), share(done, found.length));
+  }
+
+  // a star that cleared the bar isn't a planet yet: say what happens next, and offer to write when it's known
+  function follow(tics: number[], who: string) {
+    const one = tics.length === 1, them = one ? "it" : "them";
+    const email = el("input", { class: "s-handle", type: "email", maxlength: 254, placeholder: "you@example.com", "aria-label": "Your email (optional)" }) as HTMLInputElement;
+    const send = el("button", { type: "submit", class: "u-btn" }, "Tell me");
+    const note = el("p", { class: "s-fine" }, "Optional. Used only to tell you how your star turned out, then deleted. Never shown or shared.");
+    const form = el("form", { class: "s-follow" }, email, send);
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!email.value.trim()) return;
+      send.setAttribute("disabled", "");
+      const ok = (await Promise.all(tics.map((tic) => fetch("/api/search/follow", { method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ tic, email: email.value }) }).then((r) => r.ok).catch(() => false)))).every(Boolean);
+      if (ok) { form.remove(); note.textContent = "Thanks: we'll write when it's checked, then delete the address."; return; }
+      note.textContent = "That didn't go through. Check the address and try again.";
+      send.removeAttribute("disabled");
+    });
+    const p = el("p", { class: "s-say" }, ...rich(`Clearing [[bar|the bar]] isn't a planet yet. Your browser ran the search; the code checks, [[Glimmer]]'s call and the season test run on our side, by hand, so it can take a few days. If ${them} becomes a [[candidate]], ${one ? "its" : "their"} page on this site will say so${who ? `, crediting ${who}` : ""}. Want an email when ${one ? "it's" : "they're"} checked?`));
+    log.append(el("div", { class: "s-step" }, el("div", { class: "who" }, el("b", {}, "Tessa"), clock()), el("div", {}, p, form, note)));
   }
 
   // one star: fly to it, describe it, run the search with live progress, show the verdict
@@ -156,7 +178,7 @@ export function searchCard(o: SearchOpts): { node: HTMLElement; dispose(): void 
     periodogram(plot, r.stat, r.g, o.floor, v.dip ? v.dip.period : null);
     if (v.dip) foldPlot(fold, lc, v.dip.period, v.dip.t0, v.dip.dur_h / 24);
     say(head + (v.pass
-      ? `TIC ${star.tic} cleared [[bar|the bar]]: a dip every ${v.dip!.period.toFixed(3)} days, ${Math.round(v.dip!.depth_ppm)} [[ppm]] deep, [[score]] ${v.dip!.snr.toFixed(1)}. Tessa checks it next.`
+      ? `TIC ${star.tic} cleared [[bar|the bar]]: a dip every ${v.dip!.period.toFixed(3)} days, ${Math.round(v.dip!.depth_ppm)} [[ppm]] deep, [[score]] ${v.dip!.snr.toFixed(1)}. Your browser's part is done; the rest of Tessa's checks run on our side.`
       : `${why(v, o.floor, star.tic)} Most stars show no planet we can see, so this is a real result.`));
     return r;
   }

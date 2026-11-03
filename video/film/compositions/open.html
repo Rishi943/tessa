@@ -1,0 +1,109 @@
+<template>
+  <style>
+    #root { position: absolute; inset: 0; overflow: hidden; background: #010208; }
+    #open-cam, .op-layer, #open-fore { position: absolute; left: 0; top: 0; width: 1920px; }
+    #open-cam { height: 1080px; transform-origin: 1198.7px 372.2px; }
+    .op-layer { height: 3000px; }
+    .op-layer img { position: absolute; left: 0; top: 0; width: 1920px; height: 3000px; }
+    #open-glow {
+      background: linear-gradient(180deg, #010208 0%, #030612 45%, #08112a 82%, #142040 93%, #1d2a4a 100%);
+    }
+    #open-fore { height: 1680px; }
+    #open-fore img { position: absolute; left: 0; top: 0; width: 1920px; height: 1680px; }
+    #open-boy { position: absolute; left: 925px; top: 1052px; width: 420px; height: 294px; overflow: visible; }
+    .op-fly {
+      position: absolute; width: 10px; height: 10px; margin: -5px 0 0 -5px; border-radius: 50%;
+      background: radial-gradient(circle, #fff3c4 0%, #ffd27a 30%, rgba(255, 190, 90, 0) 70%);
+    }
+    #open-star {
+      position: absolute; left: 1198.7px; top: 372.2px; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+      border-radius: 50%; background: radial-gradient(circle, #fff 0%, #e8efff 18%, rgba(190, 210, 255, 0.35) 40%, rgba(190, 210, 255, 0) 70%);
+    }
+    #open-orbit { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; overflow: visible; }
+    #open-black { position: absolute; inset: 0; background: #000; }
+  </style>
+  <div data-hf-id="hf-wbpn" id="root" data-composition-id="open" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-0wtn" id="open-cam">
+      <div data-hf-id="hf-9b0j" id="open-glow" class="op-layer"></div>
+      <div data-hf-id="hf-b782" id="open-milky" class="op-layer"><img data-hf-id="hf-j91t" src="assets/sky-milky.png" alt="" /></div>
+      <div data-hf-id="hf-0m5v" id="open-far" class="op-layer"><img data-hf-id="hf-xsa8" src="assets/sky-far.png" alt="" /></div>
+      <div data-hf-id="hf-88na" id="open-near" class="op-layer">
+        <img data-hf-id="hf-uut1" src="assets/sky-near.png" alt="" />
+        <div data-hf-id="hf-q2vy" id="open-star"></div>
+      </div>
+      <div data-hf-id="hf-dxwc" id="open-fore">
+        <img data-hf-id="hf-r7yc" src="assets/tree.svg" alt="" />
+        <img data-hf-id="hf-brkt" src="assets/hill.svg" alt="" />
+        <!-- the boy: sitting against the trunk, facing left, looking up. Head and the near arm are their own groups. -->
+        <svg id="open-boy" viewBox="0 0 200 140">
+          <g fill="none" stroke="#03050b" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M160 134 L170 86" stroke-width="26" />
+            <path d="M154 134 Q120 131 66 135" stroke-width="15" />
+            <path d="M66 135 L60 124" stroke-width="9" />
+            <path d="M150 132 L118 106 L92 135 L80 137" stroke-width="13" />
+          </g>
+          <g id="open-book">
+            <path d="M98 97 L118 105 L138 95 L136 102 L118 112 L100 104 Z" fill="#03050b" />
+            <path d="M168 92 L146 112 L124 105" fill="none" stroke="#03050b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+          <g id="open-head">
+            <path d="M163 74 L168 84" stroke="#03050b" stroke-width="11" stroke-linecap="round" />
+            <circle cx="160" cy="62" r="15" fill="#03050b" />
+            <path d="M146 58 L141 61 L146 64 Z M150 49 Q154 41 163 44 Q172 43 175 51 Q169 46 158 49 Z" fill="#03050b" />
+          </g>
+        </svg>
+        <div data-hf-id="hf-t0lo" class="op-fly" id="open-fly1" style="left: 980px; top: 1290px"></div>
+        <div data-hf-id="hf-bng8" class="op-fly" id="open-fly2" style="left: 1130px; top: 1240px"></div>
+        <div data-hf-id="hf-ou2l" class="op-fly" id="open-fly3" style="left: 1560px; top: 1270px"></div>
+        <div data-hf-id="hf-onis" class="op-fly" id="open-fly4" style="left: 760px; top: 1330px"></div>
+        <div data-hf-id="hf-gz3z" class="op-fly" id="open-fly5" style="left: 1690px; top: 1210px"></div>
+        <div data-hf-id="hf-kg5e" class="op-fly" id="open-fly6" style="left: 1240px; top: 1150px"></div>
+      </div>
+    </div>
+    <!-- a planet that can't be seen: its orbit is drawn, then the planet fades to nothing -->
+    <svg data-hf-id="hf-man7" id="open-orbit" viewBox="0 0 1920 1080">
+      <ellipse data-hf-id="hf-v7td" id="open-ring" cx="960" cy="540" rx="300" ry="78" fill="none" stroke="rgba(94,234,212,0.55)" stroke-width="1.5" stroke-dasharray="3 7" />
+      <circle data-hf-id="hf-ppkf" id="open-planet" cx="1260" cy="540" r="9" fill="#5eead4" />
+    </svg>
+    <div data-hf-id="hf-hcg7" id="open-black"></div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      // fade up from black on the hill
+      tl.fromTo("#open-black", { opacity: 1 }, { opacity: 0, duration: 1.6, ease: "power1.inOut" }, 0);
+      // the camera cranes up past the tree into the sky: the nearer, the further it travels
+      const PAN0 = 2.4, PAN = 8.6;
+      tl.fromTo("#open-fore", { y: -600 }, { y: 1500, duration: PAN, ease: "power2.inOut" }, PAN0);
+      tl.fromTo("#open-near", { y: -1920 }, { y: 0, duration: PAN, ease: "power2.inOut" }, PAN0);
+      tl.fromTo("#open-far", { y: -1720 }, { y: 0, duration: PAN, ease: "power2.inOut" }, PAN0);
+      tl.fromTo("#open-milky", { y: -1520 }, { y: 0, duration: PAN, ease: "power2.inOut" }, PAN0);
+      tl.fromTo("#open-glow", { y: -1920 }, { y: 0, duration: PAN, ease: "power2.inOut" }, PAN0);
+      // the boy: reading, he lifts his head from the book to the sky, and lets the book settle on his knee
+      tl.fromTo("#open-head", { rotation: -22, svgOrigin: "166 80" }, { rotation: 16, duration: 1.6, ease: "power2.inOut" }, 0.9);
+      tl.fromTo("#open-book", { rotation: 0, svgOrigin: "146 112" }, { rotation: 6, duration: 1.2, ease: "power2.inOut" }, 1.3);
+      // fireflies drift and flicker (seeded by index, finite)
+      for (let i = 1; i <= 6; i++) {
+        const s = "#open-fly" + i;
+        tl.fromTo(s, { x: 0, y: 0, opacity: 0 }, { x: (i % 2 ? 1 : -1) * (30 + i * 9), y: -24 - i * 5, duration: 6 + i * 0.7, ease: "sine.inOut" }, 0.2 + i * 0.25);
+        tl.to(s, { opacity: 1, duration: 0.5 + (i % 3) * 0.2, ease: "sine.inOut", repeat: 9, yoyo: true }, 0.4 + i * 0.3);
+      }
+      // into one of Tessa's candidates, TIC 116046773: the star comes to the middle of the frame
+      const Z = 11.2;
+      tl.fromTo("#open-star", { scale: 0.6, opacity: 0 }, { scale: 1, opacity: 1, duration: 1.2, ease: "power2.out" }, Z - 0.6);
+      tl.fromTo("#open-cam", { x: 0, y: 0, scale: 1 }, { x: -238.7, y: 167.8, scale: 2.6, duration: 2.4, ease: "power2.inOut" }, Z);
+      tl.fromTo("#open-far, #open-milky", { opacity: 1 }, { opacity: 0.45, duration: 2.4, ease: "power2.inOut" }, Z);
+      // "planets give off no light of their own": an orbit, a planet on it...
+      tl.fromTo("#open-ring", { opacity: 0, scale: 0.85, svgOrigin: "960 540" }, { opacity: 1, scale: 1, duration: 0.9, ease: "power3.out" }, Z + 2.1);
+      tl.fromTo("#open-planet", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power2.out" }, Z + 2.4);
+      tl.fromTo("#open-planet", { attr: { cx: 1260, cy: 540 } }, {
+        keyframes: [{ attr: { cx: 1172, cy: 595 } }, { attr: { cx: 960, cy: 618 } }, { attr: { cx: 748, cy: 595 } }],
+        duration: 3.0, ease: "none" }, Z + 2.4);
+      // "...from here, they're invisible": the planet fades out, the orbit after it
+      tl.to("#open-planet", { opacity: 0, duration: 1.0, ease: "power2.in" }, Z + 4.1);
+      tl.to("#open-ring", { opacity: 0, duration: 0.8, ease: "power2.in" }, Z + 4.8);
+      tl.to("#open-black", { opacity: 0, duration: 0.01 }, Z + 6.4);
+      window.__timelines["open"] = tl;
+    })();
+  </script>
+</template>

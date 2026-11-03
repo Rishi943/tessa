@@ -1,0 +1,94 @@
+{
+ "note": "The demo video's narration, one entry per scene, sentences as spoken (numbers spelled for the voice). Placeholders for batches 6-8: 'seventy-six thousand' stars and 'seven' candidates. video/voice.py voices it with Breeze. The disclosure is a silent 5 s title card before 02-hook: 'Before this hackathon, I'd hand-written scripts that found one planet candidate. None of that code is used here. Everything you'll see was built during this hackathon.' The close (animation: back to the tree, the candidates lit, 'Happy searching. And don't forget to look up.' on screen, unspoken, then the URL) starts under the last line. App footage scenes (05 onwards except 13, and 03 from the site's How it works tour) carry a small 'Real app footage' label.",
+ "scenes": [
+  {
+   "id": "02-hook",
+   "footage": "animation: boy under a tree, pan up into the survey's real stars",
+   "lines": [
+    "Have you ever looked up at the night sky, and wondered how many of those stars have planets of their own?",
+    "Our galaxy holds hundreds of billions of stars, and most of them likely have at least one planet.",
+    "But planets give off no light of their own. From here, they're invisible."
+   ]
+  },
+  {
+   "id": "03-problem",
+   "footage": "site: How it works tour, the dip",
+   "lines": [
+    "There is a way to see them. When a planet crosses in front of its star, the star dims, just a little.",
+    "NASA's TESS telescope has watched almost the whole sky.",
+    "But the dips are faint, most are fakes, and too few people can check them."
+   ]
+  },
+  {
+   "id": "05-map",
+   "footage": "site: 3D map",
+   "lines": [
+    "So I built Tessa.",
+    "She has searched seventy-six thousand stars, and found seven new planet candidates, each with a case file anyone can read."
+   ]
+  },
+  {
+   "id": "06-search",
+   "footage": "localhost /run: search",
+   "lines": [
+    "Here's one, live on my laptop.",
+    "Tessa tries over two hundred thousand orbits, and finds a dip every day and a half.",
+    "It clears the bar, set by searching the light flipped upside down, where any dip can only be noise."
+   ]
+  },
+  {
+   "id": "07-impostors",
+   "footage": "localhost /run: code checks, with impostor cards beside it",
+   "lines": [
+    "Most dips aren't planets. They're impostors: two stars eclipsing, starspots, or a neighbour's light.",
+    "Code checks for each.",
+    "To rank the survivors, I trained an X G Boost model. It scores this one low. On its own, it would have thrown this planet away.",
+    "But Tessa doesn't stop there. She investigates."
+   ]
+  },
+  {
+   "id": "08-glimmer",
+   "footage": "localhost /run: Glimmer's tool calls and verdict",
+   "lines": [
+    "The call goes to Muse Glimmer, which I fine-tuned on seven hundred and forty-five investigations written by Muse Spark Open.",
+    "Glimmer reads the evidence, decides which measurements it needs, calls those tools itself, and writes a case file with its reasons.",
+    "Its verdict: a planet, about three times the size of Earth."
+   ]
+  },
+  {
+   "id": "09-triceratops",
+   "footage": "localhost /run: TRICERATOPS live",
+   "lines": [
+    "Then TRICERATOPS asks: could anything else make this dip, like one of three hundred nearby stars?",
+    "Here, the chance of a false alarm is under one percent.",
+    "And I made it ten times faster, without losing any accuracy."
+   ]
+  },
+  {
+   "id": "10-accuracy",
+   "footage": "site: results section (to be redesigned to match)",
+   "lines": [
+    "So how accurate is Tessa?",
+    "I tested her on five hundred and seventy-nine past TESS signals with known answers.",
+    "When Tessa says planet, she's right ninety-two percent of the time. And she raised fewer than half the false alarms of NASA's ExoMiner plus plus."
+   ]
+  },
+  {
+   "id": "11-join",
+   "footage": "site: Search a star, then Ask Tessa",
+   "lines": [
+    "Anyone can join in at tessa dot brave A I dot solutions.",
+    "Search a star in your browser, and ask Tessa's guide, built on Muse Spark, anything."
+   ]
+  },
+  {
+   "id": "12-prediction",
+   "footage": "site: TIC 9066956's case file",
+   "lines": [
+    "This is one of her candidates, around a small red star, two hundred and ninety light-years away.",
+    "If it's a planet, its star will dim again on the fifth of November.",
+    "Now the sky gets to answer."
+   ]
+  }
+ ]
+}

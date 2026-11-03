@@ -1,0 +1,106 @@
+<template>
+  <style>
+    @font-face { font-family: "Archivo"; src: url("assets/fonts/archivo.woff2") format("woff2"); font-weight: 300 700; }
+    @font-face { font-family: "Courier Prime"; src: url("assets/fonts/courier-400.woff2") format("woff2"); font-weight: 400; }
+    #root { position: absolute; inset: 0; overflow: hidden; background: #010208; }
+    .cl-layer, #cl-fore { position: absolute; left: 0; top: 0; width: 1920px; }
+    .cl-layer { height: 3000px; }
+    .cl-layer img { position: absolute; left: 0; top: 0; width: 1920px; height: 3000px; }
+    #cl-glow { background: linear-gradient(180deg, #010208 0%, #030612 45%, #08112a 82%, #142040 93%, #1d2a4a 100%); }
+    #cl-fore { height: 1680px; }
+    #cl-fore img { position: absolute; left: 0; top: 0; width: 1920px; height: 1680px; }
+    #cl-boy { position: absolute; left: 925px; top: 1052px; width: 420px; height: 294px; overflow: visible; }
+    .cl-cand { position: absolute; width: 0; height: 0; }
+    .cl-cand i {
+      position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%;
+      background: radial-gradient(circle, #fff6e0 0%, #ffd28a 16%, rgba(196, 135, 26, 0.55) 34%, rgba(196, 135, 26, 0) 70%);
+    }
+    .cl-cand span {
+      position: absolute; left: 22px; top: -9px; white-space: nowrap; color: #ffd28a;
+      font: 400 24px/1 "Courier Prime", monospace; letter-spacing: 0.06em;
+    }
+    #cl-happy { font: 500 58px/1.2 Archivo, sans-serif; color: #ffd28a; letter-spacing: -0.01em; margin-bottom: 44px; }
+    #cl-end { position: absolute; left: 150px; top: 300px; text-align: left; color: #ECEBE6; }
+    #cl-url { font: 600 84px/1 Archivo, sans-serif; letter-spacing: -0.02em; }
+    #cl-url b { color: #5eead4; font-weight: 600; }
+    #cl-sub { margin-top: 26px; font: 400 30px/1.6 "Courier Prime", monospace; color: #c4c3bd; }
+    #cl-black { position: absolute; inset: 0; background: #000; }
+  </style>
+  <div data-hf-id="hf-4xhx" id="root" data-composition-id="close" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-kpiy" id="cl-cam">
+      <div data-hf-id="hf-feiw" id="cl-glow" class="cl-layer"></div>
+      <div data-hf-id="hf-c2pb" id="cl-milky" class="cl-layer"><img data-hf-id="hf-j91t" src="assets/sky-milky.png" alt="" /></div>
+      <div data-hf-id="hf-qtse" id="cl-far" class="cl-layer"><img data-hf-id="hf-xsa8" src="assets/sky-far.png" alt="" /></div>
+      <div data-hf-id="hf-ztxd" id="cl-near" class="cl-layer">
+        <img data-hf-id="hf-uut1" src="assets/sky-near.png" alt="" />
+        <div data-hf-id="hf-fux3" class="cl-cand" id="cl-c116046773" style="left: 1198.7px; top: 372.2px"><i data-hf-id="hf-wt6k"></i><span data-hf-id="hf-z5hm">TIC 116046773</span></div>
+        <div data-hf-id="hf-j20j" class="cl-cand" id="cl-c71503196" style="left: 1458.3px; top: 1601.8px"><i data-hf-id="hf-zeb8"></i><span data-hf-id="hf-rgcb">TIC 71503196</span></div>
+        <div data-hf-id="hf-m5d6" class="cl-cand" id="cl-c321290256" style="left: 448.5px; top: 1632.1px"><i data-hf-id="hf-y7e5"></i><span data-hf-id="hf-zqzz">TIC 321290256</span></div>
+        <div data-hf-id="hf-isf9" class="cl-cand" id="cl-c9066956" style="left: 1826.5px; top: 1655.3px"><i data-hf-id="hf-ylp6"></i><span data-hf-id="hf-1keg">TIC 9066956</span></div>
+        <div data-hf-id="hf-l9vd" class="cl-cand" id="cl-c50099421" style="left: 118.7px; top: 1766.0px"><i data-hf-id="hf-0l8b"></i><span data-hf-id="hf-fny3">TIC 50099421</span></div>
+        <div data-hf-id="hf-pvki" class="cl-cand" id="cl-c61220826" style="left: 925.8px; top: 2119.8px"><i data-hf-id="hf-0zjc"></i><span data-hf-id="hf-mumg">TIC 61220826</span></div>
+        <div data-hf-id="hf-ur5o" class="cl-cand" id="cl-c166321785" style="left: 779.3px; top: 2404.1px"><i data-hf-id="hf-zsm9"></i><span data-hf-id="hf-mbd6">TIC 166321785</span></div>
+      </div>
+      <div data-hf-id="hf-wwvr" id="cl-fore">
+        <img data-hf-id="hf-r7yc" src="assets/tree.svg" alt="" />
+        <img data-hf-id="hf-brkt" src="assets/hill.svg" alt="" />
+        <svg id="cl-boy" viewBox="0 0 200 140">
+          <g fill="none" stroke="#03050b" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M160 134 L170 86" stroke-width="26" />
+            <path d="M154 134 Q120 131 66 135" stroke-width="15" />
+            <path d="M66 135 L60 124" stroke-width="9" />
+            <path d="M150 132 L118 106 L92 135 L80 137" stroke-width="13" />
+          </g>
+          <g id="cl-book">
+            <path d="M98 97 L118 105 L138 95 L136 102 L118 112 L100 104 Z" fill="#03050b" />
+            <path d="M168 92 L146 112 L124 105" fill="none" stroke="#03050b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+          </g>
+          <g id="cl-head" transform="rotate(16 166 80)">
+            <path d="M163 74 L168 84" stroke="#03050b" stroke-width="11" stroke-linecap="round" />
+            <circle cx="160" cy="62" r="15" fill="#03050b" />
+            <path d="M146 58 L141 61 L146 64 Z M150 49 Q154 41 163 44 Q172 43 175 51 Q169 46 158 49 Z" fill="#03050b" />
+          </g>
+        </svg>
+      </div>
+    </div>
+    <div data-hf-id="hf-w8j0" id="cl-end">
+      <div id="cl-happy">Happy searching.<br />And don't forget to look up.</div>
+      <div data-hf-id="hf-0zzc" id="cl-url">tessa.<b data-hf-id="hf-a5qj">braveai</b>.solutions</div>
+      <div data-hf-id="hf-wdc9" id="cl-sub">Open weights: huggingface.co/rushi-brave/glimmer-vetter-v10<br data-hf-id="hf-x5px" />Built with Muse Spark Open</div>
+    </div>
+    <div data-hf-id="hf-ro2i" id="cl-black"></div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      // in from the case file: the sky where the open left it
+      tl.fromTo("#cl-black", { opacity: 1 }, { opacity: 0, duration: 0.6, ease: "power2.out" }, 0);
+      const D = 8.74;  // set by build.py: the close runs from under the last line to the film's end
+      // her candidates light up in amber as the camera comes back down to the tree
+      const P0 = 0.5, P = D - 4.1;
+      tl.fromTo("#cl-near", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
+      tl.fromTo("#cl-far", { y: 0 }, { y: -1720, duration: P, ease: "power2.inOut" }, P0);
+      tl.fromTo("#cl-milky", { y: 0 }, { y: -1520, duration: P, ease: "power2.inOut" }, P0);
+      tl.fromTo("#cl-glow", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
+      tl.fromTo("#cl-fore", { y: 1500 }, { y: -600, duration: P, ease: "power2.inOut" }, P0);
+      const light = (tic, y) => {
+        const at = P0 + 0.1 + (y / 3000) * P * 0.85;
+        tl.fromTo(`#cl-c${tic} i`, { scale: 0.3, opacity: 0 }, { scale: 1, opacity: 1, duration: 0.9, ease: "expo.out" }, at);
+        tl.fromTo(`#cl-c${tic} span`, { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, at + 0.15);
+      };
+      light("116046773", 372.2);
+      light("71503196", 1601.8);
+      light("321290256", 1632.1);
+      light("9066956", 1655.3);
+      light("50099421", 1766.0);
+      light("61220826", 2119.8);
+      light("166321785", 2404.1);
+      // on screen, not spoken: the sign-off, then the way in
+      tl.fromTo("#cl-happy", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, D - 4.3);
+      tl.fromTo("#cl-url, #cl-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out", stagger: 0.12 }, D - 2.9);
+      tl.to(".cl-cand span", { opacity: 0, duration: 0.3, ease: "power2.in" }, D - 4.6);  // the labels clear for the words
+      tl.to("#cl-black", { opacity: 1, duration: 0.6, ease: "power1.in" }, D - 0.7);
+      window.__timelines["close"] = tl;
+    })();
+  </script>
+</template>

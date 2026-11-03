@@ -65,7 +65,7 @@ export async function home(main: HTMLElement) {
     }));
   });
 
-  main.append(await candidates(dips), method(summary, dips, searched), dipList(dips), footer());
+  main.append(await candidates(dips), method(summary, dips, searched), accuracy(), dipList(dips), footer());
 }
 
 const words = (k: number) => ["No", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine"][k] ?? int(k);
@@ -173,6 +173,55 @@ function method(summary: Summary, dips: Dip[], searched: number): HTMLElement {
     steps,
     el("p", { class: "costline" }, `Meta Model API cost for the whole search so far: ${usd(total)}, or ${usd((total / searched) * 1000)} per thousand stars `
       + "searched. Glimmer runs on Tessa's own rented GPU, paid by the hour, not per call.")));
+}
+
+// How accurate is Tessa: the held-out test (README, "On known TESS candidates"; printed by python -m finetune.exo_bench).
+// Fixed numbers: the test split was scored once, after every choice was made.
+const TEST = { planets: 297, fps: 282, passed_planets: 213, passed_fps: 18 };
+const VS = { planets: 70, fps: 94, tessa: { planets: 50, fps: 3 }, exominer: { planets: 55, fps: 7 } };
+
+function accuracy(): HTMLElement {
+  const calls = TEST.passed_planets + TEST.passed_fps;
+  const pct = Math.round((100 * TEST.passed_planets) / calls);
+  const waffle = el("div", { class: "acc-waffle", role: "img",
+    "aria-label": `${calls} planet calls: ${TEST.passed_planets} were planets, ${TEST.passed_fps} were false alarms` });
+  for (let i = 0; i < calls; i++) {
+    const fp = i >= TEST.passed_planets;
+    waffle.append(el("i", { class: fp ? "fp" : "", style: `--i:${i}`,
+      title: fp ? "A false alarm: Tessa said planet, follow-up said no" : "A planet: Tessa said planet, follow-up agreed" }));
+  }
+  const key = (cls: string, label: string) => el("span", { class: "acc-key" }, el("i", { class: cls }), label);
+  const row = (who: string, r: { planets: number; fps: number }, ours = false) =>
+    el("div", { class: `acc-row${ours ? " ours" : ""}` },
+      el("span", { class: "acc-who" }, who),
+      el("span", { class: "acc-dots", title: `${r.fps} false alarms out of ${VS.fps}` },
+        ...Array.from({ length: r.fps }, () => el("i", { class: "fp" })), el("b", {}, `${r.fps}`)),
+      el("span", { class: "acc-pl" }, `${r.planets} of ${VS.planets}`));
+  const box = el("div", { class: "acc" },
+    el("div", { class: "acc-main" },
+      el("p", { class: "acc-hero" }, el("b", {}, `${pct}%`), el("span", {}, "When Tessa says planet, she's right this often")),
+      waffle,
+      el("p", { class: "acc-keys" }, key("", `a planet (${TEST.passed_planets})`), key("fp", `a false alarm (${TEST.passed_fps})`)),
+      el("p", { class: "acc-note" }, `Each square is one of her ${calls} planet calls. She let through ${Math.round((100 * TEST.passed_planets) / TEST.planets)}% of the real planets `
+        + `(${TEST.passed_planets} of ${TEST.planets}) and ${(100 * TEST.passed_fps / TEST.fps).toFixed(1)}% of the false positives (${TEST.passed_fps} of ${TEST.fps}). `
+        + "A planet she misses is a lost candidate, not a false claim.")),
+    el("div", { class: "acc-vs" },
+      el("h3", {}, "Against NASA's ExoMiner++"),
+      el("p", { class: "acc-sub" }, `On the ${VS.planets + VS.fps} test signals ExoMiner++ 2.0 also scored: ${VS.planets} planets, ${VS.fps} false positives.`),
+      el("div", { class: "acc-head" }, el("span", {}, ""), el("span", {}, "False alarms"), el("span", {}, "Planets passed")),
+      row("Tessa", VS.tessa, true), row("ExoMiner++", VS.exominer),
+      el("p", { class: "acc-note" }, "Tessa raised fewer than half the false alarms, and that holds up: the 95% bootstrap interval for the difference is "
+        + "−8.5 to −1.1 points. ExoMiner++ passed 5 more planets, a gap within the noise (−20 to +5.7 points). It also reads TESS's "
+        + "2-minute data; Tessa uses only the full-frame images, so she can vet stars that were never 2-minute targets.")));
+  const sec = el("section", { class: "section", id: "accuracy" }, el("div", { class: "inner" },
+    el("h2", {}, "How accurate is Tessa?"),
+    el("p", { class: "intro" }, `Tested on ${TEST.planets + TEST.fps} past TESS signals whose fate telescopes have since settled: ${TEST.planets} planets and `
+      + `${TEST.fps} false positives. None were used to train or tune her, and they were scored once, at the end.`),
+    box));
+  // the squares fill in when the section comes into view
+  const io = new IntersectionObserver((es) => { if (es.some((e) => e.isIntersecting)) { sec.classList.add("in"); io.disconnect(); } }, { threshold: 0.35 });
+  io.observe(sec);
+  return sec;
 }
 
 function dipList(dips: Dip[]): HTMLElement {

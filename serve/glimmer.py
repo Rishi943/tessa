@@ -4,6 +4,7 @@
 # and it writes each token faster, so a batch costs no more and ends sooner. The container scales to zero
 # five minutes after the last request, so a batch pays only for the minutes it runs.
 #   modal run serve/glimmer.py::download   # once: weights into a Modal volume (CPU, no GPU time)
+#   modal run serve/glimmer.py::adapter --repo HF_USER/glimmer-vetter-v10   # once: Glimmer v10's published adapter
 #   modal deploy serve/glimmer.py          # prints the URL; set GLIMMER_URL to it in .env
 #   GLIMMER_GPU=H100 modal deploy serve/glimmer.py   # same URL, the bigger GPU
 # The endpoint checks GLIMMER_API_KEY from the Modal secret "glimmer-key" (same value in .env).
@@ -69,5 +70,16 @@ def serve():
 @modal.concurrent(max_inputs=SEQS)
 @modal.web_server(port=8000, startup_timeout=20 * 60)
 def vetter():
-    vllm("--enable-lora", "--lora-modules", "glimmer-vetter=/ft/glimmer-vetter",
-         "glimmer-vetter-v10=/ft/glimmer-vetter-v10", "--max-lora-rank", "16")
+    # v10 is the published adapter (modal run serve/glimmer.py::adapter fetches it); older ones load only if present
+    mods = ["glimmer-vetter-v10=/ft/glimmer-vetter-v10"] + [f"{n}=/ft/{n}" for n in ("glimmer-vetter",) if os.path.isdir(f"/ft/{n}")]
+    vllm("--enable-lora", "--lora-modules", *mods, "--max-lora-rank", "16")
+
+
+# Glimmer v10's published weights from Hugging Face into the adapter volume, so anyone can serve the same model:
+#   modal run serve/glimmer.py::adapter --repo HF_USER/glimmer-vetter-v10
+@app.function(image=image, volumes={"/ft": ft}, timeout=30 * 60)
+def adapter(repo: str):
+    from huggingface_hub import snapshot_download
+
+    snapshot_download(repo, local_dir="/ft/glimmer-vetter-v10")
+    ft.commit()

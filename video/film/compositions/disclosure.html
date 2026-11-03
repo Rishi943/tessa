@@ -1,0 +1,28 @@
+<template>
+  <style>
+    @font-face { font-family: "Archivo"; src: url("assets/fonts/archivo.woff2") format("woff2"); font-weight: 300 700; }
+    @font-face { font-family: "Courier Prime"; src: url("assets/fonts/courier-400.woff2") format("woff2"); font-weight: 400; }
+    #root { position: absolute; inset: 0; background: #0b0b0a; display: flex; align-items: center; justify-content: center; }
+    #dis-text { width: 1180px; color: #ECEBE6; font: 400 44px/1.45 Archivo, sans-serif; letter-spacing: -0.01em; }
+    #dis-text p { margin: 0 0 28px; }
+    #dis-text b { font-weight: 600; color: #5eead4; }
+    #dis-k { color: #9C9B95; font: 400 28px/1 "Courier Prime", monospace; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 36px; }
+  </style>
+  <div data-hf-id="hf-uycy" id="root" data-composition-id="disclosure" data-width="1920" data-height="1080">
+    <div data-hf-id="hf-46kp" id="dis-text">
+      <div data-hf-id="hf-uu35" id="dis-k">Before this hackathon</div>
+      <p data-hf-id="hf-wuzf" id="dis-p1">I'd hand-written scripts that found one planet candidate. None of that code is used here.</p>
+      <p data-hf-id="hf-9pub" id="dis-p2"><b data-hf-id="hf-tbxu">Everything you'll see was built during this hackathon.</b></p>
+    </div>
+  </div>
+  <script>
+    (function () {
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo("#dis-k", { opacity: 0 }, { opacity: 1, duration: 0.3, ease: "power2.out" }, 0.2);
+      tl.fromTo("#dis-p1", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 0.35);
+      tl.fromTo("#dis-p2", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, 1.6);
+      tl.to("#dis-text", { opacity: 0, filter: "blur(6px)", duration: 0.25, ease: "power2.in" }, 4.7);
+      window.__timelines["disclosure"] = tl;
+    })();
+  </script>
+</template>

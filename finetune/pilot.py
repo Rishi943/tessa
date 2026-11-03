@@ -125,7 +125,7 @@ def views(chosen: list[dict], version: str, score: bool = False) -> dict[str, st
 
 
 def investigate(system: str, user: str, specs: list[dict], answers: dict, model: str = "spark-open",
-                keep: bool = False) -> dict:
+                keep: bool = False, on_call=None) -> dict:
     """The tool loop. With keep, the record also holds the complete messages list: every assistant turn with its
     reasoning and tool_calls, every tool result, the final answer."""
     messages = [{"role": "system", "content": system}, {"role": "user", "content": user}]
@@ -151,6 +151,8 @@ def investigate(system: str, user: str, specs: list[dict], answers: dict, model:
         for call in calls:
             name = call["function"]["name"]
             used.append(name)
+            if on_call:  # tools/demo.py --events shows each call as it happens
+                on_call(name, call["function"].get("arguments"), answers.get(name))
             messages.append({"role": "tool", "tool_call_id": call["id"],
                              "content": json.dumps(answers.get(name, {"error": f"no tool called {name}"}))})
             trace.append(messages[-1])

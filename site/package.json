@@ -5,6 +5,7 @@
   "scripts": {
     "data": "node scripts/copy-data.mjs",
     "dev": "npm run data && vite",
+    "local": "npm run data && node scripts/local.mjs",
     "build": "npm run data && vite build",
     "check": "tsc --noEmit && tsc --noEmit -p worker",
     "preview": "npm run build && wrangler dev",

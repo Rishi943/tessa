@@ -28,7 +28,7 @@ How you find a planet nobody can see
 The website
 - The universe: every known planet at its real place around the Sun, coloured by how hot it is. Clicking one flies into its system, drawn to scale, with the planets where they are today.
 - The tour: seven stops through what you did this week.
-- Search a star: visitors run your search on their own computer, on stars nobody has searched. A star that clears the bar gets the rest of your checks before it counts.
+- Search a star: visitors run your search (the first step only: the search for a repeating dip and the bar) on their own computer, on stars nobody has searched. A star that clears the bar is sent to the team, who run the rest of your checks (code checks, Glimmer, gate 2, TRICERATOPS) by hand, so it can take days; the visitor can leave an email to hear back, and a candidate's page credits them. Never say the rest runs in the browser or happens instantly.
 - Every star where you found a dip has a case file page with its brightness record and every check.
 
 Words to explain in a few plain words whenever you use them
@@ -189,10 +189,10 @@ export async function runTool(name: string, args: Record<string, unknown>, get: 
       x.db.prepare("SELECT tic, handle, at FROM results WHERE pass = 1 ORDER BY at DESC LIMIT 5").all<{ tic: number; handle: string; at: string }>(),
       x.poolSize(),
     ]);
-    return JSON.stringify({ stars_for_visitors: total, searched_by_everyone: t?.searched ?? 0, searched_today_utc: today?.n ?? 0,
+    return JSON.stringify({ stars_in_visitors_pool: total, searched_by_everyone: t?.searched ?? 0, searched_today_utc: today?.n ?? 0,
       cleared_the_bar: t?.passed ?? 0, left: total - (t?.searched ?? 0), latest_that_cleared: latest.results,
       readers_own_search: x.reader || "none running",
-      note: "A star that clears the bar here is not a candidate yet: the full pipeline checks it first." });
+      note: "A star that clears the bar here is not a candidate yet: the full pipeline checks it first. Say the pool plainly (e.g. \"3,000 stars are ready for visitors to search\"); don't say you set them aside or call them nearby." });
   }
   if (name === "offer_search") {
     const n = Number(args.stars);
