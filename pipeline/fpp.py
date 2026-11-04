@@ -70,7 +70,9 @@ def classify(fpp: float | None, nfpp: float | None) -> str:
 
 def candidate(tic: int) -> tuple[dict, dict]:
     from .tools import BATCHES
-    for vet_dir, _ in BATCHES.values():
+    # the v10 vetting (data/vet/<batch>_v10) first, as the site exports it; the earlier folders after
+    dirs = [d.with_name(d.name + "_v10") for d, _ in BATCHES.values()] + [d for d, _ in BATCHES.values()]
+    for vet_dir in dirs:
         path = vet_dir / "candidates" / f"{tic}.json"
         if path.exists():
             return json.loads(path.read_text(encoding="utf-8")), json.loads((vet_dir / f"{tic}.json").read_text(encoding="utf-8"))

@@ -52,6 +52,21 @@ SCENARIOS = {
 }
 
 
+def pm(f: dict) -> str:
+    """The run-to-run spread, when there was more than one run."""
+    return f"&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f}" if f.get("n_runs", 1) > 1 else ""
+
+
+def credits(c: dict) -> list[str]:
+    """Other searches that reported this signal (pipeline/reported.py), as the site names them."""
+    from .reported import credit
+    out = []
+    for x in (c.get("novelty") or {}).get("reported") or []:
+        if credit(x["list"]) not in out:
+            out.append(credit(x["list"]))
+    return out
+
+
 def kind(teff: float) -> str:
     return "M" if teff < 3900 else "K" if teff < 5300 else "G" if teff < 6000 else "F"
 
@@ -62,7 +77,9 @@ def load(tic: int) -> dict:
     cand, vet = candidate(tic)
     checks, raw, lc = light_curve(tic)
     v = json.loads((DATA / "validation" / f"{tic}.json").read_text(encoding="utf-8"))
-    fpp_path = DATA / "fpp" / f"fpp_{tic}.json"
+    # the survey's TRICERATOPS run, as the site shows it (pipeline/export.py: a later fpp_out folder wins); else data/fpp
+    runs = sorted((DATA / "survey_v10").glob(f"fpp_out*/fpp_{tic}.json"), key=lambda q: q.parent.name)
+    fpp_path = runs[-1] if runs else DATA / "fpp" / f"fpp_{tic}.json"
     fpp = json.loads(fpp_path.read_text(encoding="utf-8")) if fpp_path.exists() else None
     return {"cand": cand, "checks": vet.get("checks", vet), "raw": raw, "lc": lc, "val": v, "fpp": fpp if fpp and "error" not in fpp else None}
 
@@ -233,12 +250,12 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     if flip.get("flipped_snr"):
         tests.append(f"the identical search on this star's upside-down light curve finds nothing stronger than SNR {flip['flipped_snr']:.1f}, against {flip['dip_snr']:.1f} for the dip;")
     if passed:  # a test passed; short of validation, the bullet says so
-        tests.append(f"TRICERATOPS gives FPP = {f['FPP_mean']:.3f} &plusmn; {f['FPP_std']:.3f} and NFPP = {f['NFPP_mean']:.1e}"
+        tests.append(f"TRICERATOPS gives FPP = {f['FPP_mean']:.3f}{pm(f)} and NFPP = {f['NFPP_mean']:.1e}"
                      + (", below the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)." if fclass == "validated"
                         else ": a likely planet (FPP &lt; 0.5 and NFPP &lt; 0.001; Giacalone et al. 2021), short of the statistical-validation bar (FPP &lt; 0.015, NFPP &lt; 0.001)."))
     fpp_note = ""
     if near_open:  # FPP alone looks good, but a nearby star isn't excluded: said outside the list of passed tests
-        fpp_note = (f" TRICERATOPS gives FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f}, but NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e} "
+        fpp_note = (f" TRICERATOPS gives FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}{pm(f)}, but NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e} "
                     "is above the 0.001 that the &ldquo;likely planet&rdquo; class also requires (Giacalone et al. 2021): by that test a nearby star "
                     "is not yet excluded as the source.")
     elif f and not passed:
@@ -252,10 +269,13 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         + ("The signal passes every test available to us:" if passed or not f else "The signal passes these tests:")
         + "<ul>" + "".join(f"<li>{t[:-1] + '.' if i == len(tests) - 1 else t}</li>" for i, t in enumerate(tests)) + "</ul>"
         + fpp_note.strip() + (" " if fpp_note else "")
-        + f"The candidate matches no known planet, TOI, CTOI, catalogued eclipsing binary or variable star. We give an ephemeris and predicted transit times "
+        + f"The candidate matches no known planet, TOI, CTOI, catalogued eclipsing binary or variable star"
+        + (f". Other searches have also reported it ({'; '.join(n for n, _ in credits(c))}); Tessa found it independently, and this note "
+           "adds its own vetting and predictions" if credits(c) else ", nor any signal in the published candidate lists we checked")
+        + f". We give an ephemeris and predicted transit times "
         f"(timing uncertainty &asymp;{when['timing_err_now_min']:.0f}&nbsp;min)"
-        + (f" for <i>TESS</i> Sector {nxt['sector']}, which observes the star from {nxt['start']} to {nxt['end']}," if nxt else "")
-        + " and for ground-based observations, and set out in advance the criterion by which new data will test the prediction.")
+        + (f" for <i>TESS</i> Sector {nxt['sector']}, which observes the star from {nxt['start']} to {nxt['end']}, and" if nxt else "")
+        + " for ground-based observations, and set out in advance the criterion by which new data will test the prediction.")
 
     star_rows = [["TIC", tic], ["Gaia DR3", gaia["source_id"]], ["RA, Dec (J2000, deg)", f"{star['ra']:.5f}, {star['dec']:.5f}"],
                  ["<i>TESS</i> magnitude", f"{star['tmag']:.2f}"], ["<i>T</i><sub>eff</sub>", f"{star['teff']:.0f} K"],
@@ -298,9 +318,9 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     fpp_par = ""
     if f:
         scen = sorted(f["scenarios_mean"].items(), key=lambda kv: -kv[1])[:5]
-        fpp_par = (f"<p><b>TRICERATOPS.</b> With TRICERATOPS {e(f['triceratops'])} (Giacalone et al. 2021), {f['n_runs']} independent runs of "
+        fpp_par = (f"<p><b>TRICERATOPS.</b> With TRICERATOPS {e(f['triceratops'])} (Giacalone et al. 2021), {'one run' if f['n_runs'] == 1 else str(f['n_runs']) + ' independent runs'} of "
                    f"{f['n_sim']:,} draws per scenario, " + (f"apertures from the TESS-SPOC sectors ({', '.join(map(str, f['geometry_sectors']))}; current TESScut cutouts no longer record their CCD origin, so it was taken from the same TESS-SPOC files)" if f.get('aperture', 'TESS-SPOC') == 'TESS-SPOC' else f"a circular {2:.0f}-pixel aperture (no TESS-SPOC sector exists for this star)") + " and the folded "
-                   f"10-minute light curve of sectors {', '.join(map(str, f['lc_sectors']))}, we find FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}&nbsp;&plusmn;&nbsp;{f['FPP_std']:.3f} "
+                   f"10-minute light curve of sectors {', '.join(map(str, f['lc_sectors']))}, we find FPP&nbsp;=&nbsp;{f['FPP_mean']:.3f}{pm(f)} "
                    f"and NFPP&nbsp;=&nbsp;{f['NFPP_mean']:.1e}. The most probable scenarios are "
                    + "; ".join(f"{s}, {SCENARIOS.get(s, s)} ({p:.3f})" for s, p in scen) + ". "
                    + ("This meets the usual statistical-validation bar (FPP&nbsp;&lt;&nbsp;0.015, NFPP&nbsp;&lt;&nbsp;0.001)." if fclass == "validated"
@@ -316,8 +336,8 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
     grounds = when.get("ground") or []
     snr = when.get("ground_snr_per_transit") or {}
     rule = (f"<p><b>Test, set out in advance.</b> Fold the new data on this ephemeris without refitting and measure the box depth at the predicted times "
-            f"(duration {eph['t14_h']:.2f}&nbsp;h). From the SNR per transit in the existing data ({per_transit:.1f}), "
-            + (f"Sector {nxt['sector']}'s {nxt['transits']} transits should give SNR &asymp;&nbsp;{expect:.0f}. " if expect else "")
+            f"(duration {eph['t14_h']:.2f}&nbsp;h). The SNR per transit in the existing data is {per_transit:.1f}"
+            + (f", so Sector {nxt['sector']}'s {nxt['transits']} transits should give SNR &asymp;&nbsp;{expect:.0f}. " if expect else ". ")
             + f"We will consider the prediction <b>confirmed</b> if the dip appears with SNR&nbsp;&ge;&nbsp;5 and a depth within 2&sigma; of {sig['depth_ppm']:.0f}&nbsp;ppm, "
             f"and <b>refuted</b> if the data reach the expected sensitivity and show SNR&nbsp;&lt;&nbsp;2 at the predicted times (within &plusmn;3&sigma; of the timing). "
             "A colour-dependent depth would point to a blended eclipsing binary. Becoming a planet needs repeated on-time transits and a mass from radial velocities.</p>")
@@ -423,7 +443,8 @@ def write(tic: int) -> Path:
             f"DESCRIPTION\n{plain.strip()}\n\nFiles: the preprint (PDF); every predicted transit to {UNTIL}, with ground-site observability (CSV); "
             f"and the candidate parameters (JSON).\n\nKEYWORDS\nexoplanets\nTESS\ntransiting planet candidate\nTIC {tic}\n{kind(c['star']['teff'])} dwarf\n"
             f"transit photometry\n\nRELATED WORKS\nRelation: Is supplemented by\nIdentifier: {REPO}\nResource type: Software\n\n"
-            "RESOURCE TYPE: Publication / Preprint\nCREATOR: Barve, Rushikesh (Brave AI Solutions)\nLICENCE: Creative Commons Attribution 4.0 International\n")
+            + "".join(f"Relation: References\nIdentifier: {i}\nNote: also reported this signal ({n})\n\n" for n, i in credits(c) if i)
+            + "RESOURCE TYPE: Publication / Preprint\nCREATOR: Barve, Rushikesh (Brave AI Solutions)\nLICENCE: Creative Commons Attribution 4.0 International\n")
     (folder / "zenodo_description.txt").write_text(desc, encoding="utf-8")
     return folder
 

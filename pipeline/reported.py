@@ -139,6 +139,26 @@ def build(out_dir: str) -> None:
     print(f"{len(table)} rows from {table['list'].nunique()} lists", flush=True)
 
 
+# How a preprint or a page names each list, and the identifier to cite: (prefix of the list's label, name, identifier)
+CREDITS = [
+    ("eumemic", "eumemic/exoplanets (GitHub)", "https://github.com/eumemic/exoplanets"),
+    ("RAVEN", "RAVEN (Zenodo 19661443)", "https://doi.org/10.5281/zenodo.19661443"),
+    ("T16", "Roth et al. 2026 (T16)", None),
+    ("ExoMiner++ 2.0", "the ExoMiner++ 2.0 catalogue (Zenodo 17707413)", "https://doi.org/10.5281/zenodo.17707413"),
+    ("ExoMiner++", "the ExoMiner++ catalogue (Zenodo 15466293)", "https://doi.org/10.5281/zenodo.15466293"),
+    ("Kunimoto", "Kunimoto et al. 2025 (AJ 170, 280)", None),
+]
+
+
+def credit(label: str) -> tuple[str, str | None]:
+    """(name, identifier) for a list label from reported(); a single record's label carries its own doi."""
+    for prefix, name, ident in CREDITS:
+        if label.startswith(prefix):
+            return name, ident
+    m = re.search(r"doi (10\.\S+?)\)", label)
+    return label, f"https://doi.org/{m.group(1)}" if m else None
+
+
 def reported(tic: int, sig: dict) -> list[dict]:
     """The listed signals on this star at this period or a simple harmonic (or with no period)."""
     from .vet import harmonic
