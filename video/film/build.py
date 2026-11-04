@@ -16,7 +16,7 @@ CLOSE_LEAD = 3.0   # the close's sky starts this long before "Now the sky gets t
 END = 179.9        # the film ends here, under the 3:00 limit; the close fills what is left
 
 ap = argparse.ArgumentParser()
-ap.add_argument("--vo", default="drama-yt-42")  # the British take
+ap.add_argument("--vo", default="me-telescope-42")  # the cloned voice (drama-yt-42: the British AI take)
 a = ap.parse_args()
 t = json.loads((HERE.parent / "vo" / a.vo / "timings.json").read_text(encoding="utf-8"))
 sc = {s["id"]: s for s in t["scenes"]}
@@ -117,6 +117,23 @@ for i in ids:
                         f'data-track-index="4"><span>{p}</span></div>')
             t0 += d
 
+# music: Debussy's Clair de lune (Laurens Goedhart, 2011, public domain, Wikimedia Commons), levelled, light under
+# the voice, up to full once the voice ends so its second swell carries the close, faded out at the end
+import subprocess
+from cut import FF
+MUSIC_SRC = HERE / "assets" / "music-src" / "clair-de-lune.ogg"  # from commons.wikimedia.org/wiki/File:Clair_de_lune_(Claude_Debussy)_Suite_bergamasque.ogg
+MUSIC_IN = 2.0           # seconds into the recording at the film's start: its swell at about 2:50 lands on the close
+UNDER, FULL = 0.10, 0.5  # about 12 dB under the voice while it speaks; on the close, a little above where it sat
+v_end = DIS + last["start"] + last["dur"]
+vol = (f"if(lt(t,{v_end - 0.3:.2f}),{UNDER},if(lt(t,{v_end + 1.2:.2f}),{UNDER}+({FULL}-{UNDER})*(t-{v_end - 0.3:.2f})/1.5,{FULL}))")
+af = (f"atrim=start={MUSIC_IN},asetpts=PTS-STARTPTS,loudnorm=I=-20:TP=-2:LRA=11,volume='{vol}':eval=frame,"
+      f"afade=t=in:d=2,afade=t=out:st={end_all - 1.6:.2f}:d=1.6,atrim=end={end_all:.2f}")
+music = HERE / "assets" / "music.wav"
+sig = music.with_suffix(".json")
+if not (music.exists() and sig.exists() and sig.read_text() == af):
+    subprocess.run([str(FF / "ffmpeg.exe"), "-v", "error", "-y", "-i", str(MUSIC_SRC), "-af", af, "-ar", "48000", "-ac", "2", str(music)], check=True)
+    sig.write_text(af)
+
 lab = [f'      <div id="label-{k}" class="clip label" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="3">{t}</div>'
        for k, (s0, s1, t) in enumerate(labels)]
 
@@ -152,6 +169,7 @@ html = f'''<!doctype html>
 {chr(10).join(lab)}
 {chr(10).join(caps)}
       <audio id="vo" class="clip" src="assets/vo.wav" data-start="{DIS:.2f}" data-track-index="9" data-volume="1"></audio>
+      <audio id="music" class="clip" src="assets/music.wav" data-start="0" data-duration="{end_all:.2f}" data-track-index="10" data-volume="1"></audio>
     </div>
     <script>
       window.__timelines = window.__timelines || {{}};
