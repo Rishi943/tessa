@@ -95,10 +95,10 @@ on CPU. No keys and no sign-in needed. Every step runs live on your machine exce
 ```sh
 git clone https://github.com/Rishi943/tessa && cd tessa
 python -m venv .venv
-.venv/Scripts/pip install -r requirements.txt     # .venv/bin/pip on Linux and macOS; then use .venv's python below
+.venv/Scripts/pip install -r requirements.txt     # Windows; on Linux and macOS use .venv/bin/ in these three lines
 npm ci                                            # Node packages for the model's input view
-python -m pytest                                  # 24 tests, offline, about 10 s
-python tools/demo.py                              # TIC 71503196, end to end
+.venv/Scripts/python -m pytest                    # 24 tests, offline, about 25 s
+.venv/Scripts/python tools/demo.py                # TIC 71503196, end to end, about 5 minutes
 ```
 
 `tools/demo.py` runs the survey's own code on TIC 71503196, whose light curves, cutouts and catalogue rows ship in
