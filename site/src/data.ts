@@ -60,6 +60,7 @@ export interface StarPage {
   };
   observing?: { headline: string; next_chances: string[]; telescope: string; refuted_if: string; confirmed_by: string; model: string; cost_usd: number };
   audit?: Dossier;
+  preprint?: { doi: string };
   fpp?: { FPP: number; NFPP: number; class: string; tier: "likely planet" | "nearby star to rule out" | "fails" };
 }
 

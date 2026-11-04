@@ -201,5 +201,9 @@ function nextPanel(p: StarPage): HTMLElement {
     if (also.length) box.append(el("p", { class: "by" },
       `Also found by other searches, which Tessa reached independently: ${also.join("; ")}.`));
   }
+  if (p.preprint) {
+    const a = el("a", { href: `https://doi.org/${p.preprint.doi}`, target: "_blank", rel: "noopener" }, `doi:${p.preprint.doi}`);
+    box.append(el("p", { class: "by" }, "Preprint, with every test and predicted transit: ", a));
+  }
   return box;
 }

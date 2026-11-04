@@ -27,6 +27,8 @@ from .vet import load_lc, phase_offset
 RUNS = [(name, res, DATA / "vet" / name, lc) for name, (res, lc) in batches().items()]
 # TRICERATOPS on v10's passes (tools/fpp_survivors.py); a gate 2 candidate must clear FPP < 0.5 and NFPP < 0.1
 FPP_RUNS = DATA / "survey_v10"
+_zen = ROOT / "preprints" / "zenodo.json"
+PREPRINTS = json.loads(_zen.read_text(encoding="utf-8")) if _zen.exists() else {}
 FPP_MAX, NFPP_MAX, NFPP_LIKELY = 0.5, 0.1, 0.001
 STATUS = {"pool": 0, "held back": 1, "searched": 2, "rejected": 3, "flagged": 4, "awaiting agent": 7,
           "candidate": 5, "known": 6}
@@ -250,6 +252,8 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
                 page["evidence"] = json.loads(ev.read_text(encoding="utf-8"))
             if c:
                 page["novelty"], page["when"], page["observing"] = c.get("novelty"), c.get("when"), c.get("observing")
+                if str(tic) in PREPRINTS:  # its Zenodo preprint (tools/zenodo.py)
+                    page["preprint"] = {"doi": PREPRINTS[str(tic)]["doi"]}
                 costs["observing"] += (c.get("observing") or {}).get("cost_usd", 0)
                 # second opinion, shortlist only; Wonder audited the first run's candidates (prompt v5)
                 audit = next((f for v in (prompt, "v5") if (f := DATA / "dossiers" / f"{tic}.muse-wonder-1.0.{v}.json").exists()),
