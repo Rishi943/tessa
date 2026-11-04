@@ -111,10 +111,18 @@ python tools/demo.py                              # TIC 71503196, end to end
 3. **The five measurements** Glimmer may ask for, computed from the bundled data.
 4. **Glimmer makes the call**: the fine-tuned Muse Glimmer 30B. By default the demo **replays** its recorded answer
    for this star from the survey run, and says so on screen: the tools it chose and its verdict with a dossier. To
-   call it live, serve the [published weights](https://huggingface.co/rushi-brave/glimmer-vetter-v10) yourself
-   (`modal run serve/glimmer.py::adapter --repo rushi-brave/glimmer-vetter-v10`, then `modal deploy serve/glimmer.py`)
-   and run `tools/demo.py --live`
-   with `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY` set; a sleeping GPU takes 3 to 5 minutes to wake.
+   call it live, serve the [published weights](https://huggingface.co/rushi-brave/glimmer-vetter-v10) on your own
+   Modal account (one L40S GPU, billed by the minute and scaled to zero after 5 idle minutes):
+
+   ```
+   modal secret create glimmer-key GLIMMER_API_KEY=<any string you choose>
+   modal run serve/glimmer.py::download      # once: the base model, RedHatAI/Muse-Glimmer-30B-FP8-block (33 GB)
+   modal run serve/glimmer.py::adapter --repo rushi-brave/glimmer-vetter-v10   # once: the fine-tuned adapter
+   modal deploy serve/glimmer.py             # prints two URLs; use the one for `vetter`
+   ```
+
+   Then put `GLIMMER_VETTER_URL=<the vetter URL>` and `GLIMMER_API_KEY=<the same string>` in `.env` and run
+   `python tools/demo.py --live`. The first request after a deploy takes 3 to 5 minutes while the GPU wakes.
 5. **Gate 2**: the catalogues are queried live, the season test reruns the search with each season hidden (about
    2 minutes), and the next TESS sectors and ground windows are predicted.
 6. **TRICERATOPS**, live (about 2 minutes: the star's pixels and every neighbour within 10 pixels from MAST and Gaia,
