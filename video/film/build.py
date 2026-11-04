@@ -61,6 +61,62 @@ for i in ids:
         holders.append(f'      <div id="ph-{i}" class="clip ph" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="2">'
                        f'<b>{i}</b><span>{script[i]["footage"]}</span></div>')
         labels.append((s0, s1, "Real app footage"))
+# subtitles: every spoken line, cut into short pieces at word boundaries (at most CAP characters, breaking after
+# punctuation where it can) and timed across the line by length; spoken forms written as a reader expects them
+CAP = 44
+WRITTEN = [("X G Boost", "XGBoost"), ("tessa dot brave A I dot solutions", "tessa.braveai.solutions"),
+           ("ExoMiner plus plus", "ExoMiner++"), ("seventy-six thousand", "76,000"),
+           ("seven hundred and forty-five", "745"), ("five hundred and seventy-nine", "579"),
+           ("ninety-two percent", "92%"), ("two hundred thousand", "200,000"), ("three hundred", "300"),
+           ("two hundred light-years", "200 light-years"), ("under one percent", "under 1%")]
+
+
+def pieces(text):
+    for a_, b_ in WRITTEN:
+        text = text.replace(a_, b_)
+    # sentences first, then clauses at commas and colons packed up to CAP, then a long clause cut into even parts
+    import math as _m, re as _re
+    out = []
+    for sent in _re.split(r"(?<=[.?!])\s+", text):
+        cur = ""
+        for cl in _re.split(r"(?<=[,:])\s+", sent):
+            if cur and len(cur) + 1 + len(cl) <= CAP:
+                cur = f"{cur} {cl}"
+                continue
+            if cur:
+                out.append(cur)
+            if len(cl) <= CAP:
+                cur = cl
+                continue
+            w = cl.split(); n = _m.ceil(len(cl) / CAP); k = _m.ceil(len(w) / n)
+            parts = [" ".join(w[j:j + k]) for j in range(0, len(w), k)]
+            out += parts[:-1]; cur = parts[-1]
+        if cur:
+            out.append(cur)
+    k = 0  # a stranded scrap ("Here,", "anything.") joins its neighbour when the two fit on one line
+    while k < len(out):
+        if len(out[k]) < 16 and len(out) > 1:
+            j = k + 1 if k + 1 < len(out) and out[k][-1] not in ".?!" else k - 1
+            if 0 <= j < len(out) and len(out[k]) + len(out[j]) + 1 <= CAP + 10:
+                a_, b_ = sorted((k, j))
+                out[a_:b_ + 1] = [f"{out[a_]} {out[b_]}"]
+                continue
+        k += 1
+    return out
+
+
+caps = []
+for i in ids:
+    for ln in sc[i]["lines"]:
+        ps = pieces(ln["text"])
+        tot = sum(len(p) for p in ps)
+        t0 = DIS + ln["start"]
+        for p in ps:
+            d = ln["dur"] * len(p) / tot
+            caps.append(f'      <div id="cap-{len(caps)}" class="clip cap" data-start="{t0:.2f}" data-duration="{d:.2f}" '
+                        f'data-track-index="4"><span>{p}</span></div>')
+            t0 += d
+
 lab = [f'      <div id="label-{k}" class="clip label" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="3">{t}</div>'
        for k, (s0, s1, t) in enumerate(labels)]
 
@@ -84,6 +140,9 @@ html = f'''<!doctype html>
       .label {{ position: absolute; right: 48px; bottom: 40px; z-index: 5; color: rgba(236, 235, 230, 0.72);
                font: 400 20px/1 "Courier Prime", monospace; letter-spacing: 0.14em; text-transform: uppercase;
                padding: 9px 14px; border: 1px solid rgba(236, 235, 230, 0.26); border-radius: 4px; background: rgba(11, 11, 10, 0.55); }}
+      .cap {{ position: absolute; left: 0; right: 0; bottom: 118px; z-index: 6; text-align: center; }}
+      .cap span {{ display: inline-block; max-width: 1400px; padding: 10px 22px; border-radius: 8px;
+                   background: rgba(6, 8, 14, 0.72); color: #F4F3EE; font: 500 40px/1.25 Archivo, sans-serif; }}
     </style>
   </head>
   <body>
@@ -91,6 +150,7 @@ html = f'''<!doctype html>
 {chr(10).join(hosts)}
 {chr(10).join(holders)}
 {chr(10).join(lab)}
+{chr(10).join(caps)}
       <audio id="vo" class="clip" src="assets/vo.wav" data-start="{DIS:.2f}" data-track-index="9" data-volume="1"></audio>
     </div>
     <script>

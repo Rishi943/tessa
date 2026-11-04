@@ -19,13 +19,13 @@ FF = Path("C:/Users/rushi/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Mi
 # run.webm (TIC 71503196 live, 10:33): search 0-74 s ("Cleared the bar" at 74), code checks from 85, Glimmer's cold
 # start 91-184, its tools 184-205, the verdict at 229, gate 2 229-526, TRICERATOPS 527-626 (FPP at 626), done at 632.
 PLAN = {
-    "03-problem": ("03-problem.webm", None),
+    "03-problem": ("03-problem.webm", [(0, 0), (30.7, "end")]),  # the tour up to the dip; it moves to "The fold" at 31.0
     "05-map": ("05-map.webm", [(0, 0), (7, 4.6), (30, "end")]),  # the hero numbers under "seventy-six thousand ... eight", then the map
     "06-search": ("run.webm", [(0, 0), (4, 2.4), (74, 10.0), (82, "end")]),
     "07-impostors": ("run.webm", [(82, 0), (126, "end")]),
     "08-glimmer": ("run.webm", [(178, 0), (228, 17.3), (242, "end")]),
-    "09-triceratops": ("run.webm", [(522, 0), (625, 7.2), (633, 11.5)]),
-    "10-accuracy": ("10-accuracy.webm", None),
+    "09-triceratops": ("run.webm", [(522, 0), (626, 15.6), (633, "end")]),  # the FPP line lands on "under one percent"
+    "10-accuracy": ("10-accuracy.webm", [(0, 0), (9.5, 9.5)]),  # the results at real speed, then held: the page scrolls at 10
     "11-join": ("11-join.webm", [(9, 0), (26, 5.0), (56, "end")]),  # the search under the URL line, then Ask Tessa
     "12-prediction": ("12-prediction.webm", None),
 }

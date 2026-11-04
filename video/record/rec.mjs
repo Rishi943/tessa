@@ -156,7 +156,7 @@ const clips = {
   },
   // a candidate's case file, down to the prediction: the next transit, dated
   async "12"() {
-    await go("/star/9066956", 2500);
+    await go("/star/71503196", 2500);
     await panel("How to prove Tessa wrong");
     await record("12-prediction", async () => {
       await wait(3500);

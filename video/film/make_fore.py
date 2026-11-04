@@ -18,8 +18,8 @@ rng = np.random.default_rng(int(sys.argv[1]) if len(sys.argv) > 1 else 23)
 
 
 def hill_y(x):
-    # the ground line: a long rise from the left to the tree's knoll on the right
-    return 1490 - 120 * math.exp(-((x - 1380) / 520) ** 2) + 30 * math.sin(x / 260) - 0.02 * (x - 900)
+    # the ground line: a round knoll under the tree, falling away on both sides to the far hills
+    return 1600 - 235 * math.exp(-((x - 1400) / 600) ** 2) + 4 * math.sin(x / 170)
 
 
 def hill():
@@ -35,6 +35,21 @@ def hill():
                       f"Q{x + lean * .3 + .8:.1f},{base - h * .5:.1f} {x + 1.6:.1f},{base:.1f}Z")
     return (f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">'
             f'<path d="{d}" fill="{INK}"/><path d="{" ".join(blades)}" fill="{INK}"/></svg>')
+
+
+def mountains():
+    """Far hills on both sides, low on the horizon and pale with distance, as in the art reference."""
+    def ridge(x0, x1, base, peaks, colour):
+        xs = np.arange(x0, x1 + 1, 6)
+        y = np.full(len(xs), float(base))
+        for cx, h, w in peaks:
+            y -= h * np.exp(-((xs - cx) / w) ** 2)
+        y += 4 * np.sin(xs / 37) + 3 * np.sin(xs / 13)
+        d = f"M{x0},{base + 200} " + " ".join(f"L{a:.0f},{b:.1f}" for a, b in zip(xs, y)) + f" L{x1},{base + 200} Z"
+        return f'<path d="{d}" fill="{colour}"/>'
+    back = ridge(-20, 1940, 1585, [(120, 60, 90), (330, 95, 80), (470, 70, 110), (1700, 85, 90), (1850, 60, 120), (1560, 50, 70)], "#2a4f78")
+    front = ridge(-20, 1940, 1600, [(220, 55, 120), (600, 40, 140), (1780, 50, 130), (1300, 25, 200)], "#1b3757")
+    return f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}">{back}{front}</svg>'
 
 
 def tree():
@@ -100,5 +115,6 @@ def tree():
 
 
 (HERE / "assets/hill.svg").write_text(hill(), encoding="utf-8")
+(HERE / "assets/mountains.svg").write_text(mountains(), encoding="utf-8")
 (HERE / "assets/tree.svg").write_text(tree(), encoding="utf-8")
 print("trunk base", 1420, round(hill_y(1420)), "| boy sits at about x 1300, y", round(hill_y(1300)))
