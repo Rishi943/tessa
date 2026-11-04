@@ -22,6 +22,30 @@ Muse Glimmer 30B, open weights, is the core of the project. We fine-tuned it wit
 
 Open weights made the core of Tessa possible: we could train a small model on real outcomes and run it ourselves. Glimmer makes the planet call. It weighs evidence that conflicts and chooses which measurements to look at. Tessa hands Glimmer the rank from System 1, an XGBoost scorer we trained on the same outcomes (it ranks held-out TESS candidates better than NASA's ExoMiner++, AUC 0.963 against 0.945), as one piece of evidence; Glimmer weighs it against everything else and makes the call. On held-out TESS candidates whose fate is known, Tessa with Glimmer making the call let through 3 of 94 false positives against 7 for NASA's ExoMiner++ (at 50 planets to its 55), a gap whose 95% interval excludes zero. On held-out TESS candidates, of the 115 real planets XGBoost would discard at its own cut, Glimmer rescues 56, for 13 false positives (81% of its rescues are planets), and the fine-tune is why: the base Muse Glimmer 30B, with the same prompt, rescues 7. On the survey's new stars the call mattered too: 3 of Tessa's 8 candidates, including one of the 4 likely planets and two of the four on no published list, were ranked below XGBoost's cut and would have been thrown away. Given the same budget of 159 signals, XGBoost keeps 5 of the 8; to keep all eight it has to pass 456 of 715, each with a written reason a person can read and check. Before trusting any change we set the bar first: prompt v11 missed a bar fixed before it ran, so it was dropped. Glimmer v10 cost about $40 to make: $32 for the teacher's traces and $8 for the fine-tune.
 
+## Also tried: building System 1 from scratch
+
+Inspired by the weight-space programming paper (2 Nov 2026), we asked whether an AI agent could build a replacement
+for System 1 (XGBoost) from scratch. We tried both routes on the same 65 inputs, data split and reject cut, and froze
+every model before opening the test labels, once. The paper's route, a hand-written model with no training, reached a
+test AUC of 0.917 on all 579 test TOIs, short of XGBoost's 0.959 (the 0.963 above is on the subset ExoMiner++ also
+scored). AUC is how often a real planet ranks above a false positive; 1.0 is perfect. A neural net designed by an AI
+agent and trained from scratch in plain numpy beat XGBoost at 0.969 (+0.010, 95% interval +0.003 to +0.019), and its
+probabilities were better calibrated. Rescoring the 2,698 survey dips, it kept all 11 that passed gate 2, the 8
+candidates among them, above the 5% floor. Of the 83 dips it would have sent on instead of setting aside, 81 reached
+Glimmer, which passed 17; none passed gate 2.
+
+**Why XGBoost is still System 1.** The net needs more work before it can take over:
+
+- At the reject cut its gains are within noise, and it shows no gain on cool (K and M) host stars.
+- Glimmer was fine-tuned reading XGBoost's ranks, and the net spreads its ranks differently: the 5% floor would need
+  picking again and Glimmer testing again.
+- The drivers and similar-signals tools are built from XGBoost's internals.
+- Every frozen result we report would change.
+- The test labels have now been used once, so any further tuning needs a fresh test set, such as TOIs that got their
+  verdicts after our data snapshot.
+
+Code, results and how to rerun: `research/scratch-model/README.md`.
+
 ## Judging process
 
 **Stage One (pass/fail):** whether the idea meets a baseline level of viability: the project reasonably fits the theme and reasonably used the Meta Model API and/or Meta's open-weight models to build the project in the hackathon.

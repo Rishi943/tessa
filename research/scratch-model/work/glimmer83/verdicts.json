@@ -1,0 +1,1046 @@
+[
+ {
+  "tic": 376673180,
+  "batch": "survey",
+  "nn_rank": 0.05,
+  "nn_p": 0.4169,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ at >6 sigma indicating two different eclipse depths; a planet on the inferred 12.4d period would give equal depths.",
+   "Individual transit depths scatter enormously (937 ppm to 14964 ppm) and the signal is dominated by the three deepest events, inconsistent with a constant-depth transit. Consequence of alternating dip depths.",
+   "sector_depths_by_source confirms changes_within_a_source (QLP p_constant 1.7389854604214386e-10, TESS-SPOC p_constant 1.9281222489998502e-05) with depths 937 to 13750 ppm across sectors 27,66,67,93."
+  ]
+ },
+ {
+  "tic": 172224850,
+  "batch": "batch2",
+  "nn_rank": 0.05,
+  "nn_p": 0.4158,
+  "xgb_rank": 0.034,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by orders of magnitude between sectors; a real planet on-target would not do this.",
+   "Change persists within the same pipeline, so it is not a calibration/baseline difference between QLP vs SPOC.",
+   "The folded signal is dominated by two very deep events (15063 ppm at BTJD 3286.161 sigma 16.7 and 11729 ppm at BTJD 1860.02 sigma 15.4). Depths are listed as 6336 ppm in sector 20 and -152 ppm in sector 44, -229 ppm in sector 45, 680 ppm in sector 60, 15063 ppm in sector 73, showing not flat baseline but a few outliers driving everything."
+  ]
+ },
+ {
+  "tic": 205827408,
+  "batch": "batch2",
+  "nn_rank": 0.081,
+  "nn_p": 0.6065,
+  "xgb_rank": 0.034,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits have different depths at high significance, the classic signature of an eclipsing binary folded at twice the true period.",
+   "Depth changes by about 100% between sectors. sector_depths_by_source says changes_within_a_source verdict changes_within_a_source (p_constant_all 0.00020722417782716813); depth is not stable as expected for a planet.",
+   "Individual transits are inconsistent with a common depth; the signal is not a repeatable on-target transit but variable dips."
+  ]
+ },
+ {
+  "tic": 218354382,
+  "batch": "batch2",
+  "nn_rank": 0.058,
+  "nn_p": 0.471,
+  "xgb_rank": 0.044,
+  "verdict": "gate2",
+  "reasons": [
+   "Undiluted radius is planet-sized; undiluted depth 6192 ppm with rp/rstar 0.07869 gives ~3.97 Rearth, below 10 Rearth planet limit, far below stellar.",
+   "No significant secondary eclipse at half phase or elsewhere; depth below noise level, against eclipsing binary on target.",
+   "Odd (6536 ppm) and even (5863 ppm) depths consistent; depth_ratio 1.1 and max sector odd-even sigma 0.09935, rules out binary at twice period."
+  ]
+ },
+ {
+  "tic": 22470082,
+  "batch": "batch2",
+  "nn_rank": 0.05,
+  "nn_p": 0.412,
+  "xgb_rank": 0.042,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes dramatically: 975\u00b1278 ppm in sector 17, 1701\u00b1309 ppm in sector 57, 3139\u00b1254 ppm in sector 84, depth_change_pct 111.6, chi2 34.61 dof 2 per input",
+   "Depth change is not a calibration offset; within the single TESS-SPOC source p_constant 3.069452461461879e-08 shows the depth really changes sector to sector",
+   "Only 7 transits captured, 5 near a gap, expected_share 0.1818, p_chance 0.003008 \u2014 signal dominated by events near data gaps per input"
+  ]
+ },
+ {
+  "tic": 238719983,
+  "batch": "batch2",
+  "nn_rank": 0.052,
+  "nn_p": 0.4401,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "The 4 transits are inconsistent (share_of_top_3=0.995) with one very shallow event at epoch 50, depth_ppm=2305 sigma=-4.5; this is positive evidence the dip is not a repeatable planet transit.",
+   "Odd/even depths differ strongly (depth_odd_ppm=19350, depth_even_ppm=10980, depth_difference=0.4328, ratio=1.8); marginal 3 sigma hint of an eclipsing binary at twice the 14 d period.",
+   "Difference imaging gives no sector with a clear detection, so on-target planet vs off-target blend cannot be confirmed."
+  ]
+ },
+ {
+  "tic": 266295708,
+  "batch": "batch2",
+  "nn_rank": 0.058,
+  "nn_p": 0.4695,
+  "xgb_rank": 0.029,
+  "verdict": "reject",
+  "reasons": [
+   "Extreme odd-even difference with depth_odd_ppm 8891 vs depth_even_ppm 2308 (depth_ratio 3.9, difference 6583 ppm) indicates two different eclipses alternating at twice this period.",
+   "Very high V shape (fit_b 0.9208, best_ingress_fraction 0.45, fit_chi2_red 30.65, star_density_penalty 8.283) and short duration ratio 0.4344 favour a grazing eclipse over a planet transit.",
+   "Variable star with rotation_d 3.531 at amplitude 7859 ppm essentially equals signal period 3.849 d (period_x2 7.7) with false_alarm 6.511832092787914e-31, consistent with a binary synchronized to rotation, plus prominent phase_curve with amplitude 312.9 ppm and chi2 70.45 for 9 dof."
+  ]
+ },
+ {
+  "tic": 286906537,
+  "batch": "batch2",
+  "nn_rank": 0.051,
+  "nn_p": 0.4372,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ strongly (depth_odd_ppm 2148 vs depth_even_ppm 6438, depth_ratio 3, difference 0.6664). With a real depth difference >4 sigma this favours an eclipsing binary at twice the period (period_x2 26) over a planet.",
+   "Individual transit depths are highly inconsistent (chi2 71.31918622324812 for dof 5, share_of_top_3 0.877). The signal is driven by a few outlier events, e.g. epoch 28 at 13130 ppm (5.8 sigma) and the only TESS-SPOC sector at 2326 ppm vs QLP mean 6493 ppm.",
+   "Emphasized by sector_depths_by_source as differs_by_source: TESS-SPOC depth 2326+-657 ppm vs QLP depth 6493+-747 ppm (p_constant_all 1.5741293861149658e-05). Per-sector depths range 2326 to 10447 ppm, so the apparent depth depends on pipeline/sector as expected for a blend/noise-driven detection at SNR~10, not a steady planet."
+  ]
+ },
+ {
+  "tic": 292836882,
+  "batch": "batch2",
+  "nn_rank": 0.107,
+  "nn_p": 0.6857,
+  "xgb_rank": 0.022,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ by 4.28 sigma with 28% difference; favours an eclipsing binary at twice the reported period (P=4.76d) over a planet.",
+   "Depth changes by a factor ~4 within the same instrument (TESS-SPOC) and p_constant=0 with chi2=1979/dof=2, inconsistent with a planet's stable depth.",
+   "Individual transit depths are wildly inconsistent, including a few much deeper events; signal is not built from consistent planet-like transits."
+  ]
+ },
+ {
+  "tic": 31856553,
+  "batch": "batch2",
+  "nn_rank": 0.053,
+  "nn_p": 0.4457,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes significantly between sectors (depth_change_pct 153.6, chi2 19.04 dof 3) and by tool verdict changes_within_a_source. TESS-SPOC p_constant 0.00036051040986891396 shows real change within the same product, not calibration.",
+   "Individual transits are inconsistent (chi2 29.13616734618394 dof 4) with share_of_top_3 0.992 dominated by few events, indicating the dip is built from a few bad transits rather than a repeatable planet signal.",
+   "Secondary dip at phase 0.7594 with depth_ppm 3796 (depth_over_dip 0.301) is significant above best_brightening_snr 4.165, indicating eclipsing-binary ellipsoidal/variable-star signature, not a planet."
+  ]
+ },
+ {
+  "tic": 325965692,
+  "batch": "batch2",
+  "nn_rank": 0.052,
+  "nn_p": 0.4391,
+  "xgb_rank": 0.046,
+  "verdict": "reject",
+  "reasons": [
+   "Transit depths are inconsistent: chi2 23.898 on 3 dof with one transit at 397 ppm, sigma -4.1, far below the others, so the signal is not reproducible per-transit.",
+   "Sectors depth changes strongly: 9973\u00b1913 ppm in sector 67 vs 3152\u00b11289 ppm in sector 92, sectors.p_constant 0.00001581, not a calibration difference (only 2 sectors, by_source p_constant 1.0) but a true change between epochs.",
+   "Impact parameter essentially zero with duration ratio 1.387 and v_sigma -1.434 flat bottom, but xgboost planet_rank 0.05 and star_density_penalty 14.45 show the light-curve cannot be a planet on this M dwarf; flat-bottom plus perfect central is expected for a total eclipsing binary."
+  ]
+ },
+ {
+  "tic": 348888357,
+  "batch": "batch2",
+  "nn_rank": 0.136,
+  "nn_p": 0.7331,
+  "xgb_rank": 0.032,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes strongly between sectors (depth_change_pct 126.6). sector_depths_by_source shows verdict differs_by_source but per-source: QLP 6196 +/-659 ppm in sector 86 vs TESS-SPOC 2617 +/-298 ppm across 3 sectors (p_constant 0.085). SPOC depth alone is not steady, so calibration does not fully explain change.",
+   "Individual transits inconsistent: mean_depth 3372 ppm, chi2 116.24954737109955 dof 5, share_of_top_3 0.728. Epochs 1 (-3473 ppm, -8.2 sigma), 2 (6649 ppm, 4.2 sigma), 32 (7752 ppm, 4.4 sigma) show deepening then reversal, not expected for a planet.",
+   "Odd vs even depths differ (odd 1733 ppm, even 3893 ppm, diff_sigma 3.488, depth_ratio 2.2, sector_oe_max_sigma 8.799) with same sign in all sectors, favouring an eclipsing binary at twice the period or a blended binary with period aliases, not a single-period planet."
+  ]
+ },
+ {
+  "tic": 356896693,
+  "batch": "batch2",
+  "nn_rank": 0.079,
+  "nn_p": 0.5529,
+  "xgb_rank": 0.026,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ by more than 9 sigma (difference ratio 22). One epoch minus 488 ppm, one plus 17567 ppm, argues for alternate deep and absent/missing eclipses, not a planet at this period.",
+   "Depth changes strongly across sectors: 3612 ppm (sector 65), 17567 ppm (66), 5829 ppm (93). That's a 155% change, not sector-to-sector scatter.",
+   "Individual transits are inconsistent (CHI2 160.2 dof 3). The lowest transit is negative/noise and depths span an order of magnitude, often seen when systematics or blends produce a few spurious deep events."
+  ]
+ },
+ {
+  "tic": 411750849,
+  "batch": "batch2",
+  "nn_rank": 0.071,
+  "nn_p": 0.5248,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ by ~2x at high significance and the difference is present within a single sector, the classic signature of a binary folded at twice its true period (29.6 d).",
+   "A secondary eclipse is detected with SNR 5.053 well above the best brightening SNR, at phase 0.6549 (0.1549 offset from 0.5), with depth ~27% of the primary, indicating a self-luminous stellar companion rather than a phase curve or hot Jupiter occultation.",
+   "Depth changes dramatically between sectors and even within the same pipeline (QLP and TESS-SPOC each show p_constant 0.006 and 0.002), inconsistent with a single planet depth; transit_depths chi2 117.89 dof 5 p_consistent 8.78e-24 with share_of_top_3 0.956 driven by an outlier at 2446 ppm confirms the signal is not stable."
+  ]
+ },
+ {
+  "tic": 415955687,
+  "batch": "batch2",
+  "nn_rank": 0.139,
+  "nn_p": 0.7447,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by 267.2% between sectors, chi2 268.5 dof 2, ruled out as one depth.",
+   "Sector 92 QLP depth 7362\u00b1348 ppm dominates while SPOC sectors 56 and 83 show 951\u00b1284 and -22\u00b1380 ppm, so variation is source/systematic, not a stable transit depth.",
+   "Individual transits are wildly inconsistent: epochs 28 12789 ppm sigma 15.8 and 26 10713 ppm sigma 14.3 vs mean 2401 ppm, while epochs 0 -22 ppm and -80 49 ppm are consistent with no transit, so signal is driven by 2-3 deep QLP events."
+  ]
+ },
+ {
+  "tic": 417652414,
+  "batch": "batch2",
+  "nn_rank": 0.057,
+  "nn_p": 0.462,
+  "xgb_rank": 0.035,
+  "verdict": "gate2",
+  "reasons": [
+   "Signal is driven by 3 discrepantly deep transits while the other 11 average much shallower, indicating a few systematics/landings rather than consistent transits. Depth measured by refit is not representative of a true transit depth.",
+   "Depth changes by factor ~15 between sectors with high significance, which for a planet should be steady up to calibration. sector_depths_by_source verdict changes_within_a_source with TESS-SPOC p_constant 6.4922611315343275e-15 confirms astrophysical/depth or dilution change, not just aperture.",
+   "Significant odd/even depth difference strongly favours an eclipsing binary folded at half its true period (or two different dips), not a single planet period 6.69 and 13.4."
+  ]
+ },
+ {
+  "tic": 419566998,
+  "batch": "batch2",
+  "nn_rank": 0.057,
+  "nn_p": 0.4597,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "The top 5 transits are relatively evenly distributed (share 0.4538) yet the measured depth in sector13 is consistent with zero and ~10x shallower than sector67, with a second SPOC transit confirming the change. This spot-to-sector change within the same light-curve product and same pipeline, combined with a 3/few-percent distance-dependent modulation, positively favors systematics/blend/variability over a single stable transiting planet on the target.",
+   "A test of on-target versus neighbour's eclipse is missing/unable to rule out a blended EB; neighbours.plausible_within_1px 0 and closest that could sep 37 arcsec needing 0.0959 eclipse cannot be tested without difference imaging, leaving positive off-target evidence unquantified.",
+   "Independent classifier rates as very unlike known planets (below 0.1 where only one in ten planets scores this low), supporting the statistical weight of the depth instability and lack of centroid confirmation over a low-SNR flat-bottom signature (shape v_sigma -2.762, rp 3.126 Rearth)."
+  ]
+ },
+ {
+  "tic": 456837014,
+  "batch": "batch2",
+  "nn_rank": 0.05,
+  "nn_p": 0.4133,
+  "xgb_rank": 0.037,
+  "verdict": "reject",
+  "reasons": [
+   "Depth is highly inconsistent: 10258 ppm (sector 42), 5080 ppm (sector 57), 24102 ppm (sector 70), 13822 ppm (sector 84) with chi2 32.24 dof 3. sector_depths_by_source verdict changes_within_a_source (QLP p_constant 0.018, TESS-SPOC p_constant 1.885869328204775e-05) and transit_depths p_consistent 2.900319570266961e-10 with chi2 56.00786758296972 dof 6, share_of_top_3 0.806. A planet on the target must have stable depth; this requires astrophysical or systematic origin.",
+   "Star is a fast-rotating M-dwarf (Teff 3217 K, rad 0.2501 R_sun, mass 0.221 M_sun, RUWE 1.087) with spot period near 3.4 d and variability up to 27146 ppm. Observed duration 2.498 h vs central 1.761 h (ratio 1.418) and high impact parameter imply a density mismatch. Phase curve amplitude 877.8 ppm ratio_to_depth 0.06832 with chi2 7.343 dof 9 is consistent with spot modulation leaking into folded light curve rather than a transit.",
+   "Planet size alone (3.112 Rearth) and flat shape are not diagnostic \u2014 a small star's grazing eclipse and a blended binary's eclipses can both be flat-bottomed with no secondary or odd/even difference. The low ML rank and the large depth scatter outweigh these mild planet-like flags."
+  ]
+ },
+ {
+  "tic": 58109563,
+  "batch": "batch2",
+  "nn_rank": 0.051,
+  "nn_p": 0.4272,
+  "xgb_rank": 0.032,
+  "verdict": "reject",
+  "reasons": [
+   "Significant second dip well above brightening indicates a stellar eclipse of ~19% dip depth, inconsistent with a planet; hot Jupiter occultation would be much smaller.",
+   "Large out-of-eclipse modulation at this period points to ellipsoidal/reflected light from a close binary, not a planet.",
+   "Depth changes by ~79% between sectors, as expected for a blended/NEB eclipse with different apertures, not a planet."
+  ]
+ },
+ {
+  "tic": 60971287,
+  "batch": "batch2",
+  "nn_rank": 0.05,
+  "nn_p": 0.4143,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "Odd depth 2495 ppm vs even 928.2 ppm, depth_difference 0.6279, depth_ratio 2.7 with red_noise 1.032 indicates strong odd/even difference. Consistent sector_oe_max_sigma 8.239 and sector_oe_sectors_over_3 3 suggests true binary period at 20.6 d.",
+   "Individual transit depths inconsistent: mean 1378 ppm, chi2 149.66551047724278 dof 7, share_of_top_3 0.957. Outliers at 3522 ppm (6.2 sigma), 3107 ppm (4.9 sigma), 2688 ppm (5.4 sigma) vs 127 ppm (-5.1 sigma) and 100 ppm (-4.4 sigma) show shallower alternate eclipses, not a planet.",
+   "Sector depths vary dramatically: 2129 ppm (67), 2100 ppm (94), 1259 ppm (104) vs 300 ppm (13), depth_change_pct 126.4. sector_depths_by_source verdict changes_within_a_source with p_constant_all 4.090756961484505e-09 confirms depth is not stable, as expected for a 2:1 binary folded at half its period."
+  ]
+ },
+ {
+  "tic": 63345257,
+  "batch": "batch2",
+  "nn_rank": 0.051,
+  "nn_p": 0.4361,
+  "xgb_rank": 0.035,
+  "verdict": "gate2",
+  "reasons": [
+   "Planet-sized (2.96 Rearth) and stellar density fit with TIC radius (duration ratio 1.165) favours planet over stellar eclipse; V-shape is not significant (v_sigma 1.193)",
+   "No star within 1 TESS pixel could cause the 3639 ppm dip with <=25% eclipse; closest plausible is 44.6 arcsec away requiring 0.3281 eclipse, supporting on-target origin",
+   "Depth steady across sectors (3431 vs 3682 ppm, p 0.6928) and transit_depths p_consistent 0.1226580846323281 with 3 transits; not driven by a few bad events"
+  ]
+ },
+ {
+  "tic": 855799,
+  "batch": "batch2",
+  "nn_rank": 0.093,
+  "nn_p": 0.6425,
+  "xgb_rank": 0.024,
+  "verdict": "gate2",
+  "reasons": [
+   "Planet-sized dip with undiluted depth 644.1 ppm and rp/rstar 0.02538, well below 10 Rearth giant limit",
+   "Depth steady across 2 sectors with 3 transits and transit_depths p_consistent 0.5533459772362201, chi2 1.183543672267642, not a few bad events",
+   "Flat-bottomed transit favours planet over V-shaped stellar eclipse despite eccentric grazing fit hint"
+  ]
+ },
+ {
+  "tic": 144186867,
+  "batch": "batch4",
+  "nn_rank": 0.093,
+  "nn_p": 0.6389,
+  "xgb_rank": 0.029,
+  "verdict": "reject",
+  "reasons": [
+   "Depth truly changes within the same light-curve source (QLP) and not a calibration offset; a planet on the target should be steady after dilution correction.",
+   "Individual transit depths are inconsistent at very low p-value, with equal share from 3 events, indicating the dip is not a single repeatable planetary transit.",
+   "Odd and even dips differ by >3 sigma and ~45% in depth; a planet at this period has no mechanism for such a difference, despite being below the formal 4 sigma threshold."
+  ]
+ },
+ {
+  "tic": 158203997,
+  "batch": "batch4",
+  "nn_rank": 0.08,
+  "nn_p": 0.57,
+  "xgb_rank": 0.038,
+  "verdict": "gate2",
+  "reasons": [
+   "Strongly flat-bottomed transit favours planet over grazing stellar binary; V-shaped alternative rejected.",
+   "Small planet size (<10 R_earth) and rp/rstar 0.0662 with b 0.096 is planet-sized even at undiluted depth.",
+   "Odd/even depths consistent (4802 vs 3813 ppm) - no binary at twice period."
+  ]
+ },
+ {
+  "tic": 205489886,
+  "batch": "batch4",
+  "nn_rank": 0.051,
+  "nn_p": 0.4293,
+  "xgb_rank": 0.049,
+  "verdict": "gate2",
+  "reasons": [
+   "Strongly flat-bottomed (negative v_sigma) favours a planet transit over a V-shaped binary/grazer.",
+   "Diluted radius well below 10 Rearth even after correcting for contratio 0.0545, planet-sized.",
+   "Observed 3.499 h vs central 2.932 h is normal (ratio 1.19) for the TIC radius 0.5829 Rsun M-dwarf; density penalty 19.91 is driven by fit_b 0.869 but still consistent with an off-centre transit."
+  ]
+ },
+ {
+  "tic": 250361970,
+  "batch": "batch4",
+  "nn_rank": 0.176,
+  "nn_p": 0.7996,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes significantly between sectors. Sector 70 depth 1213\u00b1160 ppm vs sector 92 depth 2181\u00b1305 ppm.",
+   "Tool lists only two sectors but p_constant_all 0.00495 with depths 1213 vs 2181 ppm, not a between-pipeline calibration difference. A planet on this star should be steady; a variable depth is evidence for either spot-crossing/binary or a transit-like signal on a different star/neighbour being diluted differently, not a planet.",
+   "The three transits are inconsistent in depth, not a flat-bottom reproducible planetary transit. Combined with duration ratio 1.516 observed 4.999 h vs central 3.297 h and high impact parameter fit_b 0.9204 with star_density_penalty 52.99, this does not match a planet on a 0.663 R_sun star."
+  ]
+ },
+ {
+  "tic": 270181649,
+  "batch": "batch4",
+  "nn_rank": 0.209,
+  "nn_p": 0.8199,
+  "xgb_rank": 0.039,
+  "verdict": "reject",
+  "reasons": [
+   "Four individual transit depths are inconsistent (chi2 54.64924754751759 dof 3) with one shallow outlier at depth_ppm 28 sigma -6.3, so signal is not from a stable planetary transit.",
+   "Depth changes 56.15% between sectors 55 depth_ppm 967 err_ppm 164 and 82 depth_ppm 1722 err_ppm 153 from same TESS-SPOC source, indicating depth is not constant.",
+   "Odd and even dips differ at near-significant level, and sector_oe_max_sigma 5.815 in one sector, favouring an eclipsing binary at 2x period or blended eclipses over a planet."
+  ]
+ },
+ {
+  "tic": 270298566,
+  "batch": "batch4",
+  "nn_rank": 0.059,
+  "nn_p": 0.4841,
+  "xgb_rank": 0.029,
+  "verdict": "reject",
+  "reasons": [
+   "Depth varies by 139.8% between sectors (1723, 4134, 8338 ppm) with chi2 36.05 dof2. Alone not a planet reject but tool settles its cause below.",
+   "Within TESS-SPOC depth still chaotic (p_constant 1.4961177440402152e-08, per-sector depths 1723\u00b1815, 4134\u00b1979, 8338\u00b1764 ppm). Sectors share aperture neighbours, so aperture/norm CALIB cannot explain this intra-source change.",
+   "Individual transits also inconsistent (chi2 38.21687307403048 dof4). Outlier at btjd 3179.066 depth 9963 ppm is 4.1 sigma from mean, and share_of_top_3 = 0.956 shows signal dominated by few events, positive evidence for few bad transits rather than stable planet."
+  ]
+ },
+ {
+  "tic": 317722273,
+  "batch": "batch4",
+  "nn_rank": 0.074,
+  "nn_p": 0.536,
+  "xgb_rank": 0.037,
+  "verdict": "gate2",
+  "reasons": [
+   "Small, flat-bottomed and central transit with low-impact parameter positively favours a planet; grazing binary expected to be V-shaped.",
+   "No odd/even difference and no significant secondary; flat bottom also disfavours a grazing EBs, though sector/stellar-density tensions remain.",
+   "No neighbour within 21 arcsec could produce the 6576 ppm dip without 25%+ eclipse and resolved contamination is negligible, so a blended eclipse is disfavoured."
+  ]
+ },
+ {
+  "tic": 32179367,
+  "batch": "batch4",
+  "nn_rank": 0.061,
+  "nn_p": 0.4966,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits have very different depths (large positive sigma). This is signature of an eclipsing binary at twice the reported period (24 d) rather than a planet at 12 d.",
+   "Depth changes by factor seven between sectors and within the same pipeline (sector_depths_by_source verdict changes_within_a_source, p_constant_all 1.961795251663295e-07). A single planet transiting on-target would have stable depth.",
+   "Individual transit depths are inconsistent; the signal is dominated by three deep events and one very shallow outlier. Not a consistent planet transit."
+  ]
+ },
+ {
+  "tic": 326212520,
+  "batch": "batch4",
+  "nn_rank": 0.081,
+  "nn_p": 0.6015,
+  "xgb_rank": 0.048,
+  "verdict": "gate2",
+  "reasons": [
+   "Planet-sized, well below stellar range, with flat bottom shape (shape.v_sigma -1.961) favouring transit over grazing binary.",
+   "No star within one TESS pixel (21 arcsec) can cause the dip with <25% eclipse; closest that could is 39.4 arcsec away needing 0.1597 eclipse, so blended neighbour unlikely; centroid inconclusive but not off-target.",
+   "No significant secondary eclipse (depth_ppm 313.3, snr_at_half 1.348) and odd/even difference not >4 sigma; no Gaia binary flags, arguing against eclipsing binary on target at twice period."
+  ]
+ },
+ {
+  "tic": 396480013,
+  "batch": "batch4",
+  "nn_rank": 0.056,
+  "nn_p": 0.4572,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Sector-to-sector depth change is highly significant and sector 82 is consistent with zero. This is not a calibration offset; the variable depth is intrinsic to the light curve.",
+   "Depth truly changes within the same pipeline/product, ruling out a dilution/aperture artefact as the cause and pointing to a few outlier/low-SNR events.",
+   "Individual transits are inconsistent; the deep sector 55 transit carries most of the signal while sector 82 has none, indicating the detection is driven by a couple of bad/outlying events rather than a repeatable planet."
+  ]
+ },
+ {
+  "tic": 429662318,
+  "batch": "batch4",
+  "nn_rank": 0.058,
+  "nn_p": 0.4783,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Depth varies dramatically between sectors (755 to 14319 ppm) - not a systematic calibration offset between pipelines. The signal disappears in sectors 43/44 and is large in 45/71/72, as expected for noise/few events rather than a stable planet transit.",
+   "Individual transit depths are wildly inconsistent and the signal is dominated by two outliers: 14319 ppm (epoch 58, sigma 6.2) and 9174 ppm (epoch -1, sigma 4.8) with a bad near-gap transit at -169 ppm (sigma -4.7). Top three carry 98.6% of the signal, indicating a few false events, not a repeatable planet.",
+   "Depth changes significantly within each light-curve product pipeline, ruling out aperture/product systematics as the cause and positively favoring a noise-induced false alarm over a planet on target."
+  ]
+ },
+ {
+  "tic": 468222868,
+  "batch": "batch4",
+  "nn_rank": 0.055,
+  "nn_p": 0.4543,
+  "xgb_rank": 0.024,
+  "verdict": "reject",
+  "reasons": [
+   "RUWE 8.841 is far above the ~1.4 astrometric single-star threshold and star.non_single_star is 1, indicating the target is itself an astrometric binary and Gaia is inconsistent with a single-star solution.",
+   "Star is highly variable (3133 ppm and 2193 ppm amplitudes) with two detected spot periods that bracket the 11.7 d signal period (signal_over_rotation 1.1569835159411705), as expected for an active K dwarf (teff 4466 K). A real planet would be common despite coincidence, but here the dip looks like the stellar variability itself.",
+   "Out-of-transit modulation amplitude is about 19% of the 983 ppm dip depth with chi2 9.299 for 9 dof, positively favoured over the flat line. This large, coherent signal at the orbital period is not typical for a 2.97 Rearth planet and is better explained by a close binary / ellipsoidal / spot modulation on the variable star."
+  ]
+ },
+ {
+  "tic": 618562,
+  "batch": "batch4",
+  "nn_rank": 0.142,
+  "nn_p": 0.7543,
+  "xgb_rank": 0.048,
+  "verdict": "gate2",
+  "reasons": [
+   "Negative V significance with flat-bottom favored shape, not V-shaped binary/grazing.",
+   "Undiluted size 2.6 Rearth is firmly in planet regime, far from stellar eclipse limit (>22).",
+   "Duration 3.997 h vs central 3.167 h ratio 1.262 fits central transit, consistent with stellar density (fit_log_density_ratio -0.497)."
+  ]
+ },
+ {
+  "tic": 68157921,
+  "batch": "batch4",
+  "nn_rank": 0.059,
+  "nn_p": 0.4821,
+  "xgb_rank": 0.029,
+  "verdict": "reject",
+  "reasons": [
+   "Strong odd/even difference statistically favours an eclipsing binary at twice the period (29.8 d) over a planet at 14.9 d; single binary period would give only two dips of very different depth.",
+   "Significant secondary eclipse at ~22% of orbit, about 60% as deep as the primary, consistent with a stellar companion rather than a planet occultation; snr well above best_brightening_snr 2.592.",
+   "Individual transits are inconsistent; one very deep (~14755 ppm) and one very shallow (~1643 ppm) imply depths truly differ, as expected for two different eclipses in a binary near the 14.9 d alias, not a single planet."
+  ]
+ },
+ {
+  "tic": 9357366,
+  "batch": "batch4",
+  "nn_rank": 0.05,
+  "nn_p": 0.419,
+  "xgb_rank": 0.044,
+  "verdict": "gate2",
+  "reasons": [
+   "Flat-bottomed transit with strong flat favour (negative v_sigma), ingress fraction 0.05, b=0.01475 and k=0.03732. Fitted density ratio consistent with stellar density, but long duration ratio (1.575, central_h 3.174) is flagged as penalty (fit_log_density_ratio -0.9088) rather than V shape.",
+   "Odd and even depths equal (odd 1641 ppm vs even 1617 ppm, diff ppm 24.91, depth_ratio 1, sector_oe_max_sigma 0.474) - no 2x period eclipsing binary.",
+   "No secondary eclipse: secondary snr 2.886 with depth 298.3 ppm, snr_at_half -0.7929, secondary_over_bump 1.239 below threshold."
+  ]
+ },
+ {
+  "tic": 343972899,
+  "batch": "batch5",
+  "nn_rank": 0.058,
+  "nn_p": 0.4758,
+  "xgb_rank": 0.035,
+  "verdict": "gate2",
+  "reasons": [
+   "Planet-sized (<10 R_earth), undiluted depth 6585 ppm and rp/rstar 0.08115 positively favour a planet over a stellar eclipse, even with grazing fit.",
+   "Flat-bottomed (non-V) shape favours a planet; V_sigma negative with short ingress fraction 0.05 supports transit morphology.",
+   "No star within one TESS pixel (21 arcsec) can cause the 6579 ppm dip with <=25% eclipse; closest that could is 47 arcsec away requiring 0.3414 eclipse, off-target blend disfavoured (centroid inconclusive but contratio 0.001039 and neighbours=0)."
+  ]
+ },
+ {
+  "tic": 350437593,
+  "batch": "batch5",
+  "nn_rank": 0.058,
+  "nn_p": 0.4761,
+  "xgb_rank": 0.042,
+  "verdict": "reject",
+  "reasons": [
+   "depth changes by factor ~9 between sectors, far beyond errors. A planet transiting the target should have a steady, diluted depth (here contratio=0.005675, neighbours.plausible_within_1px=0, no blend within 1px).",
+   "even within the same pipeline source the depth is inconsistent - not a calibration offset between sectors or apertures, but a true change with sector/cadence.",
+   "individual transit depths are inconsistent; the signal is dominated by 3 deep events while the shallow sectors contribute little - the hallmark of systematics or a few bad events, not a repeatable planet. Odd-even and secondary (snr 1.771 and 3.232) and flat bottom (v_sigma -2.193) plus on-target geometry cannot outweigh this variability, and xgboost planet_rank 0.06 already rates it false-positive-like."
+  ]
+ },
+ {
+  "tic": 376813432,
+  "batch": "batch5",
+  "nn_rank": 0.058,
+  "nn_p": 0.4721,
+  "xgb_rank": 0.035,
+  "verdict": "gate2",
+  "reasons": [
+   "Flat-bottomed transit not V-shaped; favors planet over grazing binary.",
+   "Planet-sized after undiluted correction (rp_over_rstar 0.1087); well below stellar/eclipse regime.",
+   "No plausible blend within 1 pixel (21 arcsec) that can cause 11710 ppm dip alone; no off-target signal identified despite inconclusive centroid."
+  ]
+ },
+ {
+  "tic": 397432662,
+  "batch": "batch5",
+  "nn_rank": 0.089,
+  "nn_p": 0.631,
+  "xgb_rank": 0.036,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits have very different depths, as expected for a binary seen at twice the period (period_x2 28.8 d). Sector-level odd/even stays same sign (sector_oe_same_sign_share 1).",
+   "Individual transits are inconsistent, not consistent for a planet. Together with odd/even difference this is eclipsing-binary variability, not spot or few-bad-events noise. No true secondary (secondary.snr 3.681 <5, snr_at_half -1.616) but a deep secondary is not required for EB at this dilution.",
+   "Depth changes significantly between sectors/apertures and between transits. A blended EB with aperture-dependent dilution produces exactly this deep-to-shallow pattern, whereas a planet should be steady when not diluted (TESS contamination contratio 0.001303, neighbours.plausible_within_1px 0)."
+  ]
+ },
+ {
+  "tic": 410438203,
+  "batch": "batch5",
+  "nn_rank": 0.08,
+  "nn_p": 0.5849,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Five transits are highly inconsistent; only 3-4 events dominate the detection, classic false alarm from a few outliers.",
+   "RUWE well above 1.4 and large Gaia excess noise indicate the target is an unresolved binary/contaminated blend, not a quiet planet host.",
+   "Star is strongly spotted/variable at percent level, providing noise that can mimic a shallow 6425 ppm dip; phase_curve amplitude 532.1 ppm reinforces variability."
+  ]
+ },
+ {
+  "tic": 457921140,
+  "batch": "batch5",
+  "nn_rank": 0.058,
+  "nn_p": 0.476,
+  "xgb_rank": 0.031,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even eclipses differ at 15 sigma, a classic twice-period eclipsing binary signature.",
+   "V-shaped grazing eclipse with impact parameter 0.72 does not match the M-dwarf density; transit fit penalised for density mismatch.",
+   "Seven transits are mutually inconsistent; signal would require a single deep eclipse, inconsistent with a planet on the target."
+  ]
+ },
+ {
+  "tic": 116486054,
+  "batch": "batch6",
+  "nn_rank": 0.153,
+  "nn_p": 0.7723,
+  "xgb_rank": 0.026,
+  "verdict": "reject",
+  "reasons": [
+   "Odd/even depths differ strongly: depth_odd_ppm 211.6 vs depth_even_ppm 861, depth_ratio 4.1 and depth_difference_ppm 649.5. Sector summary shows sector_oe_max_sigma 5.868 with 1 sector over 3 sigma, favours binary at twice period (29.8 d) over planet.",
+   "Significant secondary dip at phase 0.3593 with depth_ppm 184.9 and depth_over_dip 0.35, snr 6.04 above best_brightening_snr 6.522 threshold. A planet should not show such a deep secondary; EB explains it.",
+   "Depth changes enormously between sectors (depth_change_pct 275.8). SPOC 2-min p_constant 2.3209582245706948e-06 and TESS-SPOC 8.709794904159668e-08, plus transit_depths p_consistent 3.4174715960584276e-26 with share_of_top_3 0.915 driven by two outliers (1703 ppm at btjd 2669.478 sigma 7.9 and 1371 ppm at btjd 3444.174 sigma 6.1). Changes within same source are not calibration but real folded-like variability/imprecision, inconsistent with stable planet."
+  ]
+ },
+ {
+  "tic": 154205100,
+  "batch": "batch6",
+  "nn_rank": 0.087,
+  "nn_p": 0.6286,
+  "xgb_rank": 0.049,
+  "verdict": "reject",
+  "reasons": [
+   "Strongly flat-bottomed favours planet shape but is also allowed for small-star/eclipsing binaries; needs density confirmation.",
+   "Duration 2.492 h is 1.43x central 1.739 h for TIC radius 0.753 - much too long for a central planet transit; stellar_ebration or blended binary not ruled out.",
+   "Pattern of odd-even difference that flips sign is classic for a close binary with strong spots/variability, not a planet; binary period = 2.68 d (zombie at 2x)."
+  ]
+ },
+ {
+  "tic": 201289781,
+  "batch": "batch6",
+  "nn_rank": 0.2,
+  "nn_p": 0.8161,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even dips differ strongly, as expected for an eclipsing binary detected at half its true period (2x 12.3 d = 24.6 d). This is not a planet at the reported period.",
+   "A second, significant dip well below 0.5 phase indicates stellar companions; combined with odd/even shows primary+secondary eclipses of an EB, not a planetary transit.",
+   "Transect depths are highly inconsistent and dominated by a few few-event outliers, supporting sector-dependent blended EB rather than a true transiting planet."
+  ]
+ },
+ {
+  "tic": 252888616,
+  "batch": "batch6",
+  "nn_rank": 0.08,
+  "nn_p": 0.5677,
+  "xgb_rank": 0.032,
+  "verdict": "gate2",
+  "reasons": [
+   "Small ~3 Rearth planet size well below stellar eclipse regime, positively favours planet over eclipsing binary/diluted binary despite V shape.",
+   "No odd/even difference; excludes binary at twice period where depths would differ by ~factor 2.",
+   "No significant secondary eclipse (snr<5) and snr_at_half -0.3998; no stellar companion signature."
+  ]
+ },
+ {
+  "tic": 26073633,
+  "batch": "batch6",
+  "nn_rank": 0.282,
+  "nn_p": 0.8867,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "9 individual transits have chi2 378.29283560955395 dof 8, top 3 carry 0.991 of signal with depths 979, 801, 740 ppm (10.8, 8.8, 8.4 sigma outliers) vs -21, 19, 40 ppm in other sectors - signal is a few bad events, not consistent transits",
+   "SPOC 2-min alone shows depths 883 ppm (sector 35), 424 ppm (sector 62), 40 ppm (sector 8), 19 ppm (sector 89) and QLP -18 ppm (sector 100) - depth changes within one source and between sectors, not a calibration offset",
+   "Odd and even eclipses differ by 5.2 sigma and a secondary eclipse at non-half phase is detected well above best_brightening_snr 5.567, favouring an eclipsing binary folded at twice the true period over a planet; shape v_sigma -0.1743 is flat-bottomed but blended-binary eclipses can also appear flat"
+  ]
+ },
+ {
+  "tic": 339252712,
+  "batch": "batch6",
+  "nn_rank": 0.081,
+  "nn_p": 0.6014,
+  "xgb_rank": 0.049,
+  "verdict": "gate2",
+  "reasons": [
+   "No star within one TESS pixel could cause the dip with a plausible (<25%) eclipse; closest that could is 33.4 arcsec away, ruling out a blended neighbour.",
+   "Undiluted size is small-planet from undiluted depth 4354 ppm and rp/rstar 0.06598, far below stellar limit.",
+   "Shape is not V-shaped and favours flat bottom (b 0.984, t14_h 4.197 vs dur_h 3.498), consistent with a transiting planet not a grazing binary."
+  ]
+ },
+ {
+  "tic": 354033101,
+  "batch": "batch6",
+  "nn_rank": 0.153,
+  "nn_p": 0.7719,
+  "xgb_rank": 0.034,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits have very different depths (3 sigma difference overall and sector_oe_max_sigma 5.298 with all sectors same sign), classic signature of an eclipsing binary at twice the reported period, not a planet at 13.2 d.",
+   "A second dip at ~0.21 phase with SNR well above best_brightening_snr 4.561 indicates a stellar secondary eclipse, confirmed by phase_curve amplitude_ppm 137.9 ratio_to_depth 0.1603 chi2 24.74. Stellar companion consistent with 13.2 d period.",
+   "Individual transits are highly inconsistent with constant depth; one transit is essentially missing, matching expected behaviour for odd/even binary where every other eclipse is different/missing, not measurement scatter."
+  ]
+ },
+ {
+  "tic": 367173014,
+  "batch": "batch6",
+  "nn_rank": 0.067,
+  "nn_p": 0.5137,
+  "xgb_rank": 0.028,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by 380.7% between sectors (3225 ppm in sector 43 vs 5406 ppm in sector 44 vs 2591 ppm in sector 71 vs 3415 ppm in sector 73); sector_depths_by_source confirms changes_within_a_source with SPOC 2-min p_constant 5.026118801322606e-08 and TESS-SPOC p_constant 4.0774162254626644e-225. Real planets are steady; this astrophysical variability points to stellar signal.",
+   "The dip period is exactly one times the spot rotation period with huge variability (~8e4 ppm). Phase_curve amplitude 996.1 ppm ratio_to_depth 0.2035 chi2 53.03/9 and sector_depths_by_source changes confirm variability dominates. Dip at rotation multiple with this swing favours spots, not a planet.",
+   "Transit is far too long for tic_radius 0.779881 R_sun and does not match stellar density; density mismatch plus light-curve variability together rule out a planet transit."
+  ]
+ },
+ {
+  "tic": 381589243,
+  "batch": "batch6",
+  "nn_rank": 0.074,
+  "nn_p": 0.5356,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "Strong odd/even depth difference (5.822 sigma, 80.96% difference) is classic for an eclipsing binary at twice the reported period (22.8 d). Odd transits are ~5.3x deeper than even, opposite parity as expected for primary+secondary eclipses.",
+   "Individual transit depths are wildly inconsistent, with one or two very deep events (3595, 3587, 2810 ppm) dominating the signal (95.7% of SNR) and several flat/shallow (29, -146 ppm) inconsistent with a planet of fixed depth. Not explained by calibration alone.",
+   "Depth appears to change dramatically between sectors and data sources, and the planet classifier ranks this as much less planet-like than the median known planet (0.07). Combined with the odd/even evidence this points to stellar variability, systematics and/or a close binary/bblend rather than a steady planet; flat-bottom shape (v_sigma=-2.273) and small size (rp_rearth=1.999) alone do not overcome this."
+  ]
+ },
+ {
+  "tic": 382472618,
+  "batch": "batch6",
+  "nn_rank": 0.291,
+  "nn_p": 0.8976,
+  "xgb_rank": 0.044,
+  "verdict": "gate2",
+  "reasons": [
+   "Flat bottom (negative V score) and ingress fraction 0.1 favour a transit over a grazing binary/V shape.",
+   "With rp/rstar 0.0532 the implied radius is planet-sized well below the 10 Rearth threshold, not stellar.",
+   "Duration 3.5h vs central 2.434h is up to 1.5x, fit at b=0.8102 \u2014 consistent with an eccentric/high impact-parameter small-planet transit."
+  ]
+ },
+ {
+  "tic": 416836609,
+  "batch": "batch6",
+  "nn_rank": 0.051,
+  "nn_p": 0.431,
+  "xgb_rank": 0.029,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by factors well beyond errors even within one source; not a calibration offset, as SPOC 2-min alone varies from 542 to 7225 ppm. A true planet on target should be steady regardless of aperture/processing.",
+   "Individual transits are wildly inconsistent, with one or two deep events carrying the entire detection and others consistent with no transit or even negative depth. Signal strength is driven by outliers, classic for a blend/false alarm.",
+   "Independent classifier trained on solved TESS candidates ranks this in the bottom 5% of planet-like signals, consistent with the observed instability."
+  ]
+ },
+ {
+  "tic": 466264407,
+  "batch": "batch6",
+  "nn_rank": 0.082,
+  "nn_p": 0.612,
+  "xgb_rank": 0.046,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even dips differ by ~9.7 sigma (ratio 3.7). Sector-level odd/even also extreme (sector_oe_max_sigma=8.587). This is the classic signature of an eclipsing binary at twice the reported period, not a planet.",
+   "Depth does not repeat even within the same SPOC 2-min source. One transit (sector 27, epoch -1) is 13\u00b1242 ppm (i.e. absent) while others are 3499, 364, 2928 ppm. High share on top 3 and extreme chi2 show a few bad events, consistent with a blended or eccentric EB, not a stable planet.",
+   "Observed duration 3.499 h is much longer than central 2.242 h for this M-dwarf (rad 0.3545), implying a very eccentric or misaligned binary grazing geometry. Flat bottom favours full eclipses, not grazing."
+  ]
+ },
+ {
+  "tic": 58544211,
+  "batch": "batch6",
+  "nn_rank": 0.059,
+  "nn_p": 0.4812,
+  "xgb_rank": 0.035,
+  "verdict": "gate2",
+  "reasons": [
+   "Planet-sized, sub-Saturn dip observed longer than central but still fits a M-dwarf transit (\u22481.3\u00d7 central with Gaia radii) with stellar-density consistent shape (fit chi2_red 1.49, b\u22480) and no V-shape (v_sigma 2.641 <3).",
+   "No odd/even difference and no significant secondary at half orbit (secondary below threshold and phase not 0.5); period-doubled EB ruled out despite xgboost planet_rank 0.06.",
+   "No nearby star inside one TESS pixel (21 arcsec) that can produce 5000 ppm even with deep eclipse, and depth is steady within source and between the two individual transits per light curve, ruling out a blended neighbour EB or aperture / few-bad-transit noise (refit snr 17.75) \u2014 inconclusive centroid is not off-target evidence."
+  ]
+ },
+ {
+  "tic": 7264719,
+  "batch": "batch6",
+  "nn_rank": 0.094,
+  "nn_p": 0.6478,
+  "xgb_rank": 0.022,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits differ by ~1500 ppm at 4.976 sigma, with 2.3x depth ratio and same sign in all sectors (sector_oe_max_sigma=6.924, sector_oe_sectors_over_3=1, sector_oe_same_sign_share=1). Strong positive evidence for an eclipsing binary at twice the 13.9 d period rather than a planet.",
+   "Individual transit depths are wildly inconsistent, with one transit essentially flat (-38 ppm) and another much deeper (2627 ppm), carrying 98.5% of the signal. Shape is not a planet; the 'transits' are a few bad events, not a consistent planet signal.",
+   "Star is highly spotted variable with strong rotation signal; combined with highly variable depths and low SNX (xgboost planet_rank=0.09) this favours variability / spot systematics and EB over an unvarying planet, despite flat shape (v_sigma=-4.079) and planet radius (rp_rearth=2.176)."
+  ]
+ },
+ {
+  "tic": 156146205,
+  "batch": "batch7",
+  "nn_rank": 0.081,
+  "nn_p": 0.6059,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Significant alternating odd/even depth difference persists in the same sign across sectors is the positive signature of an eclipsing binary folded at twice the reported period (period_x2 29.6 d), not a planetary transit with stable depth.",
+   "Large brightness swing at this period outside the dips, chi2 much above unity and larger than any secondary eclipse, indicates ellipsoidal/spot modulation from a close stellar companion rather than a planet.",
+   "Only three transits all near a gap carry the whole signal, increasing the false-alarm rate for variability and making the odd/even and phase-curve signatures harder to dismiss as noise."
+  ]
+ },
+ {
+  "tic": 219875126,
+  "batch": "batch7",
+  "nn_rank": 0.093,
+  "nn_p": 0.6383,
+  "xgb_rank": 0.037,
+  "verdict": "reject",
+  "reasons": [
+   "Even and odd eclipses have essentially no odd depth and a ~630 ppm even depth; sigma >3 with real depth difference, plus sector_oe_max_sigma 6.723 in 6 of 39 sectors with same sign, is the classic signature of an eclipsing binary at double the detected period (period_x2 23.2) folded as single at 11.6 d.",
+   "Depth changes significantly within the same light-curve product, not a calibration offset, inconsistent with a planet on the target and expected when secondary eclipses of an EB are folded at half the true period."
+  ]
+ },
+ {
+  "tic": 24405622,
+  "batch": "batch7",
+  "nn_rank": 0.275,
+  "nn_p": 0.8799,
+  "xgb_rank": 0.042,
+  "verdict": "unreadable",
+  "reasons": []
+ },
+ {
+  "tic": 259645816,
+  "batch": "batch7",
+  "nn_rank": 0.058,
+  "nn_p": 0.4745,
+  "xgb_rank": 0.042,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by a factor ~2 within the same SPOC 2-min product and even flips sign; transit_depths verdict changes_within_a_source with 2 outliers >4 sigma. A real planet on a 14.7 d period should be steady within a single product, so this is not a planet transit but spot/crowding systematics or a few bad events dominating the fit.",
+   "Independent classifier rates this as strongly planet-unlike, consistent with the measured depth instability.",
+   "A star within 1 TESS pixel (21 arcsec) can produce the folded 3178 ppm dip with a <25% eclipse and centroid has no clear offset to test it, keeping a blended EB viable, though depth variability still positively favors non-planet systematics over a single EB."
+  ]
+ },
+ {
+  "tic": 289450785,
+  "batch": "batch7",
+  "nn_rank": 0.294,
+  "nn_p": 0.9007,
+  "xgb_rank": 0.026,
+  "verdict": "reject",
+  "reasons": [
+   "Depth is highly inconsistent between sectors - positive in two sectors, near-zero or negative in others - inconsistent with a planet on the target.",
+   "Depth changes significantly within the same pipeline (SPOC 2-min: 557 ppm in sector 19 vs 32 ppm in sector 25 vs -62 ppm in sector 53, etc.), not a calibration difference between products.",
+   "Signal dominated by two extremely deep dips and one missing dip, indicating a planet-sized depth only when two individual events drive the detection; not a consistent transiting planet."
+  ]
+ },
+ {
+  "tic": 292319568,
+  "batch": "batch7",
+  "nn_rank": 0.053,
+  "nn_p": 0.4439,
+  "xgb_rank": 0.028,
+  "verdict": "reject",
+  "reasons": [
+   "Four transits do not share a consistent depth; one is completely absent, meaning the signal is not a repeated transit with stable depth.",
+   "Depth changes by sector and is near zero in sector 58, which a planet on the target must not do; sector_depths_by_source verdict changes_within_a_source confirms it is not a calibration offset.",
+   "All detected transits fall near data gaps, a false-alarm signature, not a regular planet ephemeris."
+  ]
+ },
+ {
+  "tic": 337092800,
+  "batch": "batch7",
+  "nn_rank": 0.103,
+  "nn_p": 0.6764,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Large out-of-transit swing at this period (32% of dip depth) points to spots/system variability, not a quiet planet transit.",
+   "Star is strongly variable at 5.7-15 d, comparable to the 13.1 d dip. Phase curve and rotation together favour variability as the source of the dip rather than a planet.",
+   "Depth changes significantly between sectors (flat depth disfavoured, p << 0.01) and sector_depths_by_source says changes_within_a_source (TESS-SPOC p_constant 1.4451656295605937e-05). True planets are steady; this variability is more like spot modulation or blended contamination."
+  ]
+ },
+ {
+  "tic": 370137830,
+  "batch": "batch7",
+  "nn_rank": 0.057,
+  "nn_p": 0.469,
+  "xgb_rank": 0.034,
+  "verdict": "reject",
+  "reasons": [
+   "Odd depth 209.8 ppm vs even 1135 ppm, depth_difference 0.8152 (925.6 ppm) with ratio 5.4. Strong odd/even difference indicates binary at twice the period (27.8 d), not a planet.",
+   "Depth changes between sectors in the same light-curve product; 15% mean drop in sector 1 and 8% in sector 2 vs 5574 ppm in sector 13 and 2540 ppm in sector 87. Not a calibration difference.",
+   "Signal not reproducible: top three events carry 0.931 of total signal, many depths negative/upper-limit. Two shallow transits in sectors 1-2 when eclipse is deep in sectors 13, 87, 94."
+  ]
+ },
+ {
+  "tic": 428955968,
+  "batch": "batch7",
+  "nn_rank": 0.24,
+  "nn_p": 0.8465,
+  "xgb_rank": 0.028,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by factor ~3.5 across sectors (108 to 754 ppm) with chi2 150.9 dof 11, inconsistent with a planet of fixed depth.",
+   "Depth changes significantly even within the same light-curve product, so the variation is astrophysical/calibration, not a change between pipelines.",
+   "Odd and even dips look different at ~2.85 sigma as part of pattern that repeats with sign changes (sector_oe_max_sigma 7.739, 5 sectors >3 sigma), favouring a binary at twice the period over a planet."
+  ]
+ },
+ {
+  "tic": 443673580,
+  "batch": "batch7",
+  "nn_rank": 0.102,
+  "nn_p": 0.6692,
+  "xgb_rank": 0.028,
+  "verdict": "reject",
+  "reasons": [
+   "Depths are wildly inconsistent, chi2/dof 187.28/15, driven by three very deep transits that carry 87% of the folded signal; false-alarm signature of a few outlier events, consistent with sector_depths_by_source showing QLP 237\u00b197 ppm vs TESS-SPOC 2114\u00b1181 ppm (differs_by_source, p_constant 2.797e-18).",
+   "Apparent depth change is between light-curve products/catalogues, not astrophysical sectors within a source; supports software artefact rather than a stable planet transit.",
+   "Difference images give no on-target confirmation; centroid_all not run, so cannot rule out a diluted NEB, but size is planet-like (rp_rearth 1.249, duration ratio 1.303, shape v_sigma 1.479) and identical centroid limitation applies to many false alarms in similar set (2/5 not a planet). xgboost planet_rank 0.1 also favours false positive."
+  ]
+ },
+ {
+  "tic": 57229026,
+  "batch": "batch7",
+  "nn_rank": 0.235,
+  "nn_p": 0.8442,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes dramatically between sectors, from 1586 +/-163 ppm in sector 24 to 33 +/-70 ppm in sector 51, not consistent with a planet on the target.",
+   "Depth varies significantly even within the same light-curve product (SPOC 2-min p_constant 2.382788474052658e-10), so it cannot be a calibration offset between products.",
+   "Only a few outliers drive the entire signal; most transits are undetected, indicating noise/false alarm rather than repeated planet transits."
+  ]
+ },
+ {
+  "tic": 70563385,
+  "batch": "batch7",
+  "nn_rank": 0.078,
+  "nn_p": 0.5438,
+  "xgb_rank": 0.032,
+  "verdict": "reject",
+  "reasons": [
+   "A secondary dip near phase 0.756 with SNR above 5 and comparable to the brightest brightening suggests a stellar eclipse (phase offset from 0.5 for eccentric EB), not a planet. Combined with sec_half_max_snr 5.331 shows it persists at half period.",
+   "Sector-level odd/even differences exceed 3 sigma in one sector, consistent with a binary at twice the detected period (21 d) with unequal primary and secondary eclipses. Sector_oe_same_sign_share 0.6667 shows not a single bright-spot outlier.",
+   "Individual transit depths vary by >10 sigma with the top 3 transits carrying 92.6% of signal. This is not sector-level dilution but astrophysical depth change/flattening expected for an eccentric EB folded at half its true period."
+  ]
+ },
+ {
+  "tic": 81699706,
+  "batch": "batch7",
+  "nn_rank": 0.102,
+  "nn_p": 0.6691,
+  "xgb_rank": 0.044,
+  "verdict": "reject",
+  "reasons": [
+   "Odd (828.8 ppm) and even (496.7 ppm) depths differ by 40%, depth_ratio 1.7; not a statistical fluctuation, favours an eclipsing binary at twice the 10.5 d period or residual systematics at high significance.",
+   "sec tool shows depth changes_within_a_source: SPOC 2-min p_constant 2.4229101895258697e-62 with per-sector depths 1847\u00b1273, 407\u00b1209, 3168\u00b1129, -95\u00b1163 ppm; TESS-SPOC gives ~0 ppm. A real planet on the target must be stable; such extremes by aperture alone only point to systematics/stellar variability masquerading as an unstable folded dip.",
+   "Grazing V-shaped geometry with impact parameter near unity and fit_log_density_ratio -2.07 / star_density_penalty 62.75, inconsistent with a central planet transit despite v_sigma 0.5468; better matches a near-grazing blended binary."
+  ]
+ },
+ {
+  "tic": 150188736,
+  "batch": "batch8",
+  "nn_rank": 0.079,
+  "nn_p": 0.5615,
+  "xgb_rank": 0.041,
+  "verdict": "reject",
+  "reasons": [
+   "54 transits should agree if they are a planet, but chi2=728.2334745858368 dof=53 shows extreme scatter; individual depths range ~ -1009 to 4206 ppm.",
+   "Following Tool transit_depths, the signal is dominated by a few outliers (3872, 3362, 4206 ppm), the classic signature of a few bad events / spot crossings rather than coherent transits.",
+   "Depths change drastically and unpredictably between sectors; sector_depths_by_source confirms changes_within_a_source with p_constant=2.8569565190800305e-74 for SPOC 2-min alone, not a calibration offset."
+  ]
+ },
+ {
+  "tic": 165108082,
+  "batch": "batch8",
+  "nn_rank": 0.057,
+  "nn_p": 0.4591,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even transits have a 75% depth difference at ~5.8 sigma - expected for an eclipsing binary folded at half its true period. At this bright Tmag=9.594 significant difference is astrophysical",
+   "A real secondary eclipse is present well outside the detrending bump (depth ~46% of the primary), inconsistent with a planet and indicating a luminous companion",
+   "Depth is not stable - consistent with blending/detrending artefacts. sector_depths_by_source verdict=changes_within_a_source confirms true depth changes versus a planet"
+  ]
+ },
+ {
+  "tic": 191943697,
+  "batch": "batch8",
+  "nn_rank": 0.107,
+  "nn_p": 0.6871,
+  "xgb_rank": 0.034,
+  "verdict": "gate2",
+  "reasons": [
+   "Flat-bottomed (not V-shaped) favours planet over grazing binary; sector_oe_max_sigma 1.186 and sector_oe_sectors_over_3 0",
+   "Odd/even difference below 4 sigma and not sustained in sectors; could be noise in 3 transits rather than true binary at 27.4 d, with secondary at 0.5156 phase having snr 5.584 and best_brightening_snr 4.225 (ratio 1.322) not well above noise",
+   "No off-target detection; neighbours.plausible_within_1px 0 and could_cause_within_1px 0, so no nearby star can produce 1121 ppm dip with <=25% eclipse, ruling out neighbour blend despite inconclusive centroid"
+  ]
+ },
+ {
+  "tic": 22750743,
+  "batch": "batch8",
+  "nn_rank": 0.08,
+  "nn_p": 0.5888,
+  "xgb_rank": 0.035,
+  "verdict": "reject",
+  "reasons": [
+   "odd and even transits differ by ~47% at ~3 sigma, with sector_oe_max_sigma 4.15, favouring an eclipsing binary at twice the period over a planet. A planet would have consistent odd/even depths.",
+   "A strong secondary dip near ~0.76 phase, 31% as deep as the primary, significantly above the best brightening, indicates stellar pulsations/eclipses from a blended or bound binary rather than a planet (hot-Jupiter tiny secondary not seen at this depth for rp_rearth 0.7984).",
+   "Individual transit depths are highly inconsistent; one outlier carries nearly half the signal, consistent with a few bad or diluted eclipses, not a stable planetary transit. Sector depths also appear different (sectors.p_constant 0.001964) but sector_depths_by_source says differs_by_source not changes_within_a_source, supporting calibration offsets amplifying the outlier, but planet case remains excluded."
+  ]
+ },
+ {
+  "tic": 22820224,
+  "batch": "batch8",
+  "nn_rank": 0.139,
+  "nn_p": 0.7451,
+  "xgb_rank": 0.042,
+  "verdict": "reject",
+  "reasons": [
+   "Depth changes by 307.9% across 5 sectors (chi2 109.1, dof 4) \u2014 not stable even within one pipeline.",
+   "SPOC 2-min depths are 1545\u00b1236 ppm (sector 23), -141\u00b1112 ppm (sector 49) and 1254\u00b1129 ppm (sector 50): formally negative in one sector and ~10x deeper in others, proving pipeline-independent variation.",
+   "High share indicates a few deep events carry the signal, not a consistent small dip; consistent with noise/GBS variability dominating the 3.998-h window."
+  ]
+ },
+ {
+  "tic": 363653791,
+  "batch": "batch8",
+  "nn_rank": 0.059,
+  "nn_p": 0.4844,
+  "xgb_rank": 0.022,
+  "verdict": "reject",
+  "reasons": [
+   "Dip period equals star's spot period (1.003x) with huge spot modulation (up to 35499 ppm) in sector 64, and phase_curve amplitude 281.2 ppm ratio_to_depth 0.4597 chi2 70.21 dof9; stellar variability, not a planet, is the best explanation",
+   "Depth changes actually within the same pipeline across sectors for a sector with 11-44 transits at SNR 29.48; noise from spots/pipeline changes mimics transits, opposite of stable planet",
+   "2.99h dip far too long for a central planet around this M dwarf (0.6547 Rsun 0.6306 Msun) and implies grazing; flat shape v_sigma=-2.785 alone not diagnostic for flat-bottom planet"
+  ]
+ },
+ {
+  "tic": 392463863,
+  "batch": "batch8",
+  "nn_rank": 0.283,
+  "nn_p": 0.89,
+  "xgb_rank": 0.037,
+  "verdict": "unreadable",
+  "reasons": []
+ },
+ {
+  "tic": 441576665,
+  "batch": "batch8",
+  "nn_rank": 0.307,
+  "nn_p": 0.9052,
+  "xgb_rank": 0.036,
+  "verdict": "reject",
+  "reasons": [
+   "Strong odd/even difference (6 sigma) with 2.3x deeper even dips and sector_oe_max_sigma 11.73 and 2 sectors over 3 same sign 0.8 suggests binary at twice the reported period (27.8 d), not alternating planet transits.",
+   "Depth changes by factor >10 between sectors and verdict changes_within_a_source (TESS-SPOC p_constant 5.533e-81). Single-sector detection at 2977 ppm cannot be a stable planet.",
+   "Signal is driven by 3 extreme outlier transits (97% of signal). With chi2 704.8/10 and 5.6e-145 consistency, dips are not consistent repeats of one transit depth."
+  ]
+ },
+ {
+  "tic": 8544214,
+  "batch": "batch8",
+  "nn_rank": 0.081,
+  "nn_p": 0.604,
+  "xgb_rank": 0.034,
+  "verdict": "reject",
+  "reasons": [
+   "Depths are not consistent: top 3 transits carry share_of_top_3 0.982 of the signal with depths 2703 ppm (8.4 sigma) and 2046 ppm (6.3 sigma) vs. mean 775 ppm and one non-detection -43 ppm, chi2 184.60676126798336 dof 9.",
+   "Depth changes drastically between sectors (depth_change_pct 314.3); sector_depths_by_source verdict changes_within_a_source with SPOC 2-min p_constant 7.128097778397709e-11, depths 28 ppm (sector 24) vs 1551 ppm (sector 25) vs 1001 ppm (sector 52) proving variability not pipeline calibration.",
+   "Odd (631.3 ppm) vs even (1190 ppm) depth difference 0.4695 (558.8 ppm) ratio 1.9; sector_oe_max_sigma 5.076 in 1 sector over 3, indicating odd/even inconsistency on target, not a stable planet at 11.9 d."
+  ]
+ },
+ {
+  "tic": 93215835,
+  "batch": "batch8",
+  "nn_rank": 0.102,
+  "nn_p": 0.6699,
+  "xgb_rank": 0.024,
+  "verdict": "reject",
+  "reasons": [
+   "Odd and even dips differ by >8 sigma with ratio 2.2, best explained by an eclipsing binary at twice the 14.5 d period (29 d) rather than a planet at 14.5 d with alternating primary/secondary.",
+   "Five transits are extremely inconsistent; two are missing/shallow at ~223-97 ppm and two are twice as deep at ~1137-964 ppm, so signal is carried by a few anomalous events, not a planet folding consistently.",
+   "Depth changes dramatically between sectors (by >2x) with p_constant 1.545e-25, and sector_depths_by_source verdict changes_within_a_source confirms real astrophysical change, inconsistent with a stable planetary transit while supporting a blended or active binary scenario."
+  ]
+ },
+ {
+  "tic": 186015145,
+  "batch": "holdout",
+  "nn_rank": 0.05,
+  "nn_p": 0.4196,
+  "xgb_rank": 0.042,
+  "verdict": "reject",
+  "reasons": [
+   "Depth is not stable; the variation is far larger than measurement errors, so the signal is not a repeated transit of constant depth.",
+   "Variation persists within the same light-curve product (QLP) between sectors \u2014 not a calibration difference between products. The earliest SPOC sector shows essentially no dip, ruling out a planet with steady depth.",
+   "Individual transit depths are highly inconsistent; a few outliers are tens of times the mean, which drives the overall detection instead of a consistent transit."
+  ]
+ }
+]

@@ -241,6 +241,30 @@ Prompt v11 asked Glimmer to start from XGBoost's rank and overrule it only with 
 before it ran (at least 118 of 149 planets and at most 11 of 177 false positives on dev; it got 107 and 14), so it
 was never run on test and v10 stayed.
 
+## Also tried: building System 1 from scratch
+
+Inspired by the weight-space programming paper (2 Nov 2026), we asked whether an AI agent could build a replacement
+for System 1 (XGBoost) from scratch. We tried both routes on the same 65 inputs, data split and reject cut, and froze
+every model before opening the test labels, once. The paper's route, a hand-written model with no training, reached a
+test AUC of 0.917 on all 579 test TOIs, short of XGBoost's 0.959 (the 0.963 above is on the subset ExoMiner++ also
+scored). AUC is how often a real planet ranks above a false positive; 1.0 is perfect. A neural net designed by an AI
+agent and trained from scratch in plain numpy beat XGBoost at 0.969 (+0.010, 95% interval +0.003 to +0.019), and its
+probabilities were better calibrated. Rescoring the 2,698 survey dips, it kept all 11 that passed gate 2, the 8
+candidates among them, above the 5% floor. Of the 83 dips it would have sent on instead of setting aside, 81 reached
+Glimmer, which passed 17; none passed gate 2.
+
+**Why XGBoost is still System 1.** The net needs more work before it can take over:
+
+- At the reject cut its gains are within noise, and it shows no gain on cool (K and M) host stars.
+- Glimmer was fine-tuned reading XGBoost's ranks, and the net spreads its ranks differently: the 5% floor would need
+  picking again and Glimmer testing again.
+- The drivers and similar-signals tools are built from XGBoost's internals.
+- Every frozen result we report would change.
+- The test labels have now been used once, so any further tuning needs a fresh test set, such as TOIs that got their
+  verdicts after our data snapshot.
+
+Code, results and how to rerun: `research/scratch-model/README.md`.
+
 ## Built before and during the hackathon
 
 **Before:** hand-written research scripts, a separate project run one step at a time, found one planet
