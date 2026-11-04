@@ -211,7 +211,9 @@ export async function runTool(name: string, args: Record<string, unknown>, get: 
   }
   if (name === "survey_overview") {
     const s = await json<Record<string, unknown>>(get, "/data/summary.json");
-    return JSON.stringify(s);
+    // "dossiers" counts Glimmer's readable replies; say so, so the guide doesn't read it as the number sent
+    const { dossiers, ...rest } = s ?? {};
+    return JSON.stringify({ sent_to_glimmer: 715, glimmer_replies_readable: dossiers, glimmer_passed: 159, ...rest });
   }
   if (name === "list_dips") {
     const dips = (await json<Dip[]>(get, "/data/dips.json")) ?? [];

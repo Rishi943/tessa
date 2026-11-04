@@ -65,28 +65,6 @@ searches, and Tessa reached each independently: TIC 9066956 by
 by [Ibrahim](https://doi.org/10.5281/zenodo.23569126) and in RAVEN, TIC 166321785 in
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue.
 
-## The held-out test
-
-Before any search, 1,000 of the survey's fetched stars were drawn uniformly at random across its ranking and set
-aside (`pipeline/holdout.py`); the list was committed then, which timestamps it (`survey/holdout.txt`). Nothing in
-Tessa was tuned on them. On 1 November, with everything frozen (the search, the
-gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched once:
-
-| Held-out stars | |
-|---|---|
-| Searched (999 had data) | 999 |
-| Passed gate 1 at the survey's bar | 23; the same search on the flipped light curves passes 9, the noise expected |
-| Rejected by code (binaries, spotted stars, System 1) | 17 |
-| Set aside (System 1 rank in its bottom 5%, so not sent to Glimmer) | 1 |
-| Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
-| Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
-
-The survey's rate, 8 candidates in 76,318 stars, predicts about 0.10 in 1,000 stars, so none is the most likely
-outcome (about 90%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
-on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
-spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise. Run again under the final gate 2 (an ephemeris that can be fitted, the
-season test), the held-out stars still give no candidate.
-
 ## Quickstart
 
 **Hosted:** https://tessa.braveai.solutions. The 3D map of every star in the survey, a case file for every dip (its
@@ -155,6 +133,59 @@ page as they happen: the light curve and fold, the code checks and XGBoost's ran
 one to see the answer it got back), its verdict and dossier, gate 2, and TRICERATOPS. Badges at the top say what is
 live: Glimmer is called live when `.env` has `GLIMMER_VETTER_URL` and `GLIMMER_API_KEY`, and otherwise replays its
 recorded answer, labelled as a replay. The hosted site has no such server and says so on that page.
+
+## Meta models
+
+Built with Muse Spark Open.
+
+| Step | Model | Note |
+|---|---|---|
+| Teacher: tool-calling traces on about 1,008 training signals | Muse Spark Open (Baseten) | about $32 |
+| Fine-tune: 745 traces that reached the true outcome with no invented numbers (705 to train, 40 held back to check it) | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
+| The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10`, [weights on Hugging Face](https://huggingface.co/rushi-brave/glimmer-vetter-v10) |
+| Case-closed lines and observing notes | Muse Spark 1.3 | |
+| A second opinion on every candidate | Muse Wonder 1.0 | about $0.09 a candidate |
+| Ask Tessa on the site | Muse Spark 1.3 | per question |
+
+Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
+in order. XGBoost is not a Meta model: it is our own scorer, trained during the hackathon, that gives Glimmer a rank to weigh.
+
+## How it works
+
+Glimmer, a fine-tuned open-weight Meta model, makes the planet call and picks its own tools. Code can stop a pass,
+but it can't make one.
+
+1. **Choose the stars** (`pipeline/targets.py`). Gaia DR3 within 100 pc, K/M colours, matched to the TESS Input
+   Catalog; known planet hosts, TOIs, CTOIs and eclipsing binaries removed. 48,945 of them were never TESS
+   two-minute targets.
+2. **Fetch and search** (`pipeline/fetch.py`, `pipeline/search.py`). Light curves from MAST (SPOC, TESS-SPOC,
+   QLP), detrended and searched with a box search on two free Kaggle GPUs. Gate 1 runs the same search on the
+   light curve flipped upside down, where no real dip exists, and sets its bar so 1% of stars pass on noise.
+3. **Code checks** (`pipeline/vet.py`, `pipeline/centroid.py`). Odd against even depth, secondary eclipse,
+   size after dilution, duration for the star, V or flat shape, variability at the period, depth sector by
+   sector, Gaia neighbours that could fake the dip, and difference-image centroids from TESS cutouts.
+4. **System 1 scores it** (`pipeline/system1.py`). An XGBoost model trained on TESS candidates whose fate follow-up
+   settled gives a planet rank. Glimmer gets the rank as one piece of evidence, not as a verdict.
+5. **Glimmer makes the call** (`tools/survey_v10.py`, `agent/prompts/vetting.v10.md`, `pipeline/tools.py`). It names
+   the live explanations, calls only the tools that separate them (centroid in every sector, depth by data source,
+   depth of each transit, Gaia radius, rotation), and returns reject, flag or gate2 with a dossier. Any number in its reasons that it
+   writes that is not in its input is caught and counted. Survey tool answers are measured ahead of time and returned
+   when it calls.
+6. **Gate 2 can stop it** (`pipeline/gate2.py`, `pipeline/novelty.py`, `pipeline/when.py`). Hard rows and a safety
+   net hold any pass whose System 1 rank is in the bottom 5%. Code checks the TOI, CTOI, confirmed-planet, TESS EB, VSX,
+   Gaia EB and SIMBAD lists, tests that each observing season predicts the others, refits the ephemeris and predicts
+   the next TESS sectors and the ground windows at six Las Cumbres Observatory sites, with the SNR one transit would
+   give on 0.4, 1 and 2 m telescopes, a year ahead. A signal whose transits can't be timed is not a candidate.
+7. **TRICERATOPS** (`pipeline/fpp.py`, `pipeline/tri_fast.py`). Scores the chance the dip is a false positive from the
+   light curve, the star and its neighbours: FPP below 0.5 and NFPP below 0.1 to stay a candidate.
+8. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
+   rejected dips and an observing note for candidates. Muse Wonder 1.0 audits every candidate from the raw checks, as a
+   second opinion that changes nothing: it passes five and flags three, each for something still open (a neighbour
+   within one pixel not ruled out for TIC 71503196 and 321290256; depths that differ between sectors 25 and 26 for
+   TIC 116046773).
+
+The ephemeris code was checked against known planets: it predicts GJ 357 b and HD 73583 b within 2 and 4
+minutes of their published times.
 
 ## How well it works
 
@@ -254,29 +285,27 @@ Prompt v11 asked Glimmer to start from XGBoost's rank and overrule it only with 
 before it ran (at least 118 of 149 planets and at most 11 of 177 false positives on dev; it got 107 and 14), so it
 was never run on test and v10 stayed.
 
-## Also tried: building System 1 from scratch
+## The held-out test
 
-Inspired by the weight-space programming paper (2 Nov 2026), we asked whether an AI agent could build a replacement
-for System 1 (XGBoost) from scratch. We tried both routes on the same 65 inputs, data split and reject cut, and froze
-every model before opening the test labels, once. The paper's route, a hand-written model with no training, reached a
-test AUC of 0.917 on all 579 test TOIs, short of XGBoost's 0.959 (the 0.963 above is on the subset ExoMiner++ also
-scored). AUC is how often a real planet ranks above a false positive; 1.0 is perfect. A neural net designed by an AI
-agent and trained from scratch in plain numpy beat XGBoost at 0.969 (+0.010, 95% interval +0.003 to +0.019), and its
-probabilities were better calibrated. Rescoring the 2,698 survey dips, it kept all 11 that passed gate 2, the 8
-candidates among them, above the 5% floor. Of the 83 dips it would have sent on instead of setting aside, 81 reached
-Glimmer, which passed 17; none passed gate 2.
+Before any search, 1,000 of the survey's fetched stars were drawn uniformly at random across its ranking and set
+aside (`pipeline/holdout.py`); the list was committed then, which timestamps it (`survey/holdout.txt`). Nothing in
+Tessa was tuned on them. On 1 November, with everything frozen (the search, the
+gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched once:
 
-**Why XGBoost is still System 1.** The net needs more work before it can take over:
+| Held-out stars | |
+|---|---|
+| Searched (999 had data) | 999 |
+| Passed gate 1 at the survey's bar | 23; the same search on the flipped light curves passes 9, the noise expected |
+| Rejected by code (binaries, spotted stars, System 1) | 17 |
+| Set aside (System 1 rank in its bottom 5%, so not sent to Glimmer) | 1 |
+| Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
+| Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
 
-- At the reject cut its gains are within noise, and it shows no gain on cool (K and M) host stars.
-- Glimmer was fine-tuned reading XGBoost's ranks, and the net spreads its ranks differently: the 5% floor would need
-  picking again and Glimmer testing again.
-- The drivers and similar-signals tools are built from XGBoost's internals.
-- Every frozen result we report would change.
-- The test labels have now been used once, so any further tuning needs a fresh test set, such as TOIs that got their
-  verdicts after our data snapshot.
-
-Code, results and how to rerun: `research/scratch-model/README.md`.
+The survey's rate, 8 candidates in 76,318 stars, predicts about 0.10 in 1,000 stars, so none is the most likely
+outcome (about 90%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
+on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
+spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise. Run again under the final gate 2 (an ephemeris that can be fitted, the
+season test), the held-out stars still give no candidate.
 
 ## Built before and during the hackathon
 
@@ -303,58 +332,29 @@ was copied (`tools/similarity.py`).
 As a test, Tessa re-found TIC 458191673 blind, in normal survey order, at the same period. It counts as a
 rediscovery that shows the new pipeline works, not as one of Tessa's candidates.
 
-## How it works
+## Also tried: building System 1 from scratch
 
-Glimmer, a fine-tuned open-weight Meta model, makes the planet call and picks its own tools. Code can stop a pass,
-but it can't make one.
+Inspired by the weight-space programming paper (2 Nov 2026), we asked whether an AI agent could build a replacement
+for System 1 (XGBoost) from scratch. We tried both routes on the same 65 inputs, data split and reject cut, and froze
+every model before opening the test labels, once. The paper's route, a hand-written model with no training, reached a
+test AUC of 0.917 on all 579 test TOIs, short of XGBoost's 0.959 (the 0.963 above is on the subset ExoMiner++ also
+scored). AUC is how often a real planet ranks above a false positive; 1.0 is perfect. A neural net designed by an AI
+agent and trained from scratch in plain numpy beat XGBoost at 0.969 (+0.010, 95% interval +0.003 to +0.019), and its
+probabilities were better calibrated. Rescoring the 2,698 survey dips, it kept all 11 that passed gate 2, the 8
+candidates among them, above the 5% floor. Of the 83 dips it would have sent on instead of setting aside, 81 reached
+Glimmer, which passed 17; none passed gate 2.
 
-1. **Choose the stars** (`pipeline/targets.py`). Gaia DR3 within 100 pc, K/M colours, matched to the TESS Input
-   Catalog; known planet hosts, TOIs, CTOIs and eclipsing binaries removed. 48,945 of them were never TESS
-   two-minute targets.
-2. **Fetch and search** (`pipeline/fetch.py`, `pipeline/search.py`). Light curves from MAST (SPOC, TESS-SPOC,
-   QLP), detrended and searched with a box search on two free Kaggle GPUs. Gate 1 runs the same search on the
-   light curve flipped upside down, where no real dip exists, and sets its bar so 1% of stars pass on noise.
-3. **Code checks** (`pipeline/vet.py`, `pipeline/centroid.py`). Odd against even depth, secondary eclipse,
-   size after dilution, duration for the star, V or flat shape, variability at the period, depth sector by
-   sector, Gaia neighbours that could fake the dip, and difference-image centroids from TESS cutouts.
-4. **System 1 scores it** (`pipeline/system1.py`). An XGBoost model trained on TESS candidates whose fate follow-up
-   settled gives a planet rank. Glimmer gets the rank as one piece of evidence, not as a verdict.
-5. **Glimmer makes the call** (`tools/survey_v10.py`, `agent/prompts/vetting.v10.md`, `pipeline/tools.py`). It names
-   the live explanations, calls only the tools that separate them (centroid in every sector, depth by data source,
-   depth of each transit, Gaia radius, rotation), and returns reject, flag or gate2 with a dossier. Any number in its reasons that it
-   writes that is not in its input is caught and counted. Survey tool answers are measured ahead of time and returned
-   when it calls.
-6. **Gate 2 can stop it** (`pipeline/gate2.py`, `pipeline/novelty.py`, `pipeline/when.py`). Hard rows and a safety
-   net hold any pass whose System 1 rank is in the bottom 5%. Code checks the TOI, CTOI, confirmed-planet, TESS EB, VSX,
-   Gaia EB and SIMBAD lists, tests that each observing season predicts the others, refits the ephemeris and predicts
-   the next TESS sectors and the ground windows at six Las Cumbres Observatory sites, with the SNR one transit would
-   give on 0.4, 1 and 2 m telescopes, a year ahead. A signal whose transits can't be timed is not a candidate.
-7. **TRICERATOPS** (`pipeline/fpp.py`, `pipeline/tri_fast.py`). Scores the chance the dip is a false positive from the
-   light curve, the star and its neighbours: FPP below 0.5 and NFPP below 0.1 to stay a candidate.
-8. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
-   rejected dips and an observing note for candidates. Muse Wonder 1.0 audits every candidate from the raw checks, as a
-   second opinion that changes nothing: it passes five and flags three, each for something still open (a neighbour
-   within one pixel not ruled out for TIC 71503196 and 321290256; depths that differ between sectors 25 and 26 for
-   TIC 116046773).
+**Why XGBoost is still System 1.** The net needs more work before it can take over:
 
-The ephemeris code was checked against known planets: it predicts GJ 357 b and HD 73583 b within 2 and 4
-minutes of their published times.
+- At the reject cut its gains are within noise, and it shows no gain on cool (K and M) host stars.
+- Glimmer was fine-tuned reading XGBoost's ranks, and the net spreads its ranks differently: the 5% floor would need
+  picking again and Glimmer testing again.
+- The drivers and similar-signals tools are built from XGBoost's internals.
+- Every frozen result we report would change.
+- The test labels have now been used once, so any further tuning needs a fresh test set, such as TOIs that got their
+  verdicts after our data snapshot.
 
-## Meta models
-
-Built with Muse Spark Open.
-
-| Step | Model | Note |
-|---|---|---|
-| Teacher: tool-calling traces on about 1,008 training signals | Muse Spark Open (Baseten) | about $32 |
-| Fine-tune: 745 traces that reached the true outcome with no invented numbers (705 to train, 40 held back to check it) | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
-| The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10`, [weights on Hugging Face](https://huggingface.co/rushi-brave/glimmer-vetter-v10) |
-| Case-closed lines and observing notes | Muse Spark 1.3 | |
-| A second opinion on every candidate | Muse Wonder 1.0 | about $0.09 a candidate |
-| Ask Tessa on the site | Muse Spark 1.3 | per question |
-
-Prompts are versioned in `agent/prompts/`; every vetting prompt is kept, so the change from v1 to v10 can be read
-in order. XGBoost is not a Meta model: it is our own scorer, trained during the hackathon, that gives Glimmer a rank to weigh.
+Code, results and how to rerun: `research/scratch-model/README.md`.
 
 ## Run the whole survey
 

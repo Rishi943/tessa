@@ -88,7 +88,7 @@
       const tl = gsap.timeline({ paused: true });
       // in from the case file: the sky where the open left it
       tl.fromTo("#cl-black", { opacity: 1 }, { opacity: 0, duration: 0.6, ease: "power2.out" }, 0);
-      const D = 14.56;  // set by build.py: the close runs from under the last line to the film's end
+      const D = 9.22;  // set by build.py: the close runs from under the last line to the film's end
       // her candidates light up in amber as the camera comes back down to the tree
       const P0 = 0.5, P = D - 5.2;
       tl.fromTo("#cl-near", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
