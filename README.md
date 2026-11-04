@@ -3,6 +3,8 @@
 Tessa is an AI agent that hunts for planets in NASA TESS data on red stars near the Sun. It explains every
 dip it can, writes down why, and turns what is left into predictions anyone with a telescope can test.
 
+**Demo video (3 min):** https://youtu.be/D6WHNySGhhU
+
 **Live site:** https://tessa.braveai.solutions: every star in the survey on a 3D map, a case file for every
 dip, and Ask Tessa, where Muse Spark answers questions from the survey's own files.
 
