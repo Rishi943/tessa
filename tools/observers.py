@@ -17,6 +17,8 @@ STARS = ROOT / "data" / "site" / "stars"
 OUT = ROOT / "predictions"
 CANDIDATES = [9066956, 50099421, 61220826, 71503196, 79490453, 116046773, 166321785, 321290256]
 SHOW = 3  # ground windows listed per candidate in the table
+ZENODO = ROOT / "preprints" / "zenodo.json"  # each candidate's preprint DOI (tools/zenodo.py)
+DOIS = {int(k): v["doi"] for k, v in json.loads(ZENODO.read_text(encoding="utf-8")).items()} if ZENODO.exists() else {}
 
 
 def ra_hms(ra: float) -> str:
@@ -54,6 +56,7 @@ def row(tic: int, now: str) -> dict:
                         for g in ground[:SHOW]],
         "refuted_if": d["observing"]["refuted_if"].removeprefix("It is refuted if ").removeprefix("It would be refuted if "),
         "url": f"https://tessa.braveai.solutions/star/{tic}",
+        "preprint_doi": DOIS.get(tic, ""),
     }
 
 
@@ -84,7 +87,8 @@ def main() -> None:
           "or on-target photometry with a sharper camera is the first test.", "", "## Next windows", ""]
     for r in rows:
         L += [f"**TIC {r['tic']}** ({r['tier']}; timing error now ±{r['timing_err_now_min']} min; "
-              f"{r['ground_nights_year']} usable ground nights in the coming year)", ""]
+              f"{r['ground_nights_year']} usable ground nights in the coming year)"
+              + (f"; preprint [doi:{r['preprint_doi']}](https://doi.org/{r['preprint_doi']})" if r["preprint_doi"] else ""), ""]
         L += [f"- {g}" for g in r["next_ground"]] or ["- no ground window in the list from now"]
         if r["next_tess_sector"]:
             L.append(f"- TESS sector {r['next_tess_sector']}, {r['next_tess_dates']} (±{r['next_tess_timing_err_min']} min)")

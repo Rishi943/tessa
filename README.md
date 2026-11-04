@@ -67,6 +67,9 @@ searches, and Tessa reached each independently: TIC 9066956 by
 by [Ibrahim](https://doi.org/10.5281/zenodo.23569126) and in RAVEN, TIC 166321785 in
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue.
 
+Each of the eight has a preprint on Zenodo, with its tests, TRICERATOPS result and every predicted transit to
+June 2027: [TIC 71503196](https://doi.org/10.5281/zenodo.23957922) · [TIC 9066956](https://doi.org/10.5281/zenodo.23957937) · [TIC 116046773](https://doi.org/10.5281/zenodo.23957956) · [TIC 166321785](https://doi.org/10.5281/zenodo.23957970) · [TIC 50099421](https://doi.org/10.5281/zenodo.23957985) · [TIC 61220826](https://doi.org/10.5281/zenodo.23957988) · [TIC 79490453](https://doi.org/10.5281/zenodo.23958000) · [TIC 321290256](https://doi.org/10.5281/zenodo.23958029).
+
 ## Quickstart
 
 **Hosted:** https://tessa.braveai.solutions. The 3D map of every star in the survey, a case file for every dip (its
