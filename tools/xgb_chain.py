@@ -53,6 +53,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("out", type=Path)
     ap.add_argument("--jobs", type=int, default=4)
+    ap.add_argument("--down-to", choices=["budget", "all"], default="budget",
+                    help="run gate 2 down to Glimmer's-budget cut (default) or to the lowest cut")
     a = ap.parse_args()
     a.out.mkdir(parents=True, exist_ok=True)
 
@@ -87,14 +89,20 @@ def main() -> None:
     cut_val = gv.matched_cut(val, np.array([r["glimmer"] for r in val])[yv].mean())
     ok = [r for r in rows if not gv.hard(r["c"], gate2.evidence(r["tic"]))]  # the hard rows bind XGBoost as they bind Glimmer
     keep_all = min((r["rank"] for r in rows if r["tic"] in glim), default=None)
+    n_glim = sum(r["passes"] for r in ok)
+    budget = sorted((r["rank"] for r in ok), reverse=True)[n_glim - 1]  # XGBoost's top n, as many as Glimmer passed
     cuts = {f"v9 cut {gate2.PASS_RANK}": gate2.PASS_RANK, f"matched on val ({cut_val:.3f})": cut_val,
+            f"Glimmer's budget, its top {n_glim} ({budget:.3f})": budget,
             f"keeps all of Glimmer's candidates ({keep_all:.3f})": keep_all}
-    low = min(v for v in cuts.values() if v is not None)
+    # gate 2 runs down to the lowest cut asked for (--down-to budget by default: the keep-all cut passes ~3x as many)
+    low = budget if a.down_to == "budget" else min(v for v in cuts.values() if v is not None)
 
     cache_f = a.out / "gate2.json"
     cache = json.loads(cache_f.read_text(encoding="utf-8")) if cache_f.exists() else {}
     todo = [(r["tic"], r["batch"]) for r in ok if r["rank"] >= low and not r["passes"]
-            and (str(r["tic"]) not in cache or cache[str(r["tic"])][0] == "error")]
+            and (str(r["tic"]) not in cache or cache[str(r["tic"])][0] == "error"
+                 or all(w.startswith("no test") for w in cache[str(r["tic"])][1])
+                 or any("Timeout" in w or "ConnectionError" in w for w in cache[str(r["tic"])][1]))]  # a catalogue down is no verdict  # the rule before gate2.py's current one
     print(f"gate 2 to run as if XGBoost passed: {len(todo)} signals ({len(cache)} cached)", flush=True)
     with ProcessPoolExecutor(a.jobs) as pool:
         for i, f in enumerate(as_completed([pool.submit(as_pass, j) for j in todo]), 1):
@@ -126,6 +134,9 @@ def main() -> None:
     print()
     for name, cut in cuts.items():
         if cut is None:
+            continue
+        if cut < low:
+            print(f"XGBoost at {name}: not run (gate 2 ran down to {low:.3f}; --down-to all runs it)")
             continue
         passed = [r for r in ok if r["rank"] >= cut]
         g2, final, pending = [], [], []

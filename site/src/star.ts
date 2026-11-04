@@ -66,8 +66,12 @@ function verdict(p: StarPage): HTMLElement[] {
   }
   const d = p.dossier;
   if (d?.public_summary) {
+    // a model's prose can name the star's class wrongly; the catalogue's temperature decides, and the page says so
+    const teff = p.checks?.star?.teff, cls = spectral(teff), other = cls === "K dwarf" ? /M[ -]dwarf/i : /K[ -]dwarf/i;
+    const slip = teff != null && other.test(d.public_summary)
+      ? ` Its text calls the star ${cls === "K dwarf" ? "an M" : "a K"} dwarf; at ${int(teff)} K in the TESS Input Catalog it is ${cls === "K dwarf" ? "a K" : "an M"} dwarf.` : "";
     return [el("p", { class: "verdict" }, d.public_summary),
-      el("p", { class: "verdict-by" }, `Summary by ${modelName(d.model)}. ${p.status === "flagged" ? `Still open: ${p.reasons.join("; ")}.` : ""}`)];
+      el("p", { class: "verdict-by" }, `Summary by ${modelName(d.model)}.${slip} ${p.status === "flagged" ? `Still open: ${p.reasons.join("; ")}.` : ""}`)];
   }
   return [el("p", { class: "verdict" }, p.reasons.length ? p.reasons.join("; ") : "Set aside."), el("p", { class: "verdict-by" }, p.reasons.some((r) => r.startsWith("Glimmer")) ? "From the pipeline's record of Glimmer's run." : "From the code checks.")];
 }

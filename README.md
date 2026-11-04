@@ -90,7 +90,7 @@ What runs where on the hosted site:
 |---|---|
 | The map, case files, every number on the site | Static files exported from the pipeline's runs (`pipeline/export.py`); they change only when we export and deploy |
 | Ask Tessa | Live: Muse Spark 1.3 through the Meta API, from a Cloudflare Worker; it reads those files and the visitors' searches |
-| *Search a star*: the search for a repeating dip and gate 1 | Live, in the visitor's browser (WebGPU), on a star nobody has searched |
+| *Search a star*: the search for a repeating dip and gate 1 | Live, in the visitor's browser (web workers on its CPU), on a star nobody has searched |
 | Everything after gate 1 for a visitor's star: code checks, Glimmer, gate 2, TRICERATOPS | Not on the site. A star that clears the bar is recorded with the searcher's name; we run the rest of the pipeline on it by hand, then export and deploy. The visitor may leave an email to hear back; a candidate's page credits them |
 
 The site does not run the whole pipeline: only the search does, in the browser. Running the code checks there too
@@ -129,7 +129,8 @@ python tools/demo.py                              # TIC 71503196, end to end
    then our faster TRICERATOPS) when its own environment exists; TRICERATOPS needs Python 3.13 and leaves out one
    package it never uses: `uv venv --python 3.13 tri-venv`, `uv pip install --python tri-venv --no-deps triceratops==1.1.0`, then
    `uv pip install --python tri-venv pandas matplotlib astropy astroquery pytransit==2.2 mechanicalsoup emcee seaborn numba pyrr lightkurve arviz corner beautifulsoup4 "setuptools<81" pyarrow`.
-   Without it, the demo shows the survey run's result and says so.
+   Without it, the demo shows the survey run's result and says so. TRICERATOPS is a Monte Carlo calculation, so a fresh
+   run differs a little from the survey's (TIC 71503196: NFPP 4.3e-4 in the survey, about 8e-4 in a demo run).
 
 `python tools/demo.py 240488148` shows the other outcome: a candidate from the first run that the season test now
 flags. `--list` shows the bundled stars. If CDS is down, put its mirrors
