@@ -2,14 +2,20 @@
   <style>
     @font-face { font-family: "Archivo"; src: url("assets/fonts/archivo.woff2") format("woff2"); font-weight: 300 700; }
     @font-face { font-family: "Courier Prime"; src: url("assets/fonts/courier-400.woff2") format("woff2"); font-weight: 400; }
+    @font-face { font-family: "Playfair Display"; src: url("assets/fonts/playfair-400.woff2") format("woff2"); font-weight: 400; font-style: normal; }
+    @font-face { font-family: "Playfair Display"; src: url("assets/fonts/playfair-italic.woff2") format("woff2"); font-weight: 400; font-style: italic; }
     #root { position: absolute; inset: 0; overflow: hidden; background: #010208; }
     .cl-layer, #cl-fore { position: absolute; left: 0; top: 0; width: 1920px; }
     .cl-layer { height: 3000px; }
     .cl-layer img { position: absolute; left: 0; top: 0; width: 1920px; height: 3000px; }
-    #cl-glow { background: linear-gradient(180deg, #010208 0%, #030612 45%, #08112a 82%, #142040 93%, #1d2a4a 100%); }
+    #cl-glow {
+      background:
+        radial-gradient(ellipse 1000px 460px at 1400px 2700px, rgba(222, 244, 255, 0.92) 0%, rgba(160, 212, 244, 0.6) 26%, rgba(90, 160, 218, 0.22) 58%, rgba(40, 90, 160, 0) 82%),
+        linear-gradient(180deg, #01030a 0%, #030918 36%, #071736 58%, #0d2a57 72%, #164077 84%, #24609a 93%, #5d9fcc 98%, #9fd2ee 100%);
+    }
     #cl-fore { height: 1680px; }
     #cl-fore img { position: absolute; left: 0; top: 0; width: 1920px; height: 1680px; }
-    #cl-boy { position: absolute; left: 925px; top: 1052px; width: 420px; height: 294px; overflow: visible; }
+    #cl-boy { position: absolute; left: 985px; top: 1102px; width: 420px; height: 336px; overflow: visible; }
     .cl-cand { position: absolute; width: 0; height: 0; }
     .cl-cand i {
       position: absolute; left: -22px; top: -22px; width: 44px; height: 44px; border-radius: 50%;
@@ -19,11 +25,14 @@
       position: absolute; left: 22px; top: -9px; white-space: nowrap; color: #ffd28a;
       font: 400 24px/1 "Courier Prime", monospace; letter-spacing: 0.06em;
     }
-    #cl-happy { font: 500 58px/1.2 Archivo, sans-serif; color: #ffd28a; letter-spacing: -0.01em; margin-bottom: 44px; }
-    #cl-end { position: absolute; left: 150px; top: 300px; text-align: left; color: #ECEBE6; }
-    #cl-url { font: 600 84px/1 Archivo, sans-serif; letter-spacing: -0.02em; }
+    #cl-end { position: absolute; left: 0; right: 0; top: 250px; text-align: center; }
+    #cl-happy { font: italic 400 112px/1.05 "Playfair Display", serif; letter-spacing: -0.01em;
+                background: linear-gradient(180deg, #fff1cf 0%, #ffd28a 60%, #f2b45e 100%); -webkit-background-clip: text;
+                background-clip: text; color: transparent; text-shadow: 0 0 40px rgba(255, 210, 138, 0.18); }
+    #cl-look { margin-top: 22px; font: 400 50px/1.2 "Playfair Display", serif; color: #dcebf8; letter-spacing: 0.01em; }
+    #cl-url { position: absolute; left: 0; right: 0; bottom: 70px; text-align: center; color: #ECEBE6;
+              font: 500 38px/1 Archivo, sans-serif; letter-spacing: 0.06em; }
     #cl-url b { color: #5eead4; font-weight: 600; }
-    #cl-sub { margin-top: 26px; font: 400 30px/1.6 "Courier Prime", monospace; color: #c4c3bd; }
     #cl-black { position: absolute; inset: 0; background: #000; }
   </style>
   <div data-hf-id="hf-4xhx" id="root" data-composition-id="close" data-width="1920" data-height="1080">
@@ -31,6 +40,7 @@
       <div data-hf-id="hf-feiw" id="cl-glow" class="cl-layer"></div>
       <div data-hf-id="hf-c2pb" id="cl-milky" class="cl-layer"><img data-hf-id="hf-j91t" src="assets/sky-milky.png" alt="" /></div>
       <div data-hf-id="hf-qtse" id="cl-far" class="cl-layer"><img data-hf-id="hf-xsa8" src="assets/sky-far.png" alt="" /></div>
+      <div data-hf-id="hf-cl2d" id="cl-clouds" class="cl-layer"><img data-hf-id="hf-cl2m" src="assets/sky-clouds.png" alt="" /></div>
       <div data-hf-id="hf-ztxd" id="cl-near" class="cl-layer">
         <img data-hf-id="hf-uut1" src="assets/sky-near.png" alt="" />
         <div data-hf-id="hf-fux3" class="cl-cand" id="cl-c116046773" style="left: 1198.7px; top: 372.2px"><i data-hf-id="hf-wt6k"></i><span data-hf-id="hf-z5hm">TIC 116046773</span></div>
@@ -43,32 +53,34 @@
         <div data-hf-id="hf-c794" class="cl-cand" id="cl-c79490453" style="left: 1582.7px; top: 2684.2px"><i data-hf-id="hf-c795"></i><span data-hf-id="hf-c796">TIC 79490453</span></div>
       </div>
       <div data-hf-id="hf-wwvr" id="cl-fore">
+        <img data-hf-id="hf-mt5n" src="assets/mountains.svg" alt="" />
         <img data-hf-id="hf-r7yc" src="assets/tree.svg" alt="" />
         <img data-hf-id="hf-brkt" src="assets/hill.svg" alt="" />
-        <svg data-hf-id="hf-f2ec" id="cl-boy" viewBox="0 0 200 140">
+        <svg data-hf-id="hf-f2ec" id="cl-boy" viewBox="0 0 200 160">
           <g data-hf-id="hf-f3g3" fill="none" stroke="#03050b" stroke-linecap="round" stroke-linejoin="round">
-            <path data-hf-id="hf-jt6u" d="M160 134 L170 86" stroke-width="26" />
-            <path data-hf-id="hf-4e2t" d="M154 134 Q120 131 66 135" stroke-width="15" />
-            <path data-hf-id="hf-rhqu" d="M66 135 L60 124" stroke-width="9" />
-            <path data-hf-id="hf-ukm7" d="M150 132 L118 106 L92 135 L80 137" stroke-width="13" />
+            <path data-hf-id="hf-lg2f" d="M153 127 L119 104 L108 139 L96 141" stroke-width="10" />
+            <path data-hf-id="hf-jt6u" d="M156 131 Q160 108 153 89" stroke-width="20" />
+            <path data-hf-id="hf-4e2t" d="M150 128 L112 100" stroke-width="14" />
+            <path data-hf-id="hf-rhqu" d="M112 100 L100 139" stroke-width="11" />
+            <path data-hf-id="hf-ukm7" d="M101 140 L86 142" stroke-width="7" />
           </g>
-          <g data-hf-id="hf-zqpk" id="cl-book">
-            <path data-hf-id="hf-f5se" d="M98 97 L118 105 L138 95 L136 102 L118 112 L100 104 Z" fill="#03050b" />
-            <path data-hf-id="hf-2sz2" d="M168 92 L146 112 L124 105" fill="none" stroke="#03050b" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" />
+          <g data-hf-id="hf-zqpk" id="cl-book" transform="rotate(6 120 100)">
+            <path data-hf-id="hf-f5se" d="M103 83 L118 91 L133 81 L133 88 L118 98 L103 90 Z" fill="#03050b" />
+            <path data-hf-id="hf-2sz2" d="M150 93 L135 112 L119 96" fill="none" stroke="#03050b" stroke-width="7.5" stroke-linecap="round" stroke-linejoin="round" />
           </g>
-          <g data-hf-id="hf-clig" id="cl-head" transform="rotate(16 166 80)">
-            <path data-hf-id="hf-ecb5" d="M163 74 L168 84" stroke="#03050b" stroke-width="11" stroke-linecap="round" />
-            <circle data-hf-id="hf-mdz2" cx="160" cy="62" r="15" fill="#03050b" />
-            <path data-hf-id="hf-xtux" d="M146 58 L141 61 L146 64 Z M150 49 Q154 41 163 44 Q172 43 175 51 Q169 46 158 49 Z" fill="#03050b" />
+          <g data-hf-id="hf-clig" id="cl-head" transform="rotate(16 152 82)">
+            <path data-hf-id="hf-ecb5" d="M151 76 L153 88" stroke="#03050b" stroke-width="9" stroke-linecap="round" />
+            <circle data-hf-id="hf-mdz2" cx="149" cy="67" r="12" fill="#03050b" />
+            <path data-hf-id="hf-xtux" d="M138 66 L134 68.5 L138 71 Z M137.5 63 Q138 51 150 50.5 Q161 51 162 62 Q157 56 149 56.5 Q142 57 137.5 63 Z" fill="#03050b" />
           </g>
         </svg>
       </div>
     </div>
     <div data-hf-id="hf-w8j0" id="cl-end">
-      <div data-hf-id="hf-9ra4" id="cl-happy">Happy searching.<br data-hf-id="hf-rsrt" />And don't forget to look up.</div>
-      <div data-hf-id="hf-0zzc" id="cl-url">tessa.<b data-hf-id="hf-a5qj">braveai</b>.solutions</div>
-      <div data-hf-id="hf-wdc9" id="cl-sub">Open weights: huggingface.co/rushi-brave/glimmer-vetter-v10<br data-hf-id="hf-x5px" />Built with Muse Spark Open</div>
+      <div data-hf-id="hf-9ra4" id="cl-happy">Happy searching.</div>
+      <div data-hf-id="hf-rsrt" id="cl-look">And don't forget to look up.</div>
     </div>
+    <div data-hf-id="hf-0zzc" id="cl-url">tessa.<b data-hf-id="hf-a5qj">braveai</b>.solutions</div>
     <div data-hf-id="hf-ro2i" id="cl-black"></div>
   </div>
   <script>
@@ -81,6 +93,7 @@
       const P0 = 0.5, P = D - 5.2;
       tl.fromTo("#cl-near", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-far", { y: 0 }, { y: -1720, duration: P, ease: "power2.inOut" }, P0);
+      tl.fromTo("#cl-clouds", { y: 0 }, { y: -1800, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-milky", { y: 0 }, { y: -1520, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-glow", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-fore", { y: 1500 }, { y: -600, duration: P, ease: "power2.inOut" }, P0);
@@ -98,8 +111,9 @@
       light("166321785", 2404.1);
       light("79490453", 2684.2);
       // on screen, not spoken: the sign-off, then the way in
-      tl.fromTo("#cl-happy", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, D - 5.0);
-      tl.fromTo("#cl-url, #cl-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out", stagger: 0.12 }, D - 3.9);
+      tl.fromTo("#cl-happy", { opacity: 0, y: 18 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, D - 5.0);
+      tl.fromTo("#cl-look", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.9, ease: "power3.out" }, D - 4.3);
+      tl.fromTo("#cl-url", { opacity: 0 }, { opacity: 1, duration: 0.8, ease: "power2.out" }, D - 3.5);
       tl.to(".cl-cand span", { opacity: 0, duration: 0.3, ease: "power2.in" }, D - 5.3);  // the labels clear for the words
       tl.to("#cl-black", { opacity: 1, duration: 0.45, ease: "power1.in" }, D - 0.45);
       window.__timelines["close"] = tl;
