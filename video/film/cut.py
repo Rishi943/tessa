@@ -26,7 +26,7 @@ PLAN = {
     "08-glimmer": ("run.webm", [(178, 0), (228, 17.3), (242, "end")]),
     "09-triceratops": ("run.webm", [(522, 0), (626, 15.6), (633, "end")]),  # the FPP line lands on "under one percent"
     "10-accuracy": ("10-accuracy.webm", [(0, 0), (9.5, 9.5)]),  # the results at real speed, then held: the page scrolls at 10
-    "11-join": ("11-join.webm", [(9, 0), (26, 10.6), (56, "end")]),  # the search under the first two lines, Ask Tessa on "Questions?"
+    "11-join": ("11-join.webm", [(9, 0), (26, 11.0), (56, "end")]),  # the search under the first two lines, Ask Tessa on "Questions?"
     "12-prediction": ("12-prediction.webm", None),
 }
 
