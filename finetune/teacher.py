@@ -50,6 +50,8 @@ MODELS = {
     "spark-open": ("meta-models/muse-spark-open-1026", "https://inference.baseten.co", "BASETEN_API_KEY"),
     "spark-1.3": ("muse-spark-1.3", "https://api.meta.ai", "META_API_KEY"),
     "glimmer-vetter": ("glimmer-vetter-v10", "GLIMMER_VETTER_URL", "GLIMMER_API_KEY"),  # fine-tuned v10 vetter on Modal
+    # the same server and FP8 weights without the adapter: base Glimmer, for the tuned-vs-untuned comparison
+    "glimmer-base": ("muse-glimmer", "GLIMMER_VETTER_URL", "GLIMMER_API_KEY"),
 }
 
 

@@ -99,7 +99,7 @@ function candidate(p: StarPage): HTMLElement {
   }
   if (w?.ground?.length) {
     const g = w.ground[0];
-    next.push(`From the ground: ${w.ground_nights} night${w.ground_nights === 1 ? "" : "s"} in the next 90 days, the first at `,
+    next.push(`From the ground: ${w.ground_nights} night${w.ground_nights === 1 ? "" : "s"} in the next year, the first at `,
       el("b", {}, g.site), `, ${date(g.from_utc)}, ${g.from_utc.slice(11)} to ${g.to_utc.slice(11)} UTC.`);
   }
   return el("article", { class: "cand" },
@@ -156,7 +156,7 @@ function method(summary: Summary, dips: Dip[], searched: number): HTMLElement {
       "Meta Muse Glimmer 30B, fine-tuned and self-hosted", int(summary.dossiers), `dossiers, ${agentOut} more explained`, true),
     step("Code decides",
       "A pass becomes a candidate only if no catalogue of planets, candidates or variable stars already has it, each observing season "
-      + "predicts the others, it predicts its next transit closely enough to test from TESS or the ground, and TRICERATOPS does not "
+      + "predicts the others, its transit times can be fitted so its next transits can be listed, and TRICERATOPS does not "
       + "favour a false positive. Code can stop a pass; it cannot make one.",
       "Code and TRICERATOPS", int(summary.candidate), `candidates, ${int(summary.flagged)} still unexplained`),
     step("Notes for people",

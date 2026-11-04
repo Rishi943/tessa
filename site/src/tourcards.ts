@@ -255,7 +255,7 @@ function predict(ctx: Ctx): Show {
   return show(el("div", { class: "m-show" }, c, countdown), [
     { at: 0, text: `For this candidate to be confirmed as a planet, the next data needs to show the same dip: ${f.depth} [[ppm]], ${f.hours.toFixed(1)} hours long, every ${(f.period * 24).toFixed(1)} hours.` },
     ...(when ? [{ at: 5.5, text: `The next dip a telescope on the ground can watch is due ${day(when)} UTC, give or take ${err} minutes, at ${next.site}.` }] : []),
-    { at: when ? 11 : 5.5, text: `Telescopes on the ground get ${nights.length} [[ground window|chances]] in the next 90 days${tess ? `, and [[TESS]] looks again in [[sector]] ${tess.sector}, with its data public on ${pub}` : ""}.` },
+    { at: when ? 11 : 5.5, text: `Telescopes on the ground get ${nights.length} [[ground window|chances]] in the next year${tess ? `, and [[TESS]] looks again in [[sector]] ${tess.sector}, with its data public on ${pub}` : ""}.` },
     ...(st.observing ? [{ at: when ? 16.5 : 11, text: `Muse Spark's note for observers: ${st.observing.confirmed_by}` }] : []),
   ], (tt, k) => {
     const { g, w, B, T, L } = axes(c, "brightness", "hours from the predicted time →");

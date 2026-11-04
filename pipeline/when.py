@@ -8,7 +8,7 @@ TESScut serves the full-frame images about RELEASE_LAG_D after each orbit. Groun
 listed for the Las Cumbres Observatory network, whose 0.4-1 m telescopes students and amateurs
 can book.
 
-Run: python -m pipeline.when TIC --results results.csv [--lc data/cache/lc] [--days 90]
+Run: python -m pipeline.when TIC --results results.csv [--lc data/cache/lc] [--days 365]
 Prints JSON.
 """
 import argparse
@@ -194,7 +194,7 @@ def ground_snr(tmag: float, depth_ppm: float, t14_h: float, aperture_m: float) -
     return float(depth_ppm * 1e-6 / depth_err)
 
 
-def when(tic: int, sig: dict, lc_dir: Path, days: float = 90, now: Time | None = None) -> dict:
+def when(tic: int, sig: dict, lc_dir: Path, days: float = 365, now: Time | None = None) -> dict:
     raw = load_lc(tic, lc_dir)
     lc = detrend(raw["time"], raw["flux"], raw["sector"])
     eph = ephemeris(lc, sig)
@@ -221,7 +221,7 @@ def main() -> None:
     ap.add_argument("tic", type=int)
     ap.add_argument("--results", required=True, help="search results.csv with this star's signal")
     ap.add_argument("--lc", default=str(CACHE / "lc"), help="folder with the lc_NNN.npz shards")
-    ap.add_argument("--days", type=float, default=90, help="ground windows over this many days")
+    ap.add_argument("--days", type=float, default=365, help="ground windows over this many days")
     ap.add_argument("--now", help="pretend it is this UTC date (YYYY-MM-DD)")
     args = ap.parse_args()
     now = Time(args.now, scale="utc") if args.now else None

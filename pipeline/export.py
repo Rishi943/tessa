@@ -93,6 +93,16 @@ def fpp_results() -> dict[int, dict]:
     return out
 
 
+def fpp_failures() -> dict[int, str]:
+    """Why TRICERATOPS didn't run, for stars it never scored (a later folder wins)."""
+    out = {}
+    for res in sorted(FPP_RUNS.glob("fpp_out*/results.json")):
+        for r in json.loads(res.read_text(encoding="utf-8")):
+            if not r.get("ran"):
+                out[int(r["tic"])] = r.get("why", "it did not run")
+    return out
+
+
 def fpp_tier(f: dict) -> str:
     if f["FPP"] >= FPP_MAX or f["NFPP"] >= NFPP_MAX:
         return "fails"
@@ -105,7 +115,7 @@ def dip_row(page: dict) -> dict:
     r = lambda v, n=None: None if v is None else round(v, n)  # Gaia has gaps
     return {"tic": page["tic"], "batch": page["batch"], "status": page["status"],
             "period_d": r(c["signal"]["period"], 5), "depth_ppm": r(c["signal"]["depth_ppm"]),
-            "snr": r(c["signal"]["snr"], 1), "rp_rearth": r(c["size"]["rp_rearth"], 2),
+            "snr": r(c["signal"]["snr"], 1), "rp_rearth": r(c["size"]["rp_rearth"], 1),
             "tmag": r(c["star"]["tmag"], 2), "teff": r(c["star"]["teff"]), "dist_pc": r(c["star"]["distance"], 1),
             "ra": r(c["star"]["ra"], 4), "dec": r(c["star"]["dec"], 4),
             "line": page["case_closed"] or d.get("public_summary") or "; ".join(page["reasons"]),
@@ -199,7 +209,9 @@ def export(out: Path, model: str, prompt: str, v10: bool = True) -> dict:
         for _, r in res[res["gate1"] == "pass"].iterrows():
             tic = int(r["tic"])
             st = final.get(tic, {"status": "awaiting agent", "reasons": ""})
-            if v10 and st["status"] == "candidate" and tic in fpp and fpp_tier(fpp[tic]) == "fails":
+            if v10 and st["status"] == "candidate" and tic not in fpp:  # no score is not a pass
+                st = {**st, "status": "flagged", "reasons": "TRICERATOPS could not score it: " + fpp_failures().get(tic, "no run yet")}
+            elif v10 and st["status"] == "candidate" and fpp_tier(fpp[tic]) == "fails":
                 f = fpp[tic]
                 st = {**st, "status": "flagged",
                       "reasons": f"TRICERATOPS: FPP {f['FPP']:.3f}, NFPP {f['NFPP']:.1e}, above the bar (FPP < {FPP_MAX}, NFPP < {NFPP_MAX})"}

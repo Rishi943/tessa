@@ -91,7 +91,9 @@ function agentPanel(p: StarPage): HTMLElement {
   const d = p.dossier;
   const box = el("section", { class: "panel" }, el("h2", {}, "What the agent made of it"));
   if (!d) {
-    box.append(el("p", { class: "sub" }, "The code checks explained this dip on their own, so no model was asked."));
+    box.append(el("p", { class: "sub" }, p.status === "awaiting agent"
+      ? "No model has read this one: the code set it aside first, for the reasons above, and it waits there."
+      : "The code checks explained this dip on their own, so no model was asked."));
     return box;
   }
   const tools = d.tools_called ?? [];
@@ -176,7 +178,7 @@ function nextPanel(p: StarPage): HTMLElement {
   items.sort((a, b) => a.dataset.at!.localeCompare(b.dataset.at!));
   box.append(el("div", { class: "two" },
     el("div", {}, el("ol", { class: "timeline" }, ...items),
-      el("p", { class: "by", style: "margin-top: 0.75rem" }, `Ground nights at Las Cumbres Observatory sites with the star 30° up and the sky dark. ${w.ground_nights} in the next 90 days.`)),
+      el("p", { class: "by", style: "margin-top: 0.75rem" }, `Ground nights at Las Cumbres Observatory sites with the star 30° up and the sky dark. ${w.ground_nights} in the next year.`)),
     el("div", {}, snrBars(w.ground_snr_per_transit))));
   if (o) {
     box.append(el("div", { style: "margin-top: 1.5rem; max-width: 46rem" },

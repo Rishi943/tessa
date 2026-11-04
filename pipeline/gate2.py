@@ -1,10 +1,10 @@
 """Gate 2: does a vetted signal become a candidate?
 
-Fixed rules the agent cannot change. A candidate needs System 1's planet rank at PASS_RANK or more (vetting
-v9; the table's rows then cost nothing but the HARD_ROWS), or, with no System 1 score, every code check in the
-planet-like range (the same table the agent reads) or settled by evidence from the agent's tools
-(pipeline/tools.py, measured by code), the agent's own "gate2" verdict, nothing in novelty check B, a test: a
-future TESS sector or a night on the ground when the transit time is still known, and every observing
+Fixed rules the agent cannot change. With prompt v10 (the survey's), Glimmer makes the planet call and code keeps only
+the HARD_ROWS and System 1's bottom-5% rank floor (outside_planet_range). Older prompts used System 1's rank at PASS_RANK
+or more (vetting v9), or, with no System 1 score, every code check in the planet-like range or settled by the agent's
+tools. Then: the agent's own "gate2" verdict, nothing in novelty check B, an ephemeris that can be fitted
+(pipeline/when.py then lists the next year's TESS sectors and ground nights), and every observing
 season predicted by the others (leave-one-season-out). The agent can stop a signal by rejecting or
 flagging it, but never pass one the rules don't.
 
@@ -212,9 +212,11 @@ def decide(checks: dict, dossier: dict | None, sig: dict, lc_dir: Path) -> tuple
         return "flagged", ["novelty: " + e for e in nov["errors"]], {"novelty": nov}
     if not nov["new"]:
         return "known", [f"{m['list']} {m['id']} at {m['harmonic']:g}x this period" for m in nov["matches"]], {"novelty": nov}
-    test = when(checks["tic"], sig, lc_dir)
-    if not test["testable"]:
-        return "flagged", ["no test: " + test.get("why", "no TESS sector or ground night with the timing still known")], \
+    # The next transits, a year ahead, for the candidate's page. When a signal can be checked doesn't decide whether it
+    # is real; what stops one here is an ephemeris that can't be fitted, since the season test below needs it.
+    test = when(checks["tic"], sig, lc_dir, days=365)
+    if not (test.get("ephemeris") or {}).get("ok"):
+        return "flagged", ["no ephemeris: " + str(test.get("why") or "the transit times could not be fitted")], \
             {"novelty": nov, "when": test}
     found = seasons(checks, sig, test, lc_dir)
     bad = season_fails(found)

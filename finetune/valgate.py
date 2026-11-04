@@ -41,9 +41,11 @@ def val_signals(split: str = "val") -> list[dict]:
     return out
 
 
-def run(smoke: bool, jobs: int, split: str = "val") -> None:
+def run(smoke: bool, jobs: int, split: str = "val", model: str = MODEL) -> None:
     load_env()
     out = OUT if split == "val" else OUT.with_name(f"{split}gate")
+    if model != MODEL:  # another model on the same signals keeps its own folder: testgate_glimmer-base
+        out = out.with_name(f"{out.name}_{model}")
     globals()["OUT"] = out
     out.mkdir(parents=True, exist_ok=True)
     sigs = val_signals(split)
@@ -73,7 +75,7 @@ def run(smoke: bool, jobs: int, split: str = "val") -> None:
             return json.loads(saved.read_text(encoding="utf-8"))
         answers = tool_answers(s["toi"])
         try:
-            rec = investigate(prompt, users[s["toi"]], specs, answers, model=MODEL)
+            rec = investigate(prompt, users[s["toi"]], specs, answers, model=model)
         except Exception as e:
             print(f"{s['toi']}: {str(e)[:200]}", flush=True)
             return None
@@ -127,8 +129,9 @@ def main() -> None:
     ap.add_argument("--smoke", action="store_true", help="4 signals, to warm the GPU and check the loop")
     ap.add_argument("--jobs", type=int, default=6)
     ap.add_argument("--split", default="val", choices=["val", "test"])
+    ap.add_argument("--model", default=MODEL, help="glimmer-base: the same server without the adapter")
     a = ap.parse_args()
-    run(a.smoke, a.jobs, a.split)
+    run(a.smoke, a.jobs, a.split, a.model)
 
 
 if __name__ == "__main__":

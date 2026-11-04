@@ -262,7 +262,7 @@ def run(tic: int, replay: bool, data: Path) -> dict:
         line(f"next TESS look: sector {t['sector']}, {t['start'][:10]} to {t['end'][:10]}, about {t['transits']} transits")
     if w.get("ground"):
         g = w["ground"][0]
-        line(f"next ground window: {g['site']}, {g['from_utc']} to {g['to_utc'][11:]} UTC ({w.get('ground_nights')} nights in 90 days)")
+        line(f"next ground window: {g['site']}, {g['from_utc']} to {g['to_utc'][11:]} UTC ({w.get('ground_nights')} nights in the next year)")
     line(f"gate 2: {status}" + (f" ({'; '.join(reasons)[:300]})" if reasons else ""))
     out["status"] = status
     ev(type="gate2", status=status, reasons=reasons, novelty=nov, next_tess=w.get("next_tess"), ground=(w.get("ground") or [None])[0],

@@ -81,10 +81,22 @@ def gaia_ebs(tic: int, star: dict, sig: dict) -> tuple[list, list]:
     need = sig["depth_ppm"] * 1e-6 * 10 ** (0.4 * (df["mag"] - me["mag"]))
     able = df[need <= MAX_ECLIPSE_DEPTH]
     ids = ", ".join(str(int(s)) for s in able["source_id"])
-    with contextlib.redirect_stdout(sys.stderr):
-        from astroquery.gaia import Gaia
-        rows = Gaia.launch_job_async(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
-                               f"WHERE source_id IN ({ids})", verbose=False).get_results()
+    try:
+        with contextlib.redirect_stdout(sys.stderr):
+            from astroquery.gaia import Gaia
+            rows = [{"source_id": r["source_id"], "frequency": r["frequency"]} for r in
+                    Gaia.launch_job_async(f"SELECT source_id, frequency FROM gaiadr3.vari_eclipsing_binary "
+                                          f"WHERE source_id IN ({ids})", verbose=False).get_results()]
+    except Exception:
+        # ESA's archive down (HTTP 500 on 2026-11-03): the same Gaia DR3 table on VizieR (I/358/veb), searched around
+        # the star out to the farthest neighbour checked, and matched on source_id
+        from astroquery.vizier import Vizier
+        want = {int(s) for s in able["source_id"]}
+        radius = float(able["sep"].max() if len(able) else 1.0) + 5
+        got = mirrored(VIZIER_SERVERS, lambda s: Vizier(columns=["Source", "Freq"], row_limit=-1, vizier_server=s)
+                       .query_region(SkyCoord(star["ra"], star["dec"], unit="deg"), radius=radius * u.arcsec, catalog="I/358/veb"))
+        rows = [{"source_id": int(r["Source"]), "frequency": float(r["Freq"])} for r in (got[0] if len(got) else [])
+                if int(r["Source"]) in want]
     sep = dict(zip(able["source_id"].astype("int64"), able["sep"]))
     matches, notes = [], []
     for r in rows:

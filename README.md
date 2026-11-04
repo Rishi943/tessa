@@ -11,24 +11,25 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | | |
 |---|---|
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
-| Searched | 48,766: every one of the pool's 48,945 stars that never had 2-minute data, except 179 with no usable light curve |
-| Repeating dips found | 1,728, with each batch's bar set on upside-down light curves so about 1 star in 100 passes on noise (476 expected) |
-| Sent to Glimmer, the fine-tuned model | 432; code settled the other 1,296 |
-| Glimmer called a planet | 115 |
-| Passed novelty, testability and season checks | 9 |
-| Passed TRICERATOPS (FPP < 0.5, NFPP < 0.1) | 8 |
+| Searched | 76,318: every one of the pool's 48,945 stars that never had 2-minute data (except 179 with no usable light curve), and 27,552 that did |
+| Repeating dips found | 2,698, with each batch's bar set on upside-down light curves so about 1 star in 100 passes on noise (749 pass there) |
+| Sent to Glimmer, the fine-tuned model | 715; code settled the other 1,983 |
+| Glimmer called a planet | 159 |
+| Passed novelty, ephemeris and season checks | 11 |
+| **New candidates** (passed TRICERATOPS: FPP < 0.5, NFPP < 0.1) | **8** |
 | Likely planets (FPP < 0.5, NFPP < 0.001; Giacalone et al. 2021) | 4: TIC 71503196, 116046773, 166321785, 9066956 |
-| Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 3: TIC 321290256, 50099421, 61220826 |
-| Also found again | TIC 458191673, a blind rediscovery from before the hackathon, not counted as a candidate |
+| Candidates with a nearby star still to rule out (NFPP 0.001 to 0.1) | 4: TIC 321290256, 50099421, 61220826, 79490453 |
+| Also found again | TIC 458191673, a blind rediscovery of a candidate published before the hackathon, not counted among the 8 |
 
-The search ran in five batches: the survey (4,997 stars), batch 2 (17,980), the 1,000 held-out stars (below), and
-batches 4 and 5 (12,449 and 12,341), which finished the pool on 2 November (`runs/2026-11-02`). Of the 1,728 dips, 1,394
-were rejected, 113 are flagged with what is left to check, 208 are set aside (200 by code before the model, almost
-all with a System 1 rank in its bottom 5%; 8 because Glimmer's reply could not be read, 6 of them plain rejects
-with broken JSON), and 4 are known objects; the other 9 passed gate 2. TRICERATOPS ran on all 115 of Glimmer's planet calls and 54 clear its
-bar; 8 of the 9 that passed gate 2 clear it (TIC 426450210 fails, FPP 1.0). The site counts TIC 426450210 as flagged
-and TIC 458191673 (found before the hackathon) as known. Every count is recomputed from the saved runs by
-`python tools/glimmer_value.py funnel`.
+The search ran in eight batches: the survey (4,997 stars), batch 2 (17,980), the 1,000 held-out stars (below), and
+batches 4 and 5 (12,449 and 12,341), which finished the never-observed part of the pool on 2 November
+(`runs/2026-11-02`); then batches 6 to 8 (9,184 each), stars that were 2-minute targets, searched in their full-frame
+data (`runs/2026-11-03`). Of the 2,698 dips, 2,239 were rejected, 158 are flagged with what is left to check, 284 are
+set aside (283 by code before the model, almost all with a System 1 rank in its bottom 5%; 1 because Glimmer's reply
+could not be read), and 9 are known objects; the other 8 are the candidates. Of the 11 that passed gate 2, 9 clear
+TRICERATOPS's bar: TIC 426450210 fails (FPP 1.0) and TIC 376928980 could not be scored (TRICERATOPS placed its stars
+in only 3 of 4 sectors), so the site counts both as flagged, and TIC 458191673 (found before the hackathon) as known.
+Every count is recomputed from the saved runs by `python tools/glimmer_value.py funnel`.
 
 Two candidates from an earlier run on the site, TIC 240488148 and 316447391, are no longer candidates: both fail the
 season test (hide one observing season and a blind search of the others must find the same period), and TRICERATOPS
@@ -36,21 +37,21 @@ rates TIC 240488148 a likely nearby false positive (NFPP 0.12).
 
 The newest, from batch 4: **TIC 9066956**, a 2.7 Earth-radius body every 0.713 days (17 hours) around an M dwarf
 (3,300 K) 90 pc away, 174 transits over six sectors, on target in difference imaging, every season predicting the
-others, FPP 0.050 and NFPP 1e-9. It is on no published list we checked, and its short period gives 29 nights from 5 November
-to mid-December when a ground telescope can catch a transit.
+others, FPP 0.050 and NFPP 1.4e-9. It is on no published list we checked, and its short period gives 231 nights in the coming year when a ground
+telescope can catch a transit.
 
 For example, **TIC 71503196**: a 2.9 Earth-radius body every 1.57 days around an M dwarf 62 pc away, 36 transits,
 FPP 0.009, NFPP 0.0004. An 11.8" neighbour is not yet excluded, and XGBoost ranked it low (0.09): Glimmer passed it
 on the evidence and TRICERATOPS backed that call. Its FPP and NFPP are below TRICERATOPS's statistical-validation
 thresholds (0.015 and 0.001); validation would also need high-resolution imaging, which it does not have yet.
 
-For the other three, TRICERATOPS does not favour a nearby false positive (NFPP below 0.1), but it cannot yet rule one
+For the other four, TRICERATOPS does not favour a nearby false positive (NFPP below 0.1), but it cannot yet rule one
 out. Ground photometry that resolves the neighbours during a transit settles it.
 
 A candidate is not a planet. It is a dip the checks could not explain, on none of the TOI, CTOI, confirmed-planet or
-eclipsing-binary lists, that predicts its own next transit closely enough to test.
+eclipsing-binary lists, that every observing season predicts, with its next transits listed so anyone can test it.
 
-TIC 9066956, 321290256 and 61220826 are on no published list we checked. TIC 116046773 and 50099421 are also in
+TIC 9066956, 321290256, 61220826 and 79490453 are on no published list we checked. TIC 116046773 and 50099421 are also in
 [RAVEN](https://zenodo.org/records/19661443), TIC 166321785 in
 [eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
 reached those independently.
@@ -71,8 +72,8 @@ gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched on
 | Sent to Glimmer | 5: it rejected 2 whose dips repeat at the star's spot period, and passed 3 |
 | Candidates after gate 2 | **0**: one failed the season test, two were too shallow to time per season, so no testable prediction |
 
-The survey's rate, 7 candidates in 48,766 stars, predicts about 0.14 in 1,000 stars, so none is the most likely
-outcome (about 87%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
+The survey's rate, 8 candidates in 76,318 stars, predicts about 0.10 in 1,000 stars, so none is the most likely
+outcome (about 90%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
 on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
 spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise.
 
@@ -146,40 +147,55 @@ recorded answer, labelled as a replay. The hosted site has no such server and sa
 
 ## How well it works
 
-**On the survey, Glimmer found what XGBoost would have thrown away.** Three of the seven candidates sit below the cut
+**On the survey, Glimmer found what XGBoost would have thrown away.** Three of the eight candidates sit below the cut
 XGBoost (System 1) used on its own in vetting v9, so XGBoost alone would have discarded them: one of the four likely
-planets, and two of the three candidates on no published list (`tools/glimmer_value.py`).
+planets, and two of the four candidates on no published list (`tools/glimmer_value.py`).
 
 | Candidate | Class | XGBoost rank | XGBoost at its 0.32 cut |
 |---|---|---|---|
 | TIC 71503196 | likely planet | 0.090 | rejects |
 | TIC 321290256 | nearby star to rule out; on no published list | 0.144 | rejects |
 | TIC 61220826 | nearby star to rule out; on no published list | 0.131 | rejects |
-| TIC 116046773, 166321785, 9066956, 50099421 | | 0.465 to 0.932 | passes |
+| TIC 79490453, 116046773, 166321785, 9066956, 50099421 | | 0.443 to 0.932 | passes |
 
-Glimmer is not just a looser cut. Of the 432 survey signals that reached it, it passed 115 and those hold all seven
-candidates. To keep all seven, XGBoost would have to pass 264; at 142 it keeps six.
+Glimmer is not just a looser cut. Of the 715 survey signals that reached it, it passed 159 and those hold all eight
+candidates. To keep all eight, XGBoost would have to pass 456, nearly three times as many, each one more signal for
+gate 2, TRICERATOPS and a person to check.
 
 | XGBoost cut | Survey signals passed | Candidates kept |
 |---|---|---|
-| 0.32 (vetting v9) | 36 | 4 of 7 |
-| 0.144 | 128 | 5 of 7 |
-| 0.131 | 142 | 6 of 7 |
-| 0.090 | 264 | 7 of 7 |
-| **Glimmer v10** | **115** | **7 of 7** |
+| 0.32 (vetting v9) | 58 | 5 of 8 |
+| 0.144 | 229 | 6 of 8 |
+| 0.131 | 257 | 7 of 8 |
+| 0.090 | 456 | 8 of 8 |
+| **Glimmer v10** | **159** | **8 of 8** |
 
-**Through the whole chain, XGBoost in Glimmer's place finds fewer candidates and none that Glimmer missed.** On the
-same 432 signals, XGBoost made the call instead and its passes went through the identical gate 2 and TRICERATOPS
-(`tools/xgb_chain.py`):
+## What Glimmer adds
 
-| Who makes the call | Passes | Candidates at the end |
-|---|---|---|
-| **Glimmer v10** | **115** | **7** |
-| XGBoost, cut matched on val to Glimmer's planet recall (0.234) | 59 | 4, all Glimmer's; it loses TIC 71503196, 321290256 and 61220826 |
-| XGBoost at its own cut (0.32) | 36 | the same 4 |
-| XGBoost at the cut that keeps all seven (0.090) | 264 | the same 7; the 10 gate 2 passes Glimmer did not make fail TRICERATOPS (9, FPP above 0.999) or cannot be scored (1) |
+XGBoost is a good ranker; on known TOIs, matched to the same recall, it is about as accurate as Glimmer (the table
+below). What it can't do is change its mind about a signal for a reason. Glimmer reads the evidence, asks for the
+measurements that would separate a planet from each impostor, and writes down why. Three things follow from that.
 
-This ran after the survey, on the signals of the first 48,766 stars; nothing was changed because of it.
+**It rescues planets XGBoost throws away.** On the held-out test split, XGBoost at its 0.32 cut discards 391 signals,
+115 of them real planets. Glimmer, reading the same signals, passes 56 of those planets and 13 of the false positives:
+81% of what it rescues is a planet (`tools/glimmer_misses.py`). On the survey, the same skill is three of the eight
+candidates.
+
+**The fine-tune is what makes it work.** Same server, same prompt, same test signals; only the adapter differs
+(`python -m finetune.valgate --model glimmer-base`):
+
+| Test split: 297 planets, 282 false positives | Planets passed | False positives passed | Precision | Planets rescued from XGBoost's 391 rejects |
+|---|---|---|---|---|
+| Muse Glimmer 30B, base | 102 (34%) | 6 (2.1%) | 94% | 7, for 2 false positives |
+| **Glimmer v10, fine-tuned on 745 Spark Open investigations** | **213 (72%)** | 18 (6.4%) | 92% | **56, for 13 false positives** |
+
+The base model mostly agrees with XGBoost and says no; fine-tuning on Muse Spark Open's correct investigations more
+than doubles the planets it finds and gives it eight times as many rescues, at almost the same precision.
+
+**Its reasons can be checked.** Every call comes with a dossier: which tools it asked for, what they returned, and why
+that settles it. A number it writes that is not in its input is caught and counted. A person can read why Glimmer
+passed TIC 71503196 (on target in every sector, flat-bottomed, the size the star's density predicts) and disagree
+with a specific step, which a rank of 0.09 doesn't allow.
 
 **On known TESS candidates.** The held-out test split (signals held back from training and tuning, outcomes settled
 by follow-up), with Tessa against XGBoost alone, its cut set on val to recover as many planets as Glimmer:
@@ -196,7 +212,7 @@ runs; Tessa uses full-frame data only):
 | 70 planets, 94 false positives | Planets passed | False positives passed | Precision |
 |---|---|---|---|
 | Tessa (Glimmer v10 makes the call) | 50 | 3 | 94% |
-| XGBoost, cut set on dev | 55 | 4 | 93% |
+| XGBoost, cut set on dev (val plus the training signals Glimmer never trained on) | 55 | 4 | 93% |
 | NASA ExoMiner++ 2.0 at 0.5 | 55 | 7 | 89% |
 
 Against ExoMiner++, Tessa's lower false-positive rate holds up: the 95% paired bootstrap interval for the difference
@@ -211,9 +227,10 @@ NASA's ExoMiner++: AUC 0.963 against 0.945.
 
 So the division of labour is deliberate: XGBoost's rank goes into Glimmer's input and sets a floor under its passes,
 and Glimmer makes the call, explains it, and is willing to pass a signal the rank undervalues. On known TOIs that
-willingness costs it about 8 extra false positives in 282 at near-equal recall; on the survey it is where half the candidates
+willingness costs it about 8 extra false positives in 282 at near-equal recall; on the survey it is where three of the eight candidates
 came from, and TRICERATOPS, the season test and the novelty check then work on what it passes. Tessa needs no SPOC
-data-validation products, so it can vet the 48,945 stars in its pool that were never 2-minute targets.
+data-validation products, so it can vet the 48,945 stars in its pool that were never 2-minute targets, and search the
+others in their full-frame data.
 
 Glimmer v10 and its rank floor were frozen on train and val before they ran on test. The XGBoost comparisons above
 were later looks at the same test split, after the v10 run; nothing was changed because of them.
@@ -228,8 +245,7 @@ was never run on test and v10 stayed.
 candidate, TIC 458191673.01 (2.57-day orbit around a K dwarf 66 pc away). A preprint and a TESS observing request
 followed.
 
-**During:** Tessa, built from scratch in this repo (first commit 27 October 2026, 21:47 IST, the day after the kickoff livestream ended on 26 October at about
-22:00 IST; it holds that first day's work, committed together). It is a new
+**During:** Tessa, built from scratch in this repo (first commit 26 October 2026, 23:02 IST, an hour after the kickoff livestream ended at about 22:00 IST). It is a new
 pipeline, not those scripts: agentic, and built to handle far more data. Everything here is new work:
 
 - a target pool of 99,461 nearby K and M dwarfs from Gaia DR3 and the TIC, and light curves fetched in compact
@@ -273,12 +289,12 @@ but it can't make one.
    net hold any pass whose System 1 rank is in the bottom 5%. Code checks the TOI, CTOI, confirmed-planet, TESS EB, VSX,
    Gaia EB and SIMBAD lists, tests that each observing season predicts the others, refits the ephemeris and predicts
    the next TESS sectors and the ground windows at six Las Cumbres Observatory sites, with the SNR one transit would
-   give on 0.4, 1 and 2 m telescopes. No testable prediction, no candidate.
+   give on 0.4, 1 and 2 m telescopes, a year ahead. A signal whose transits can't be timed is not a candidate.
 7. **TRICERATOPS** (`pipeline/fpp.py`, `pipeline/tri_fast.py`). Scores the chance the dip is a false positive from the
    light curve, the star and its neighbours: FPP below 0.5 and NFPP below 0.1 to stay a candidate.
 8. **Notes for people** (`agent/caseclosed.js`, `agent/observing.js`). Muse Spark writes one plain line for
    rejected dips and an observing note for candidates. Muse Wonder 1.0 audits every candidate from the raw checks, as a
-   second opinion that changes nothing: it passes four and flags three, each for something still open (a neighbour
+   second opinion that changes nothing: it passes five and flags three, each for something still open (a neighbour
    within one pixel not ruled out for TIC 71503196 and 321290256; depths that differ between sectors 25 and 26 for
    TIC 116046773).
 
@@ -292,7 +308,7 @@ Built with Muse Spark Open.
 | Step | Model | Note |
 |---|---|---|
 | Teacher: tool-calling traces on about 1,008 training signals | Muse Spark Open (Baseten) | about $32 |
-| Fine-tune: 745 traces that reached the true outcome with no invented numbers | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
+| Fine-tune: 745 traces that reached the true outcome with no invented numbers (705 to train, 40 held back to check it) | Muse Glimmer 30B (QLoRA, one H100) | about $8 |
 | The planet call on the survey | Glimmer v10, self-hosted on Modal (`serve/glimmer.py`) | adapter `glimmer-vetter-v10`, [weights on Hugging Face](https://huggingface.co/rushi-brave/glimmer-vetter-v10) |
 | Case-closed lines and observing notes | Muse Spark 1.3 | |
 | A second opinion on every candidate | Muse Wonder 1.0 | about $0.09 a candidate |

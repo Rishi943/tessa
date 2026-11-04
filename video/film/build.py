@@ -1,5 +1,5 @@
-"""Assemble index.html from the voice's timings: the disclosure, the animated scenes, placeholders for the app
-footage still to be recorded, the "Real app footage" label over those, and the voice track.
+"""Assemble index.html from the voice's timings: the disclosure, the animated scenes, the app footage (cut.py fits each
+recording to its window), the "Real app footage" label over those, and the voice track.
 
   ../../.venv/Scripts/python build.py [--vo 42]
 
@@ -12,7 +12,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 DIS = 5.0          # the silent disclosure card
-CLOSE_LEAD = 2.3   # the close's sky starts this long before "Now the sky gets to answer" ends
+CLOSE_LEAD = 3.0   # the close's sky starts this long before "Now the sky gets to answer" ends
 END = 179.9        # the film ends here, under the 3:00 limit; the close fills what is left
 
 ap = argparse.ArgumentParser()
@@ -46,15 +46,23 @@ def host(cid, s0, s1, z):
 host("disclosure", 0, DIS, 1)
 host("open", *win["02-hook"], 1)
 host("close", *win["close"], 1)
+from cut import cut
+clips = cut({i: win[i] for i in ids if i != "02-hook"})
 for i in ids:
     if i == "02-hook":
         continue
     s0, s1 = win[i]
-    holders.append(f'      <div id="ph-{i}" class="clip ph" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="2">'
-                   f'<b>{i}</b><span>{script[i]["footage"]}</span></div>')
-    labels.append((s0, s1))
-lab = [f'      <div id="label-{k}" class="clip label" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="3">Real app footage</div>'
-       for k, (s0, s1) in enumerate(labels)]
+    if i in clips:
+        holders.append(f'      <video id="v-{i}" class="clip foot" src="{clips[i]["src"]}" muted playsinline data-start="{s0:.2f}" '
+                       f'data-duration="{s1 - s0:.2f}" data-track-index="2"></video>')
+        sp = clips[i]["speed"]
+        labels.append((s0, s1, "Real app footage" + (f" &middot; up to {sp:.0f}&times; speed" if sp >= 1.5 else "")))
+    else:
+        holders.append(f'      <div id="ph-{i}" class="clip ph" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="2">'
+                       f'<b>{i}</b><span>{script[i]["footage"]}</span></div>')
+        labels.append((s0, s1, "Real app footage"))
+lab = [f'      <div id="label-{k}" class="clip label" data-start="{s0:.2f}" data-duration="{s1 - s0:.2f}" data-track-index="3">{t}</div>'
+       for k, (s0, s1, t) in enumerate(labels)]
 
 html = f'''<!doctype html>
 <html lang="en">
@@ -72,6 +80,7 @@ html = f'''<!doctype html>
       .ph {{ position: absolute; inset: 0; background: #121211; color: #9C9B95; display: flex; flex-direction: column;
              align-items: center; justify-content: center; gap: 18px; font: 400 30px/1.3 "Courier Prime", monospace; z-index: 2; }}
       .ph b {{ color: #ECEBE6; font: 600 54px/1 Archivo, sans-serif; }}
+      .foot {{ position: absolute; inset: 0; width: 1920px; height: 1080px; object-fit: cover; z-index: 2; background: #0b0b0a; }}
       .label {{ position: absolute; right: 48px; bottom: 40px; z-index: 5; color: rgba(236, 235, 230, 0.72);
                font: 400 20px/1 "Courier Prime", monospace; letter-spacing: 0.14em; text-transform: uppercase;
                padding: 9px 14px; border: 1px solid rgba(236, 235, 230, 0.26); border-radius: 4px; background: rgba(11, 11, 10, 0.55); }}

@@ -4,7 +4,7 @@
 
 RA 95 to 370 degrees runs across the frame and Dec +50 to -62 down a 3000 px strip (stretched vertically so the
 camera can pan up it). Brighter stars (by TESS magnitude) go on the near layer, the rest on the far one. Writes
-assets/sky-far.png, assets/sky-near.png and assets/cands.json (the 7 candidates' pixel positions, for the close).
+assets/sky-far.png, assets/sky-near.png and assets/cands.json (the candidates' pixel positions, for the close).
 """
 import json
 from pathlib import Path

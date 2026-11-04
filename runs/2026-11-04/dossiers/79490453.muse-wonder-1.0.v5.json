@@ -1,0 +1,76 @@
+{
+ "model": "muse-wonder-1.0",
+ "prompt": "v5",
+ "ms": 15972,
+ "tokens": {
+  "input": 2898,
+  "cached": 0,
+  "output": 1824
+ },
+ "cost": 0.048072000000000004,
+ "raw": "{\"verdict\": \"gate2\", \"reasons\": [{\"check\": \"odd_even.diff_sigma\", \"value\": \"0.6741\", \"why\": \"Odd and even dips agree, which is planet-like.\"}, {\"check\": \"secondary\", \"value\": \"snr 2.832, best_brightening_snr 2.267\", \"why\": \"No convincing second dip elsewhere in the orbit.\"}, {\"check\": \"sectors.p_constant\", \"value\": \"0.813\", \"why\": \"The depth is steady across sectors.\"}, {\"check\": \"size.rp_rearth\", \"value\": \"2.346\", \"why\": \"The inferred size is planet-like.\"}, {\"check\": \"duration.ratio\", \"value\": \"0.6764\", \"why\": \"The duration is consistent with a transit across the star.\"}, {\"check\": \"known\", \"value\": \"[]\", \"why\": \"No known match at this period or a harmonic.\"}, {\"check\": \"shape.v_sigma\", \"value\": \"-2.428\", \"why\": \"The shape prefers a flat bottom over a V shape.\"}, {\"check\": \"neighbours.plausible_within_1px\", \"value\": \"1\", \"why\": \"This is planet-like because the centroid verdict is on_target.\"}, {\"check\": \"centroid.verdict\", \"value\": \"on_target\", \"why\": \"Difference imaging places the dip on the target, and the listed suspects are away from the measured position.\"}, {\"check\": \"phase_curve\", \"value\": \"ratio_to_depth 0.06072, chi2 9.063\", \"why\": \"No strong swing outside the dip at this period.\"}, {\"check\": \"refit.transits\", \"value\": \"14\", \"why\": \"Enough transits were refitted.\"}], \"open_questions\": [\"neighbours.could_cause is 20 and could_cause_within_1px is 2, counting fainter stars that would need deep eclipses; these remain for later checks even though the dip has been located on the target.\"], \"public_summary\": \"A dip repeats every 8.374 days and looks like a planet about 2.346 times Earth in size passing in front of its star. The dip has been located on the target star, its depth stays steady, and no second eclipse pattern explains it. It therefore passes to the next gate for further checking.\"}",
+ "dossier": {
+  "verdict": "gate2",
+  "reasons": [
+   {
+    "check": "odd_even.diff_sigma",
+    "value": "0.6741",
+    "why": "Odd and even dips agree, which is planet-like."
+   },
+   {
+    "check": "secondary",
+    "value": "snr 2.832, best_brightening_snr 2.267",
+    "why": "No convincing second dip elsewhere in the orbit."
+   },
+   {
+    "check": "sectors.p_constant",
+    "value": "0.813",
+    "why": "The depth is steady across sectors."
+   },
+   {
+    "check": "size.rp_rearth",
+    "value": "2.346",
+    "why": "The inferred size is planet-like."
+   },
+   {
+    "check": "duration.ratio",
+    "value": "0.6764",
+    "why": "The duration is consistent with a transit across the star."
+   },
+   {
+    "check": "known",
+    "value": "[]",
+    "why": "No known match at this period or a harmonic."
+   },
+   {
+    "check": "shape.v_sigma",
+    "value": "-2.428",
+    "why": "The shape prefers a flat bottom over a V shape."
+   },
+   {
+    "check": "neighbours.plausible_within_1px",
+    "value": "1",
+    "why": "This is planet-like because the centroid verdict is on_target."
+   },
+   {
+    "check": "centroid.verdict",
+    "value": "on_target",
+    "why": "Difference imaging places the dip on the target, and the listed suspects are away from the measured position."
+   },
+   {
+    "check": "phase_curve",
+    "value": "ratio_to_depth 0.06072, chi2 9.063",
+    "why": "No strong swing outside the dip at this period."
+   },
+   {
+    "check": "refit.transits",
+    "value": "14",
+    "why": "Enough transits were refitted."
+   }
+  ],
+  "open_questions": [
+   "neighbours.could_cause is 20 and could_cause_within_1px is 2, counting fainter stars that would need deep eclipses; these remain for later checks even though the dip has been located on the target."
+  ],
+  "public_summary": "A dip repeats every 8.374 days and looks like a planet about 2.346 times Earth in size passing in front of its star. The dip has been located on the target star, its depth stays steady, and no second eclipse pattern explains it. It therefore passes to the next gate for further checking."
+ }
+}

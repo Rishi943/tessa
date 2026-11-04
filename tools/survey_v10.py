@@ -1,7 +1,7 @@
 """Survey re-vet with vetting v10 (#12): Glimmer makes the planet call on every survey gate-1 pass that code does not settle.
 
 Stages (each resumes; run in order):
-  select   which of the 785 signals reach the model (agent-bound, or rejected only by the System 1 cut) and can still pass
+  select   which of every batch's signals (pipeline.paths.batches()) reach the model (agent-bound, or rejected only by the System 1 cut) and can still pass
            (no HARD_ROWS row, rank >= FLOOR_RANK); writes data/survey_v10/runset.json and the vet dirs data/vet/{survey,batch2}_v10
   tools    the four cached-tool answers v10 reads for each run-set star, measured locally (CPU pool); centroid_all where the
            neighbours/centroid row would flag

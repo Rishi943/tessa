@@ -40,6 +40,7 @@
         <div data-hf-id="hf-l9vd" class="cl-cand" id="cl-c50099421" style="left: 118.7px; top: 1766.0px"><i data-hf-id="hf-0l8b"></i><span data-hf-id="hf-fny3">TIC 50099421</span></div>
         <div data-hf-id="hf-pvki" class="cl-cand" id="cl-c61220826" style="left: 925.8px; top: 2119.8px"><i data-hf-id="hf-0zjc"></i><span data-hf-id="hf-mumg">TIC 61220826</span></div>
         <div data-hf-id="hf-ur5o" class="cl-cand" id="cl-c166321785" style="left: 779.3px; top: 2404.1px"><i data-hf-id="hf-zsm9"></i><span data-hf-id="hf-mbd6">TIC 166321785</span></div>
+        <div data-hf-id="hf-c794" class="cl-cand" id="cl-c79490453" style="left: 1582.7px; top: 2684.2px"><i data-hf-id="hf-c795"></i><span data-hf-id="hf-c796">TIC 79490453</span></div>
       </div>
       <div data-hf-id="hf-wwvr" id="cl-fore">
         <img data-hf-id="hf-r7yc" src="assets/tree.svg" alt="" />
@@ -75,9 +76,9 @@
       const tl = gsap.timeline({ paused: true });
       // in from the case file: the sky where the open left it
       tl.fromTo("#cl-black", { opacity: 1 }, { opacity: 0, duration: 0.6, ease: "power2.out" }, 0);
-      const D = 8.74;  // set by build.py: the close runs from under the last line to the film's end
+      const D = 9.20;  // set by build.py: the close runs from under the last line to the film's end
       // her candidates light up in amber as the camera comes back down to the tree
-      const P0 = 0.5, P = D - 4.1;
+      const P0 = 0.5, P = D - 5.2;
       tl.fromTo("#cl-near", { y: 0 }, { y: -1920, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-far", { y: 0 }, { y: -1720, duration: P, ease: "power2.inOut" }, P0);
       tl.fromTo("#cl-milky", { y: 0 }, { y: -1520, duration: P, ease: "power2.inOut" }, P0);
@@ -95,11 +96,12 @@
       light("50099421", 1766.0);
       light("61220826", 2119.8);
       light("166321785", 2404.1);
+      light("79490453", 2684.2);
       // on screen, not spoken: the sign-off, then the way in
-      tl.fromTo("#cl-happy", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, D - 4.3);
-      tl.fromTo("#cl-url, #cl-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out", stagger: 0.12 }, D - 2.9);
-      tl.to(".cl-cand span", { opacity: 0, duration: 0.3, ease: "power2.in" }, D - 4.6);  // the labels clear for the words
-      tl.to("#cl-black", { opacity: 1, duration: 0.6, ease: "power1.in" }, D - 0.7);
+      tl.fromTo("#cl-happy", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out" }, D - 5.0);
+      tl.fromTo("#cl-url, #cl-sub", { opacity: 0, filter: "blur(8px)" }, { opacity: 1, filter: "blur(0px)", duration: 0.2, ease: "power4.out", stagger: 0.12 }, D - 3.9);
+      tl.to(".cl-cand span", { opacity: 0, duration: 0.3, ease: "power2.in" }, D - 5.3);  // the labels clear for the words
+      tl.to("#cl-black", { opacity: 1, duration: 0.45, ease: "power1.in" }, D - 0.45);
       window.__timelines["close"] = tl;
     })();
   </script>

@@ -380,7 +380,7 @@ A blend or an eclipsing binary usually needs a very different density.</p>
 {fpp_par}
 <h2>4. Predictions</h2>
 {table(["Epoch", "BTJD", "UTC (geocentric)", "&sigma; (min)"], next_rows, f"Table 4. Predicted transits in <i>TESS</i> Sector {nxt.get('sector')} (camera {nxt.get('camera')}, CCD {nxt.get('ccd')}); data public from about {nxt.get('public_from')}.") if next_rows else ""}
-<p>Ground windows in the next 90 days at Las Cumbres Observatory sites (Brown et al. 2013), whole transit with the star above 30&deg; and the Sun below &minus;12&deg;:
+<p>Ground windows in the next year at Las Cumbres Observatory sites (Brown et al. 2013), whole transit with the star above 30&deg; and the Sun below &minus;12&deg;:
 {'; '.join(f"{e(g['site'])} {g['mid_utc']} UTC" for g in grounds[:8]) or 'none'}. Expected SNR for one transit:
 {', '.join(f"{v} with {a}" for a, v in snr.items())}. Every predicted transit to {UNTIL}, with the sites that see it, is in the accompanying CSV.</p>
 {rule}
