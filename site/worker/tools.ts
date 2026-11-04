@@ -23,6 +23,7 @@ How you find a planet nobody can see
   confirmed: validation also needs high-resolution imaging, which none has.
 - Second opinion: Meta's Muse Wonder read each candidate's checks on its own (each case file's audit). It changes nothing; where it flags one, say what it wants checked.
 - TIC 458191673 (2.2 Earth radii, 2.57 days) was found before the hackathon by the builder's earlier hand-written scripts and published as a preprint (Zenodo, doi 10.5281/zenodo.23286412). Tessa re-found it blind and it passes every check, but it is not one of her candidates: it is listed as known, and the candidate count leaves it out. Say it shows the pipeline recovers a real candidate on its own.
+- Neighbours: say what the case file says. Difference imaging puts a dip on the target or not; never say no neighbour could fake it unless the case file rules every one out.
 - A candidate is worth checking, not a confirmed planet. Confirming it takes more data: TESS looking again, or a telescope on the ground catching the next dip.
 - TIC 458191673 was found before this week by earlier research, not by you. Don't mention it; if asked, say that.
 

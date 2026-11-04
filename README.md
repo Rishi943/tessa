@@ -13,7 +13,7 @@ dip, and Ask Tessa, where Muse Spark answers questions from the survey's own fil
 | Stars in the pool | 99,461 K and M dwarfs within 100 parsecs with TESS data |
 | Searched | 76,318: every one of the pool's 48,945 stars that never had 2-minute data (except 179 with no usable light curve), and 27,552 that did |
 | Repeating dips found | 2,698, with each batch's bar set on upside-down light curves so about 1 star in 100 passes on noise (749 pass there) |
-| Sent to Glimmer, the fine-tuned model | 715; code settled the other 1,983 |
+| Sent to Glimmer, the fine-tuned model | 715 (714 replies could be read; TIC 178829006 came back twice as broken JSON, so it has no call); code settled the other 1,983 |
 | Glimmer called a planet | 159 |
 | Passed novelty, ephemeris and season checks | 11 |
 | **New candidates** (passed TRICERATOPS: FPP < 0.5, NFPP < 0.1) | **8** |
@@ -75,7 +75,8 @@ gate 1 bar, System 1, Glimmer v10 and its prompt, gate 2), they were searched on
 The survey's rate, 8 candidates in 76,318 stars, predicts about 0.10 in 1,000 stars, so none is the most likely
 outcome (about 90%). What the held-out stars do show is that every stage behaved on stars it had never seen as it did
 on the survey: noise passes in the expected share, code removed the binaries and spotted stars, Glimmer rejected
-spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise.
+spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise. Run again under the final gate 2 (an ephemeris that can be fitted, the
+season test), the held-out stars still give no candidate.
 
 ## Try it
 
@@ -159,8 +160,8 @@ planets, and two of the four candidates on no published list (`tools/glimmer_val
 | TIC 79490453, 116046773, 166321785, 9066956, 50099421 | | 0.443 to 0.932 | passes |
 
 Glimmer is not just a looser cut. Of the 715 survey signals that reached it, it passed 159 and those hold all eight
-candidates. To keep all eight, XGBoost would have to pass 456, nearly three times as many, each one more signal for
-gate 2, TRICERATOPS and a person to check.
+candidates. Given the same budget, its top 159 signals, XGBoost keeps 5 of the 8. To keep all eight it would have to pass
+456, nearly three times as many, each one more signal for gate 2, TRICERATOPS and a person to check.
 
 | XGBoost cut | Survey signals passed | Candidates kept |
 |---|---|---|
@@ -178,7 +179,8 @@ measurements that would separate a planet from each impostor, and writes down wh
 
 **It rescues planets XGBoost throws away.** On the held-out test split, XGBoost at its 0.32 cut discards 391 signals,
 115 of them real planets. Glimmer, reading the same signals, passes 56 of those planets and 13 of the false positives:
-81% of what it rescues is a planet (`tools/glimmer_misses.py`). On the survey, the same skill is three of the eight
+81% of what it rescues is a planet. The per-signal calls are in `runs/benchmarks/test_split.json`;
+`python tools/test_bench.py` recomputes these tables from it (`tools/glimmer_misses.py` breaks the misses down). On the survey, the same skill is three of the eight
 candidates.
 
 **The fine-tune is what makes it work.** Same server, same prompt, same test signals; only the adapter differs
@@ -193,7 +195,7 @@ The base model mostly agrees with XGBoost and says no; fine-tuning on Muse Spark
 than doubles the planets it finds and gives it eight times as many rescues, at almost the same precision.
 
 **Its reasons can be checked.** Every call comes with a dossier: which tools it asked for, what they returned, and why
-that settles it. A number it writes that is not in its input is caught and counted. A person can read why Glimmer
+that settles it. A number in its reasons that is not in its input is caught and counted. A person can read why Glimmer
 passed TIC 71503196 (on target in every sector, flat-bottomed, the size the star's density predicts) and disagree
 with a specific step, which a rank of 0.09 doesn't allow.
 
@@ -282,7 +284,7 @@ but it can't make one.
    settled gives a planet rank. Glimmer gets the rank as one piece of evidence, not as a verdict.
 5. **Glimmer makes the call** (`tools/survey_v10.py`, `agent/prompts/vetting.v10.md`, `pipeline/tools.py`). It names
    the live explanations, calls only the tools that separate them (centroid in every sector, depth by data source,
-   depth of each transit, Gaia radius, rotation), and returns reject, flag or gate2 with a dossier. Any number it
+   depth of each transit, Gaia radius, rotation), and returns reject, flag or gate2 with a dossier. Any number in its reasons that it
    writes that is not in its input is caught and counted. Survey tool answers are measured ahead of time and returned
    when it calls.
 6. **Gate 2 can stop it** (`pipeline/gate2.py`, `pipeline/novelty.py`, `pipeline/when.py`). Hard rows and a safety

@@ -30,7 +30,8 @@ from pipeline import gate2  # noqa: E402
 from pipeline.paths import DATA, batches  # noqa: E402
 
 CANDIDATES = {71503196: "likely", 116046773: "likely", 166321785: "likely", 9066956: "likely",
-              321290256: "nearby open", 50099421: "nearby open", 61220826: "nearby open"}
+              321290256: "nearby open", 50099421: "nearby open", 61220826: "nearby open",
+              79490453: "nearby open"}
 
 
 def rank(c: dict) -> float:
