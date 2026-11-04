@@ -37,7 +37,8 @@ rates TIC 240488148 a likely nearby false positive (NFPP 0.12).
 
 The newest, from batch 4: **TIC 9066956**, a 2.7 Earth-radius body every 0.713 days (17 hours) around an M dwarf
 (3,300 K) 90 pc away, 174 transits over six sectors, on target in difference imaging, every season predicting the
-others, FPP 0.050 and NFPP 1.4e-9. It is on no published list we checked, and its short period gives 231 nights in the coming year when a ground
+others, FPP 0.050 and NFPP 1.4e-9. The PHANTOM search posted it on Zenodo on 23 October, days before the hackathon;
+Tessa found it on its own. Its short period gives 231 nights in the coming year when a ground
 telescope can catch a transit. All eight, with coordinates, ephemerides and their next windows, are in one table for
 observers: [predictions/README.md](predictions/README.md) (and as CSV).
 
@@ -52,10 +53,12 @@ out. Ground photometry that resolves the neighbours during a transit settles it.
 A candidate is not a planet. It is a dip the checks could not explain, on none of the TOI, CTOI, confirmed-planet or
 eclipsing-binary lists, that every observing season predicts, with its next transits listed so anyone can test it.
 
-TIC 9066956, 321290256, 61220826 and 79490453 are on no published list we checked. TIC 116046773 and 50099421 are also in
-[RAVEN](https://zenodo.org/records/19661443), TIC 166321785 in
-[eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue: Tessa
-reached those independently.
+TIC 321290256, 61220826 and 79490453 are on no published list we checked. The other five were also found by other
+searches, and Tessa reached each independently: TIC 9066956 by
+[PHANTOM](https://doi.org/10.5281/zenodo.23584959), TIC 116046773 by
+[Reckling](https://doi.org/10.5281/zenodo.23664505) and in [RAVEN](https://zenodo.org/records/19661443), TIC 50099421
+by [Ibrahim](https://doi.org/10.5281/zenodo.23569126) and in RAVEN, TIC 166321785 in
+[eumemic/exoplanets](https://github.com/eumemic/exoplanets), and TIC 71503196 in the ExoMiner++ 2.0 catalogue.
 
 ## The held-out test
 
@@ -152,7 +155,7 @@ recorded answer, labelled as a replay. The hosted site has no such server and sa
 
 **On the survey, Glimmer found what XGBoost would have thrown away.** Three of the eight candidates sit below the cut
 XGBoost (System 1) used on its own in vetting v9, so XGBoost alone would have discarded them: one of the four likely
-planets, and two of the four candidates on no published list (`tools/glimmer_value.py`).
+planets, and two of the three candidates on no published list (`tools/glimmer_value.py`).
 
 | Candidate | Class | XGBoost rank | XGBoost at its 0.32 cut |
 |---|---|---|---|

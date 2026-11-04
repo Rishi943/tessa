@@ -195,6 +195,9 @@ function nextPanel(p: StarPage): HTMLElement {
     box.append(el("p", { class: "by" }, p.novelty.new
       ? "Not on the TOI or community TOI lists, the confirmed planet list, the TESS eclipsing binary catalogue, VSX, Gaia's eclipsing binaries or SIMBAD's binaries, as of this run."
       : "Already on a list: " + p.novelty.matches.map((m) => JSON.stringify(m)).join("; ")));
+    const also = [...new Set((p.novelty.reported ?? []).map((r) => r.list.replace(/^RAVEN .*/, "RAVEN (Zenodo 19661443)")))];
+    if (also.length) box.append(el("p", { class: "by" },
+      `Also found by other searches, which Tessa reached independently: ${also.join("; ")}.`));
   }
   return box;
 }

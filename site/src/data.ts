@@ -52,7 +52,7 @@ export interface StarPage {
   series: { t: number[]; y_ppm: number[]; sector: number[] };
   fold: { x_h: number[]; y_ppm: number[]; err_ppm: number[] };
   evidence?: Record<string, Checks>;
-  novelty?: { new: boolean; complete: boolean; matches: Checks[]; notes: string[]; errors: string[] };
+  novelty?: { new: boolean; complete: boolean; matches: Checks[]; notes: string[]; errors: string[]; reported?: { list: string; period: number | null }[] };
   when?: {
     ephemeris: { period: number; period_err: number; t0_btjd: number; t0_err_min: number; t14_h: number };
     timing_err_now_min: number; testable: boolean; next_tess: TessSector | null; tess_sectors: TessSector[];

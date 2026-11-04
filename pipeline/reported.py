@@ -10,6 +10,7 @@ Lists, reduced to one row per star and period (tic, period, list):
   - T16 (Roth et al. 2026, Harvard Dataverse): its candidates, and single transits (no period)
   - ExoMiner++ (Zenodo 15466293) and ExoMiner++ 2.0 (Zenodo 17707413): SPOC TCEs it scores as planets (>= 0.5)
   - Kunimoto et al. 2025 (AJ 170, 280; not on VizieR): LEO-Vetter's 172 M-dwarf candidates, the journal's Table 2
+  - Single-star Zenodo records (RECORDS below), found by searching Zenodo for each candidate's TIC on 2026-11-04
 
 Run (Kaggle CPU, as the files are about 220 MB): python -m pipeline.reported --build OUT_DIR
      writes reported.csv (a few MB) and a log of each list's columns; copy it to data/catalogs/reported.csv
@@ -25,6 +26,13 @@ import pandas as pd
 from .paths import CATALOGS
 
 TABLE = CATALOGS / "reported.csv"
+# Zenodo records about one or a few stars, not in any list above: (tic, period or None, credit). A period of None
+# credits the star whatever its period (the record gives none).
+RECORDS = [
+    (9066956, 0.71345, "PHANTOM (Benoit 2026, doi 10.5281/zenodo.23584959)"),
+    (116046773, 5.650353, "Reckling 2026 (doi 10.5281/zenodo.23664505)"),
+    (50099421, None, "Ibrahim 2026 (doi 10.5281/zenodo.23569126)"),
+]
 EUMEMIC = "https://raw.githubusercontent.com/eumemic/exoplanets/main/results_public/{}"
 RAVEN = "https://zenodo.org/api/records/19661443/files/{}/content"
 T16 = ("https://dataverse.harvard.edu/api/access/datafile/13605255?format=original",
@@ -142,6 +150,11 @@ def reported(tic: int, sig: dict) -> list[dict]:
         h = harmonic(r.period, sig["period"]) if pd.notna(r.period) else None
         if h is not None or pd.isna(r.period):
             out.append({"list": r.list, "period": None if pd.isna(r.period) else float(r.period), "harmonic": h})
+    for t, period, credit in RECORDS:
+        if t == tic:
+            h = harmonic(period, sig["period"]) if period else None
+            if h is not None or period is None:
+                out.append({"list": credit, "period": period, "harmonic": h})
     return out
 
 
