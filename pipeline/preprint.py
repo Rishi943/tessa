@@ -239,12 +239,16 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         f"odd and even transits agree ({oe['diff_sigma']:.1f}&sigma;) and there is no significant secondary eclipse (SNR {k['secondary']['snr']:.1f});",
         f"the depth is consistent across sectors (<i>p</i> = {sec['p_constant']:.2f});",
     ]
-    if rho:
-        tests.append(f"the stellar density implied by the transit shape matches the catalogue value (ratio {rho['median']:.2f}, 68% interval {rho['lo']:.2f}&ndash;{rho['hi']:.2f});")
+    rho_ok = bool(rho) and rho["lo"] <= 1 <= rho["hi"]  # the catalogue density inside the fit's 68% interval
+    rho_txt = f"ratio {rho['median']:.2f}, 68% interval {rho['lo']:.2f}&ndash;{rho['hi']:.2f}" if rho else ""
+    if rho_ok:
+        tests.append(f"the stellar density implied by the transit shape matches the catalogue value ({rho_txt});")
+    rho_note = (f"The stellar density implied by the transit shape is {'higher' if rho['lo'] > 1 else 'lower'} than the catalogue value "
+                f"({rho_txt}); see Caveats. " if rho and not rho_ok else "")
     if cen.get("verdict") == "on_target":
         tests.append(f"difference imaging places the source on the target ({cen['offset_arcsec']:.1f}&Prime; &plusmn; {cen['err_arcsec']:.1f}&Prime;, {cen['sectors_used']} sectors) and on none of the {nb['could_cause']} Gaia neighbours bright enough to fake it;")
     if (gaia.get("ruwe") or 9) < 1.4:
-        tests.append(f"Gaia DR3 astrometry (RUWE {gaia['ruwe']:.2f}){' and radial velocities' if gaia.get('rv_chisq_pvalue') is not None else ''} show no sign that the target is a binary;")
+        tests.append(f"Gaia DR3 astrometry (RUWE {gaia['ruwe']:.2f}){' and radial velocities show' if gaia.get('rv_chisq_pvalue') is not None else ' shows'} no sign that the target is a binary;")
     if ok_seasons and len(ok_seasons) == len(seasons):
         tests.append(f"in a leave-one-season-out test, each of {len(seasons)} seasons is predicted from the others and shows the dip at the predicted times;")
     if flip.get("flipped_snr"):
@@ -266,9 +270,9 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
         f"that were mostly never observed at 2-minute cadence. Data from {len(sectors)} sectors show {n_tr} transits with period "
         f"<i>P</i>&nbsp;=&nbsp;{eph['period']:.6f}&nbsp;&plusmn;&nbsp;{eph['period_err']:.6f}&nbsp;d, depth {sig['depth_ppm']:.0f}&nbsp;ppm and duration "
         f"{eph['t14_h']:.2f}&nbsp;h (SNR&nbsp;{sig['snr']:.1f}), implying a planet radius of {rp_txt}&nbsp;R<sub>&oplus;</sub>. "
-        + ("The signal passes every test available to us:" if passed or not f else "The signal passes these tests:")
+        + ("The signal passes every test available to us:" if (passed or not f) and not rho_note else "The signal passes these tests:")
         + "<ul>" + "".join(f"<li>{t[:-1] + '.' if i == len(tests) - 1 else t}</li>" for i, t in enumerate(tests)) + "</ul>"
-        + fpp_note.strip() + (" " if fpp_note else "")
+        + fpp_note.strip() + (" " if fpp_note else "") + rho_note
         + f"The candidate matches no known planet, TOI, CTOI, catalogued eclipsing binary or variable star"
         + (f". Other searches have also reported it ({'; '.join(n for n, _ in credits(c))}); Tessa found it independently, and this note "
            "adds its own vetting and predictions" if credits(c) else ", nor any signal in the published candidate lists we checked")
@@ -343,13 +347,19 @@ def paper(d: dict, tr: list[dict]) -> tuple[str, str]:
             "A colour-dependent depth would point to a blended eclipsing binary. Becoming a planet needs repeated on-time transits and a mass from radial velocities.</p>")
 
     caveats = ["Full-frame images only; no 2-minute data exist for this star yet."]
+    if rho_note:
+        caveats.append(f"The transit shape implies a star {rho['median']:.1f} times {'denser' if rho['lo'] > 1 else 'less dense'} than the catalogue's "
+                       f"(68% interval {rho['lo']:.2f}&ndash;{rho['hi']:.2f}), outside the 68% interval. An eccentric orbit, a grazing "
+                       "transit, a poorly constrained impact parameter, or a blend can each do this; "
+                       "a transit observed at higher cadence would tell them apart.")
     suspects = cen.get("suspects") or []
     plausible = [x for x in suspects if x["sep_arcsec"] < 21 and x["eclipse_needed"] <= 0.25]
     open_suspects = [x for x in suspects if x["sigma_from_centroid"] < 3 and x["eclipse_needed"] <= 1]
     if cen.get("sectors_used") and cen["sectors_used"] < len(sectors):
         caveats.append(f"The centroid uses {cen['sectors_used']} of {len(sectors)} sectors; the others' difference images were too weak.")
-    if not cen:
-        caveats.append("No difference-image centroid could be measured, so nearby stars are not excluded as the source.")
+    if not cen or cen.get("verdict") != "on_target" and not cen.get("sectors_used"):
+        caveats.append("No difference-image centroid could be measured" + (f" ({cen['why']})" if cen.get("why") else "")
+                       + ", so nearby stars are not excluded as the source.")
     elif open_suspects:
         caveats.append(f"{len(open_suspects)} nearby star(s) that could cause the dip lie within 3&sigma; of the measured centroid ("
                        + "; ".join(f"{x['sep_arcsec']:.0f}&Prime; away, would need a {x['eclipse_needed'] * 100:.1f}% eclipse" for x in open_suspects)
