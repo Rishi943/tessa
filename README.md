@@ -6,6 +6,11 @@ dip it can, writes down why, and turns what is left into predictions anyone with
 **Live site:** https://tessa.braveai.solutions: every star in the survey on a 3D map, a case file for every
 dip, and Ask Tessa, where Muse Spark answers questions from the survey's own files.
 
+**Quick links:** [Quickstart: hosted, or one star from this repo](#quickstart) ·
+[How it compares with NASA's ExoMiner++](#what-glimmer-adds) ·
+[Glimmer v10 weights on Hugging Face](https://huggingface.co/rushi-brave/glimmer-vetter-v10) ·
+[Meta models used](#meta-models) · [Predictions for observers](predictions/README.md)
+
 ## What it found so far
 
 | | |
@@ -82,7 +87,7 @@ on the survey: noise passes in the expected share, code removed the binaries and
 spot signals for that reason, and gate 2 refused what it could not test. Tessa did not make candidates out of noise. Run again under the final gate 2 (an ephemeris that can be fitted, the
 season test), the held-out stars still give no candidate.
 
-## Try it
+## Quickstart
 
 **Hosted:** https://tessa.braveai.solutions. The 3D map of every star in the survey, a case file for every dip (its
 light curve, every check, Glimmer's dossier, TRICERATOPS, and for candidates the next transits), Ask Tessa, and
@@ -165,8 +170,11 @@ planets, and two of the three candidates on no published list (`tools/glimmer_va
 | TIC 79490453, 116046773, 166321785, 9066956, 50099421 | | 0.443 to 0.932 | passes |
 
 Glimmer is not just a looser cut. Of the 715 survey signals that reached it, it passed 159 and those hold all eight
-candidates. Given the same budget, its top 159 signals, XGBoost keeps 5 of the 8. To keep all eight it would have to pass
-456, nearly three times as many, each one more signal for gate 2, TRICERATOPS and a person to check.
+candidates. Given the same budget, its top 159 signals, XGBoost keeps 5 of the 8. Run in Glimmer's place through gate 2
+and TRICERATOPS (`tools/xgb_chain.py`), its passes end with those same 5 and one more, TIC 148894196: a 3.5% eclipse
+with a secondary eclipse at SNR 234, a binary that Glimmer rejected and the checks XGBoost used alone in vetting v9
+reject too. To keep all eight XGBoost would have to pass 456, nearly three times as many, each one more signal for
+gate 2, TRICERATOPS and a person to check.
 
 | XGBoost cut | Survey signals passed | Candidates kept |
 |---|---|---|

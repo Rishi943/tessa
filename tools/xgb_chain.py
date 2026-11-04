@@ -101,7 +101,7 @@ def main() -> None:
     cache = json.loads(cache_f.read_text(encoding="utf-8")) if cache_f.exists() else {}
     todo = [(r["tic"], r["batch"]) for r in ok if r["rank"] >= low and not r["passes"]
             and (str(r["tic"]) not in cache or cache[str(r["tic"])][0] == "error"
-                 or all(w.startswith("no test") for w in cache[str(r["tic"])][1])
+                 or cache[str(r["tic"])][1] and all(w.startswith("no test") for w in cache[str(r["tic"])][1])
                  or any("Timeout" in w or "ConnectionError" in w for w in cache[str(r["tic"])][1]))]  # a catalogue down is no verdict  # the rule before gate2.py's current one
     print(f"gate 2 to run as if XGBoost passed: {len(todo)} signals ({len(cache)} cached)", flush=True)
     with ProcessPoolExecutor(a.jobs) as pool:
